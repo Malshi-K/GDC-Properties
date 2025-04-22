@@ -4,31 +4,31 @@ import Image from "next/image";
 const PropertyTypesOverview = () => {
   const propertyTypes = [
     {
-      icon: "/images/access-more-icon.png", // Similar to stars icon in screenshot
+      icon: "/images/icons/1.png", 
       title: "Apartments",
     },
     {
-      icon: "/images/planet-icon.png", // Similar to earth icon in screenshot
+      icon: "/images/icons/2.png", 
       title: "Houses",
     },
     {
-      icon: "/images/money-icon.png", // Similar to money/hand icon in screenshot
+      icon: "/images/icons/3.png", 
       title: "Town Houses",
     },
     {
-      icon: "/images/money-icon.png", // Similar to money/hand icon in screenshot
+      icon: "/images/icons/4.png", 
       title: "Units",
     },
   ];
 
   return (
-    <section className="py-16 md:py-20 bg-gray-50">
+    <section className="py-5 md:py-10 bg-gray-50">
       <div className="container mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12">
           {propertyTypes.map((type, index) => (
             <div key={index} className="text-center">
               <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 relative">
+                <div className="w-40 h-40 relative">
                   <Image
                     src={type.icon}
                     alt={type.title}
