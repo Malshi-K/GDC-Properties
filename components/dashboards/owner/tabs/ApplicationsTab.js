@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { formatDate } from "@/utils/formatters";
 import { toast } from "react-hot-toast";
 
 export default function ApplicationsTab({ 

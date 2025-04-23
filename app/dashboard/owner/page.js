@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { toast } from 'react-hot-toast'; // You'll need to install this: npm install react-hot-toast
+import { toast } from "react-hot-toast";
 
 // Import components
-import ProfileCard from "@/components/dashboards/owner/ProfileCard";
+import ProfileCard from "@/components/dashboards/ProfileCard";
 import Sidebar from "@/components/dashboards/owner/Sidebar";
 import PropertiesTab from "@/components/dashboards/owner/tabs/PropertiesTab";
 import ViewingRequestsTab from "@/components/dashboards/owner/tabs/ViewingRequestsTab";
@@ -30,51 +30,79 @@ export default function OwnerDashboard() {
   const [loading, setLoading] = useState({
     properties: true,
     viewings: true,
-    applications: true
+    applications: true,
   });
   const [error, setError] = useState({
     properties: null,
     viewings: null,
-    applications: null
+    applications: null,
   });
-  
+
   // Fetch owner's properties
   useEffect(() => {
     if (!user) return;
     fetchProperties();
   }, [user]);
-  
+
   // Fetch viewing requests and applications when tab changes
   useEffect(() => {
     if (!user) return;
     
-    if (activeTab === "viewings") {
+    if (activeTab === "properties") {
+      // Fetch all data when on properties tab
+      fetchViewingRequests();
+      fetchRentalApplications();
+    } else if (activeTab === "viewings") {
       fetchViewingRequests();
     } else if (activeTab === "applications") {
       fetchRentalApplications();
     }
   }, [user, activeTab]);
-  
+
   // Fetch properties
+  // Inside OwnerDashboard.js
+  // Update fetchProperties to include viewing requests and applications
   const fetchProperties = async () => {
     try {
-      setLoading(prev => ({ ...prev, properties: true }));
-      const { data, error } = await propertyService.getOwnerProperties();
-      
-      if (error) throw error;
-      
-      setProperties(data || []);
-      setError(prev => ({ ...prev, properties: null }));
+      setLoading((prev) => ({ ...prev, properties: true }));
+
+      // Fetch properties
+      const { data: propertiesData, error: propertiesError } =
+        await propertyService.getOwnerProperties();
+
+      if (propertiesError) throw propertiesError;
+
+      // Fetch viewing requests and applications for these properties
+      const { data: viewingRequestsData, error: viewingError } =
+        await propertyService.getAllViewingRequests();
+      const { data: applicationsData, error: applicationsError } =
+        await propertyService.getAllApplications();
+
+      if (viewingError) throw viewingError;
+      if (applicationsError) throw applicationsError;
+
+      // Combine the data
+      const propertiesWithRelatedData = propertiesData.map((property) => ({
+        ...property,
+        viewing_requests: viewingRequestsData.filter(
+          (req) => req.property_id === property.id
+        ),
+        applications: applicationsData.filter(
+          (app) => app.property_id === property.id
+        ),
+      }));
+
+      setProperties(propertiesWithRelatedData || []);
+      setError((prev) => ({ ...prev, properties: null }));
     } catch (err) {
-      console.error('Error fetching properties:', err);
-      setError(prev => ({ ...prev, properties: err.message }));
-      toast.error('Failed to load properties');
+      console.error("Error fetching properties:", err);
+      setError((prev) => ({ ...prev, properties: err.message }));
+      toast.error("Failed to load properties");
     } finally {
-      setLoading(prev => ({ ...prev, properties: false }));
+      setLoading((prev) => ({ ...prev, properties: false }));
     }
   };
-  
-  // Fetch viewing requests
+
   const fetchViewingRequests = async () => {
     try {
       setLoading(prev => ({ ...prev, viewings: true }));
@@ -82,6 +110,7 @@ export default function OwnerDashboard() {
       
       if (error) throw error;
       
+      console.log("Fetched viewing requests:", data);
       setViewingRequests(data || []);
       setError(prev => ({ ...prev, viewings: null }));
     } catch (err) {
@@ -93,7 +122,6 @@ export default function OwnerDashboard() {
     }
   };
   
-  // Fetch rental applications
   const fetchRentalApplications = async () => {
     try {
       setLoading(prev => ({ ...prev, applications: true }));
@@ -101,6 +129,7 @@ export default function OwnerDashboard() {
       
       if (error) throw error;
       
+      console.log("Fetched rental applications:", data);
       setRentalApplications(data || []);
       setError(prev => ({ ...prev, applications: null }));
     } catch (err) {
@@ -111,7 +140,7 @@ export default function OwnerDashboard() {
       setLoading(prev => ({ ...prev, applications: false }));
     }
   };
-  
+
   // Handle property actions
   const handleEditProperty = (propertyId) => {
     setEditPropertyId(propertyId);
@@ -122,15 +151,17 @@ export default function OwnerDashboard() {
     if (confirm("Are you sure you want to delete this property?")) {
       try {
         const { error } = await propertyService.deleteProperty(propertyId);
-          
+
         if (error) throw error;
-        
+
         // Update local state after successful deletion
-        setProperties(properties.filter(property => property.id !== propertyId));
-        toast.success('Property deleted successfully');
+        setProperties(
+          properties.filter((property) => property.id !== propertyId)
+        );
+        toast.success("Property deleted successfully");
       } catch (error) {
-        console.error('Error deleting property:', error);
-        toast.error('Failed to delete property. Please try again.');
+        console.error("Error deleting property:", error);
+        toast.error("Failed to delete property. Please try again.");
       }
     }
   };
@@ -138,88 +169,105 @@ export default function OwnerDashboard() {
   const handleSaveProperty = async (formData) => {
     try {
       let result;
-      
+
       if (editPropertyId) {
         // Update existing property
-        const { data, error } = await propertyService.updateProperty(editPropertyId, formData);
+        const { data, error } = await propertyService.updateProperty(
+          editPropertyId,
+          formData
+        );
         if (error) throw error;
         result = data;
-        
+
         // Update local state
-        setProperties(properties.map(property => 
-          property.id === editPropertyId ? result : property
-        ));
-        
-        toast.success('Property updated successfully');
+        setProperties(
+          properties.map((property) =>
+            property.id === editPropertyId ? result : property
+          )
+        );
+
+        toast.success("Property updated successfully");
       } else {
         // Add new property
         const { data, error } = await propertyService.createProperty({
           ...formData,
-          owner_id: user.id
+          owner_id: user.id,
         });
-        
+
         if (error) throw error;
         result = data;
-        
+
         // Update local state with newly created property
         setProperties([result, ...properties]);
-        toast.success('Property added successfully');
+        toast.success("Property added successfully");
       }
-      
+
       // Close modal after successful save
       setShowAddPropertyModal(false);
       setEditPropertyId(null);
     } catch (error) {
-      console.error('Error saving property:', error);
-      toast.error('Failed to save property. Please try again.');
+      console.error("Error saving property:", error);
+      toast.error("Failed to save property. Please try again.");
     }
   };
-  
+
   // Handle viewing request actions
   const handleViewingRequestStatusUpdate = async (requestId, status) => {
     try {
-      const { data, error } = await propertyService.updateViewingRequestStatus(requestId, status);
-      
+      const { data, error } = await propertyService.updateViewingRequestStatus(
+        requestId,
+        status
+      );
+
       if (error) throw error;
-      
+
       // Update local state
-      setViewingRequests(viewingRequests.map(request => 
-        request.id === requestId ? { ...request, status } : request
-      ));
-      
+      setViewingRequests(
+        viewingRequests.map((request) =>
+          request.id === requestId ? { ...request, status } : request
+        )
+      );
+
       toast.success(`Viewing request ${status}`);
     } catch (error) {
-      console.error('Error updating viewing request:', error);
-      toast.error('Failed to update viewing request. Please try again.');
+      console.error("Error updating viewing request:", error);
+      toast.error("Failed to update viewing request. Please try again.");
     }
   };
-  
+
   // Handle rental application actions
   const handleApplicationStatusUpdate = async (applicationId, status) => {
     try {
-      const { data, error } = await propertyService.updateApplicationStatus(applicationId, status);
-      
+      const { data, error } = await propertyService.updateApplicationStatus(
+        applicationId,
+        status
+      );
+
       if (error) throw error;
-      
+
       // Update local state
-      setRentalApplications(rentalApplications.map(application => 
-        application.id === applicationId ? { ...application, status } : application
-      ));
-      
+      setRentalApplications(
+        rentalApplications.map((application) =>
+          application.id === applicationId
+            ? { ...application, status }
+            : application
+        )
+      );
+
       toast.success(`Application ${status}`);
     } catch (error) {
-      console.error('Error updating application:', error);
-      toast.error('Failed to update application. Please try again.');
+      console.error("Error updating application:", error);
+      toast.error("Failed to update application. Please try again.");
     }
   };
 
   // Get property being edited if any
-  const propertyToEdit = editPropertyId 
-    ? properties.find(property => property.id === editPropertyId)
+  const propertyToEdit = editPropertyId
+    ? properties.find((property) => property.id === editPropertyId)
     : null;
 
   return (
-    <ProtectedRoute allowedRoles={['owner']}>
+    <ProtectedRoute allowedRoles={["owner"]}>
       <div className="min-h-screen bg-gray-100">
         {/* Header */}
         <header className="bg-white shadow">
@@ -248,25 +296,34 @@ export default function OwnerDashboard() {
             <div className="lg:col-span-3">
               {/* Properties Tab */}
               {activeTab === "properties" && (
-                <PropertiesTab
-                  properties={properties}
-                  loading={loading.properties}
-                  error={error.properties}
-                  onEdit={handleEditProperty}
-                  onDelete={handleDeleteProperty}
-                  onAddNew={() => {
-                    setEditPropertyId(null);
-                    setShowAddPropertyModal(true);
-                  }}
-                  onViewAllRequests={() => setActiveTab("viewings")}
-                  onViewAllApplications={() => setActiveTab("applications")}
-                  onRefresh={fetchProperties}
-                />
+                <>
+                  {console.log("Passing to PropertiesTab:", {
+                    properties,
+                    viewingRequests,
+                    rentalApplications,
+                  })}
+                  <PropertiesTab
+                    properties={properties}
+                    loading={loading.properties}
+                    error={error.properties}
+                    viewingRequests={viewingRequests} // Make sure this is being passed
+                    applications={rentalApplications} // Make sure this is being passed
+                    onEdit={handleEditProperty}
+                    onDelete={handleDeleteProperty}
+                    onAddNew={() => {
+                      setEditPropertyId(null);
+                      setShowAddPropertyModal(true);
+                    }}
+                    onViewAllRequests={() => setActiveTab("viewings")}
+                    onViewAllApplications={() => setActiveTab("applications")}
+                    onRefresh={fetchProperties}
+                  />
+                </>
               )}
 
               {/* Viewing Requests Tab */}
               {activeTab === "viewings" && (
-                <ViewingRequestsTab 
+                <ViewingRequestsTab
                   viewingRequests={viewingRequests}
                   loading={loading.viewings}
                   error={error.viewings}
@@ -274,10 +331,10 @@ export default function OwnerDashboard() {
                   onRefresh={fetchViewingRequests}
                 />
               )}
-              
+
               {/* Applications Tab */}
               {activeTab === "applications" && (
-                <ApplicationsTab 
+                <ApplicationsTab
                   applications={rentalApplications}
                   loading={loading.applications}
                   error={error.applications}
@@ -285,10 +342,10 @@ export default function OwnerDashboard() {
                   onRefresh={fetchRentalApplications}
                 />
               )}
-              
+
               {/* Analytics Tab */}
               {activeTab === "analytics" && <AnalyticsTab />}
-              
+
               {/* Settings Tab */}
               {activeTab === "settings" && <SettingsTab user={user} />}
             </div>

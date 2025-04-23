@@ -22,6 +22,13 @@ export default function PropertyCard({
   const [propertyImage, setPropertyImage] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Debug logs
+  useEffect(() => {
+    console.log("PropertyCard - Property:", property);
+    console.log("PropertyCard - Viewing Requests:", viewingRequests);
+    console.log("PropertyCard - Applications:", applications);
+  }, [property, viewingRequests, applications]);
+
   useEffect(() => {
     const fetchImageUrl = async () => {
       if (property.images && property.images.length > 0) {
@@ -93,7 +100,7 @@ export default function PropertyCard({
           )}
         </div>
 
-        <div className="p-6 w-full">
+        <div className="p-6 w-full text-gray-600">
           <div className="flex justify-between items-start">
             <div>
               <h3 className="text-xl font-semibold text-gray-900 mb-1">

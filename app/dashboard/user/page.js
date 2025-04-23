@@ -7,12 +7,12 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { supabase } from '@/lib/supabase';
 
 // Import components
-import UserProfile from '@/components/dashboards/user/UserProfile';
 import DashboardSidebar from '@/components/dashboards/user/DashboardSidebar';
-import PropertyApplications from '@/components/dashboards/user/PropertyApplications';
-import SavedProperties from '@/components/dashboards/user/SavedProperties';
-import AccountSettings from '@/components/dashboards/user/AccountSettings';
-import ViewingRequestsTab from '@/components/dashboards/user/ViewingRequestsTab';
+import PropertyApplications from '@/components/dashboards/user/tabs/PropertyApplications';
+import SavedProperties from '@/components/dashboards/user/tabs/SavedProperties';
+import AccountSettings from '@/components/dashboards/user/tabs/AccountSettings';
+import ViewingRequestsTab from '@/components/dashboards/user/tabs/ViewingRequestsTab';
+import ProfileCard from '@/components/dashboards/ProfileCard';
 
 /**
  * User Dashboard Page
@@ -251,7 +251,7 @@ export default function UserDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* Sidebar */}
             <div className="lg:col-span-1">
-              <UserProfile user={user} profile={profile} />
+              <ProfileCard user={user} profile={profile} />
               <DashboardSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
             </div>
             

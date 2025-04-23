@@ -1,36 +1,54 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect } from "react";
 import PropertyCard from "../property/PropertyCard";
-import { mockViewingRequests, mockRentalApplications } from "@/data/mockData";
 
-export default function PropertiesTab({ 
-  properties, 
-  loading, 
-  onEdit, 
-  onDelete, 
-  onAddNew, 
+export default function PropertiesTab({
+  properties,
+  loading,
+  error,
+  viewingRequests = [],
+  applications = [],
+  onEdit,
+  onDelete,
+  onAddNew,
+  onRefresh,
 }) {
-  const [showPropertyDetails, setShowPropertyDetails] = useState(null);
+  // Debug logs to inspect the incoming data
+  useEffect(() => {
+    console.log("PropertiesTab - Properties:", properties);
+    console.log("PropertiesTab - Viewing Requests:", viewingRequests);
+    console.log("PropertiesTab - Applications:", applications);
+  }, [properties, viewingRequests, applications]);
 
+  // Filter viewing requests for each property
   const getPropertyViewingRequests = (propertyId) => {
-    return mockViewingRequests.filter(
-      (request) => request.propertyId === propertyId
+    const filteredRequests = viewingRequests.filter(
+      (request) => request.property_id === propertyId
     );
+    console.log(
+      `Viewing requests for property ${propertyId}:`,
+      filteredRequests
+    );
+    return filteredRequests;
   };
 
+  // Filter applications for each property
   const getPropertyApplications = (propertyId) => {
-    return mockRentalApplications.filter(
-      (application) => application.propertyId === propertyId
+    const filteredApplications = applications.filter(
+      (application) => application.property_id === propertyId
     );
+    console.log(
+      `Applications for property ${propertyId}:`,
+      filteredApplications
+    );
+    return filteredApplications;
   };
 
   return (
     <>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">
-          My Properties
-        </h2>
+        <h2 className="text-2xl font-bold text-gray-900">My Properties</h2>
         <button
           onClick={onAddNew}
           className="bg-custom-red hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-300 flex items-center"
@@ -52,15 +70,23 @@ export default function PropertiesTab({
         </button>
       </div>
 
-      {loading ? (
+      {loading || loading.viewings || loading.applications ? (
         <div className="flex justify-center my-12">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
         </div>
+      ) : error ? (
+        <div className="bg-white shadow rounded-lg p-6 text-center">
+          <p className="text-red-500">Error: {error}</p>
+          <button
+            onClick={onRefresh}
+            className="inline-block mt-4 text-custom-red hover:text-red-700"
+          >
+            Try Again
+          </button>
+        </div>
       ) : properties.length === 0 ? (
         <div className="bg-white shadow rounded-lg p-6 text-center">
-          <p className="text-gray-500">
-            You haven't added any properties yet.
-          </p>
+          <p className="text-gray-500">You haven't added any properties yet.</p>
           <button
             onClick={onAddNew}
             className="inline-block mt-4 text-custom-red hover:text-red-700"
@@ -71,23 +97,26 @@ export default function PropertiesTab({
       ) : (
         <div className="space-y-6">
           {properties.map((property) => {
-            const viewingRequests = getPropertyViewingRequests(property.id);
-            const applications = getPropertyApplications(property.id);
-            
+            const propertyViewingRequests = getPropertyViewingRequests(
+              property.id
+            );
+            const propertyApplications = getPropertyApplications(property.id);
+
+            console.log(`Rendering PropertyCard for ${property.id}:`, {
+              property,
+              viewingRequests: propertyViewingRequests,
+              applications: propertyApplications,
+            });
+
             return (
-              <div key={property.id}>
-                <PropertyCard
-                  property={property}
-                  viewingRequests={viewingRequests}
-                  applications={applications}
-                  onEdit={() => onEdit(property.id)}
-                  onDelete={() => onDelete(property.id)}
-                  onShowDetails={() => setShowPropertyDetails(property.id)}
-                  showDetails={showPropertyDetails === property.id}
-                />
-                
-                
-              </div>
+              <PropertyCard
+                key={property.id}
+                property={property}
+                viewingRequests={propertyViewingRequests}
+                applications={propertyApplications}
+                onEdit={() => onEdit(property.id)}
+                onDelete={() => onDelete(property.id)}
+              />
             );
           })}
         </div>
