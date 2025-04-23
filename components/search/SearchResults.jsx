@@ -23,13 +23,27 @@ export default function SearchResults() {
   
   // Initialize form data with search parameters
   const [formData, setFormData] = useState({
-    location: searchParams.get('location') || '',
-    property_type: searchParams.get('property_type') || '',
-    minPrice: searchParams.get('minPrice') || '',
-    maxPrice: searchParams.get('maxPrice') || '',
-    bedrooms: searchParams.get('bedrooms') || '',
-    bathrooms: searchParams.get('bathrooms') || ''
+    location: '',
+    property_type: '',
+    minPrice: '',
+    maxPrice: '',
+    bedrooms: '',
+    bathrooms: ''
   });
+
+  // Update form data when searchParams are available
+  useEffect(() => {
+    if (searchParams) {
+      setFormData({
+        location: searchParams.get('location') || '',
+        property_type: searchParams.get('property_type') || '',
+        minPrice: searchParams.get('minPrice') || '',
+        maxPrice: searchParams.get('maxPrice') || '',
+        bedrooms: searchParams.get('bedrooms') || '',
+        bathrooms: searchParams.get('bathrooms') || ''
+      });
+    }
+  }, [searchParams]);
 
   // Fetch unique locations for the filter dropdown
   useEffect(() => {
@@ -54,6 +68,8 @@ export default function SearchResults() {
   // Fetch filtered properties
   useEffect(() => {
     async function fetchProperties() {
+      if (!searchParams) return;
+      
       setLoading(true);
       
       try {
@@ -137,17 +153,6 @@ export default function SearchResults() {
     }
     
     fetchProperties();
-    
-    // Update form data when URL parameters change
-    setFormData({
-      location: searchParams.get('location') || '',
-      property_type: searchParams.get('property_type') || '',
-      minPrice: searchParams.get('minPrice') || '',
-      maxPrice: searchParams.get('maxPrice') || '',
-      bedrooms: searchParams.get('bedrooms') || '',
-      bathrooms: searchParams.get('bathrooms') || ''
-    });
-    
   }, [searchParams]);
 
   const handleChange = (e) => {
