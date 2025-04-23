@@ -165,3 +165,144 @@ BEGIN
   RETURN user_role;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- PROPERTIES TABLE
+CREATE TABLE IF NOT EXISTS public.properties (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title TEXT NOT NULL,
+    description TEXT,
+    location TEXT NOT NULL,
+    price NUMERIC NOT NULL,
+    bedrooms INTEGER NOT NULL,
+    bathrooms NUMERIC NOT NULL,
+    square_footage INTEGER,
+    property_type TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'available',
+    available_from DATE,
+    amenities TEXT[] DEFAULT '{}',
+    images TEXT[] DEFAULT '{}',
+    owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Index for property queries by owner
+CREATE INDEX IF NOT EXISTS properties_owner_id_idx ON public.properties(owner_id);
+
+-- Viewing Requests Table
+CREATE TABLE IF NOT EXISTS public.viewing_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    property_id UUID NOT NULL REFERENCES public.properties(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    proposed_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    message TEXT,
+    status TEXT NOT NULL DEFAULT 'pending', -- pending, approved, declined
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Indexes for viewing_requests
+CREATE INDEX IF NOT EXISTS viewing_requests_property_id_idx ON public.viewing_requests(property_id);
+CREATE INDEX IF NOT EXISTS viewing_requests_user_id_idx ON public.viewing_requests(user_id);
+
+-- Rental Applications Table
+CREATE TABLE IF NOT EXISTS public.rental_applications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    property_id UUID NOT NULL REFERENCES public.properties(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    message TEXT,
+    employment_status TEXT,
+    income NUMERIC,
+    credit_score TEXT,
+    status TEXT NOT NULL DEFAULT 'pending', -- pending, approved, rejected
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Indexes for rental_applications
+CREATE INDEX IF NOT EXISTS rental_applications_property_id_idx ON public.rental_applications(property_id);
+CREATE INDEX IF NOT EXISTS rental_applications_user_id_idx ON public.rental_applications(user_id);
+
+-- Row Level Security (RLS) Policies
+
+-- Properties RLS
+-- Enable RLS on properties
+ALTER TABLE public.properties ENABLE ROW LEVEL SECURITY;
+
+-- Allow owners to see only their properties
+CREATE POLICY owner_properties_policy ON public.properties
+    USING (owner_id = auth.uid())
+    WITH CHECK (owner_id = auth.uid());
+
+-- Allow all authenticated users to read all available properties
+CREATE POLICY read_available_properties ON public.properties
+    FOR SELECT
+    USING (status = 'available' OR owner_id = auth.uid());
+
+-- Viewing Requests RLS
+-- Enable RLS on viewing_requests
+ALTER TABLE public.viewing_requests ENABLE ROW LEVEL SECURITY;
+
+-- Property owners can see requests for their properties
+CREATE POLICY owner_view_requests ON public.viewing_requests
+    FOR SELECT
+    USING (EXISTS (
+        SELECT 1 FROM public.properties 
+        WHERE properties.id = viewing_requests.property_id AND properties.owner_id = auth.uid()
+    ));
+
+-- Property owners can update requests for their properties
+CREATE POLICY owner_update_requests ON public.viewing_requests
+    FOR UPDATE
+    USING (EXISTS (
+        SELECT 1 FROM public.properties 
+        WHERE properties.id = viewing_requests.property_id AND properties.owner_id = auth.uid()
+    ))
+    WITH CHECK (EXISTS (
+        SELECT 1 FROM public.properties 
+        WHERE properties.id = viewing_requests.property_id AND properties.owner_id = auth.uid()
+    ));
+
+-- Users can see their own viewing requests
+CREATE POLICY user_view_own_requests ON public.viewing_requests
+    FOR SELECT
+    USING (user_id = auth.uid());
+
+-- Users can insert their own viewing requests
+CREATE POLICY user_insert_requests ON public.viewing_requests
+    FOR INSERT
+    WITH CHECK (user_id = auth.uid());
+
+-- Rental Applications RLS
+-- Enable RLS on rental_applications
+ALTER TABLE public.rental_applications ENABLE ROW LEVEL SECURITY;
+
+-- Property owners can see applications for their properties
+CREATE POLICY owner_view_applications ON public.rental_applications
+    FOR SELECT
+    USING (EXISTS (
+        SELECT 1 FROM public.properties 
+        WHERE properties.id = rental_applications.property_id AND properties.owner_id = auth.uid()
+    ));
+
+-- Property owners can update applications for their properties
+CREATE POLICY owner_update_applications ON public.rental_applications
+    FOR UPDATE
+    USING (EXISTS (
+        SELECT 1 FROM public.properties 
+        WHERE properties.id = rental_applications.property_id AND properties.owner_id = auth.uid()
+    ))
+    WITH CHECK (EXISTS (
+        SELECT 1 FROM public.properties 
+        WHERE properties.id = rental_applications.property_id AND properties.owner_id = auth.uid()
+    ));
+
+-- Users can see their own rental applications
+CREATE POLICY user_view_own_applications ON public.rental_applications
+    FOR SELECT
+    USING (user_id = auth.uid());
+
+-- Users can insert their own rental applications
+CREATE POLICY user_insert_applications ON public.rental_applications
+    FOR INSERT
+    WITH CHECK (user_id = auth.uid());
