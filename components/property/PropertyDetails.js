@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -6,10 +6,6 @@ import { supabase } from "@/lib/supabase";
 import { createClient } from "@supabase/supabase-js";
 import Image from 'next/image';
 import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
-import ScheduleViewingModal from '@/components/property/ScheduleViewingModal';
-import PropertyApplicationModal from '@/components/property/PropertyApplicationModal'; 
-import { toast } from 'react-hot-toast';
 
 // Initialize Supabase client
 const supabaseClient = createClient(
@@ -20,7 +16,6 @@ const supabaseClient = createClient(
 export default function PropertyDetails() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
   const { id } = params;
   
   const [property, setProperty] = useState(null);
@@ -28,8 +23,6 @@ export default function PropertyDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeImage, setActiveImage] = useState(0);
-  const [showViewingModal, setShowViewingModal] = useState(false);
-  const [showApplicationModal, setShowApplicationModal] = useState(false); // New state for application modal
 
   useEffect(() => {
     async function fetchPropertyDetails() {
@@ -112,34 +105,6 @@ export default function PropertyDetails() {
       month: 'long',
       day: 'numeric'
     });
-  };
-  
-  const openViewingModal = () => {
-    if (!user) {
-      // Redirect to login if not logged in
-      router.push('/login?redirect=' + encodeURIComponent(`/properties/${id}`));
-      return;
-    }
-    
-    setShowViewingModal(true);
-  };
-  
-  const openApplicationModal = () => {
-    if (!user) {
-      // Redirect to login if not logged in
-      router.push('/login?redirect=' + encodeURIComponent(`/properties/${id}`));
-      return;
-    }
-    
-    setShowApplicationModal(true);
-  };
-  
-  const handleViewingSuccess = (viewingRequest) => {
-    toast.success('Viewing request submitted successfully! The owner will respond to your request soon.');
-  };
-  
-  const handleApplicationSuccess = (application) => {
-    toast.success('Application submitted successfully! The owner will review your application soon.');
   };
 
   if (loading) {
@@ -373,47 +338,18 @@ export default function PropertyDetails() {
                 <p className="text-gray-700 mb-4">Contact us to schedule a viewing or apply for this property.</p>
                 
                 <div className="space-y-3">
-                  <button 
-                    onClick={openViewingModal}
-                    className="w-full bg-custom-red hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md transition-colors duration-300"
-                    disabled={property.status !== 'available'}
-                  >
+                  <button className="w-full bg-custom-red hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md transition-colors duration-300">
                     Schedule a Viewing
                   </button>
-                  <button 
-                    onClick={openApplicationModal}
-                    className="w-full bg-white hover:bg-gray-100 text-gray-800 font-semibold py-3 px-4 border border-gray-300 rounded-md transition-colors duration-300"
-                  >
+                  <button className="w-full bg-white hover:bg-gray-100 text-gray-800 font-semibold py-3 px-4 border border-gray-300 rounded-md transition-colors duration-300">
                     Apply For Property
                   </button>
                 </div>
-                
-                {property.status !== 'available' && (
-                  <p className="text-sm text-yellow-600 mt-2">
-                    Note: This property is currently {property.status}. You can still apply, but viewings may be limited.
-                  </p>
-                )}
               </div>
             </div>
           </div>
         </div>
       </div>
-      
-      {/* Viewing Request Modal */}
-      <ScheduleViewingModal 
-        property={property}
-        isOpen={showViewingModal}
-        onClose={() => setShowViewingModal(false)}
-        onSuccess={handleViewingSuccess}
-      />
-      
-      {/* Property Application Modal */}
-      <PropertyApplicationModal 
-        property={property}
-        isOpen={showApplicationModal}
-        onClose={() => setShowApplicationModal(false)}
-        onSuccess={handleApplicationSuccess}
-      />
     </div>
   );
 }

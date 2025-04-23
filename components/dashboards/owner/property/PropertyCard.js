@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { formatPrice } from "@/data/mockData";
 import { createClient } from "@supabase/supabase-js";
 
@@ -17,8 +17,8 @@ export default function PropertyCard({
   applications,
   onEdit,
   onDelete,
-  onShowDetails,
 }) {
+  const router = useRouter();
   const [propertyImage, setPropertyImage] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -63,6 +63,10 @@ export default function PropertyCard({
   const pendingApplications = applications.filter(
     (application) => application.status === "pending"
   ).length;
+
+  const navigateToPropertyDetails = () => {
+    router.push(`/property/${property.id}`);
+  };
 
   return (
     <div className="bg-white shadow rounded-lg overflow-hidden">
@@ -206,19 +210,13 @@ export default function PropertyCard({
                 </div>
               </div>
 
-              <div className="flex space-x-3">
+              <div>
                 <button
-                  onClick={() => onShowDetails(property.id)}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                >
-                  View Details
-                </button>
-                <Link
-                  href={`/properties/${property.id}`}
+                  onClick={navigateToPropertyDetails}
                   className="inline-flex items-center px-4 py-2 border border-custom-red rounded-md text-sm font-medium text-custom-red bg-white hover:bg-red-50"
                 >
-                  Preview Listing
-                </Link>
+                  View Property Details
+                </button>
               </div>
             </div>
           </div>

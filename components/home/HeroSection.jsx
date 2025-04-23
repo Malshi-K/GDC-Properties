@@ -1,5 +1,5 @@
 import React from 'react';
-import PropertySearchForm from '../PropertySearchForm';
+import PropertySearchForm from '../property/PropertySearchForm';
 
 export default function HeroSection() {
   return (

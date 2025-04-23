@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import PropertyCard from "../property/PropertyCard";
-import PropertyDetails from "../property/PropertyDetails";
 import { mockViewingRequests, mockRentalApplications } from "@/data/mockData";
 
 export default function PropertiesTab({ 
@@ -11,8 +10,6 @@ export default function PropertiesTab({
   onEdit, 
   onDelete, 
   onAddNew, 
-  onViewAllRequests, 
-  onViewAllApplications 
 }) {
   const [showPropertyDetails, setShowPropertyDetails] = useState(null);
 
@@ -89,16 +86,7 @@ export default function PropertiesTab({
                   showDetails={showPropertyDetails === property.id}
                 />
                 
-                {showPropertyDetails === property.id && (
-                  <PropertyDetails
-                    property={property}
-                    viewingRequests={viewingRequests}
-                    applications={applications}
-                    onHideDetails={() => setShowPropertyDetails(null)}
-                    onViewAllRequests={onViewAllRequests}
-                    onViewAllApplications={onViewAllApplications}
-                  />
-                )}
+                
               </div>
             );
           })}

@@ -21,15 +21,20 @@ export default function AddEditPropertyModal({
   const [formData, setFormData] = useState({
     title: "",
     location: "",
+    address: "",
     price: "",
     bedrooms: "",
     bathrooms: "",
     square_footage: "",
     available_from: "",
     description: "",
+    full_description: "",
     amenities: [],
+    features: [],
+    nearby_amenities: [],
     property_type: "apartment",
     status: "available", // available, pending, rented
+    year_built: "",
     images: []
   });
 
@@ -45,15 +50,20 @@ export default function AddEditPropertyModal({
       setFormData({
         title: property.title || "",
         location: property.location || "",
+        address: property.address || "",
         price: property.price || "",
         bedrooms: property.bedrooms || "",
         bathrooms: property.bathrooms || "",
         square_footage: property.square_footage || "",
         available_from: formattedAvailableFrom,
         description: property.description || "",
+        full_description: property.full_description || "",
         amenities: property.amenities || [],
+        features: property.features || [],
+        nearby_amenities: property.nearby_amenities || [],
         property_type: property.property_type || "apartment",
         status: property.status || "available",
+        year_built: property.year_built || "",
         images: property.images || []
       });
 
@@ -74,15 +84,20 @@ export default function AddEditPropertyModal({
       setFormData({
         title: "",
         location: "",
+        address: "",
         price: "",
         bedrooms: "",
         bathrooms: "",
         square_footage: "",
         available_from: "",
         description: "",
+        full_description: "",
         amenities: [],
+        features: [],
+        nearby_amenities: [],
         property_type: "apartment",
         status: "available",
+        year_built: "",
         images: []
       });
       setImagePreviews([]);
@@ -205,6 +220,37 @@ export default function AddEditPropertyModal({
     }
   };
 
+  // Handle array fields like features and nearby_amenities
+  const handleArrayItemChange = (e, index, arrayName) => {
+    const value = e.target.value;
+    setFormData(prev => {
+      const newArray = [...prev[arrayName]];
+      newArray[index] = value;
+      return {
+        ...prev,
+        [arrayName]: newArray
+      };
+    });
+  };
+
+  const handleAddArrayItem = (arrayName) => {
+    setFormData(prev => ({
+      ...prev,
+      [arrayName]: [...prev[arrayName], ""]
+    }));
+  };
+
+  const handleRemoveArrayItem = (index, arrayName) => {
+    setFormData(prev => {
+      const newArray = [...prev[arrayName]];
+      newArray.splice(index, 1);
+      return {
+        ...prev,
+        [arrayName]: newArray
+      };
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -223,6 +269,7 @@ export default function AddEditPropertyModal({
         bedrooms: parseInt(formData.bedrooms),
         bathrooms: parseFloat(formData.bathrooms),
         square_footage: parseInt(formData.square_footage),
+        year_built: parseInt(formData.year_built) || null,
         updated_at: new Date().toISOString()
       };
       
@@ -262,6 +309,14 @@ export default function AddEditPropertyModal({
     "Air Conditioning", "Heating", "Washer/Dryer", "Dishwasher", 
     "Parking", "Gym", "Pool", "Pet Friendly", "Balcony", 
     "Elevator", "Security System", "WiFi", "Furnished"
+  ];
+
+  const propertyTypes = [
+    { value: "apartment", label: "Apartment" },
+    { value: "house", label: "House" },
+    { value: "condo", label: "Condo" },
+    { value: "townhouse", label: "Townhouse" },
+    { value: "villa", label: "Villa" }
   ];
 
   return (
@@ -409,7 +464,7 @@ export default function AddEditPropertyModal({
 
             <div>
               <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-                Location*
+                Location* (City/Area)
               </label>
               <input
                 type="text"
@@ -423,8 +478,22 @@ export default function AddEditPropertyModal({
             </div>
 
             <div>
+              <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+                Full Address
+              </label>
+              <input
+                type="text"
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+              />
+            </div>
+
+            <div>
               <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
-                Monthly Rent (USD)*
+                Price (USD)*
               </label>
               <input
                 type="number"
@@ -450,11 +519,9 @@ export default function AddEditPropertyModal({
                 required
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
               >
-                <option value="apartment">Apartment</option>
-                <option value="house">House</option>
-                <option value="condo">Condo</option>
-                <option value="townhouse">Townhouse</option>
-                <option value="villa">Villa</option>
+                {propertyTypes.map(type => (
+                  <option key={type.value} value={type.value}>{type.label}</option>
+                ))}
               </select>
             </div>
 
@@ -508,6 +575,22 @@ export default function AddEditPropertyModal({
             </div>
 
             <div>
+              <label htmlFor="year_built" className="block text-sm font-medium text-gray-700 mb-1">
+                Year Built
+              </label>
+              <input
+                type="number"
+                id="year_built"
+                name="year_built"
+                value={formData.year_built}
+                onChange={handleChange}
+                min="1800"
+                max={new Date().getFullYear()}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+              />
+            </div>
+
+            <div>
               <label htmlFor="available_from" className="block text-sm font-medium text-gray-700 mb-1">
                 Available From
               </label>
@@ -541,19 +624,36 @@ export default function AddEditPropertyModal({
 
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-              Description*
+              Short Description*
             </label>
             <textarea
               id="description"
               name="description"
               value={formData.description}
               onChange={handleChange}
-              rows="4"
+              rows="2"
               required
               className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+              placeholder="Brief description for property listings"
             ></textarea>
           </div>
 
+          <div>
+            <label htmlFor="full_description" className="block text-sm font-medium text-gray-700 mb-1">
+              Full Description
+            </label>
+            <textarea
+              id="full_description"
+              name="full_description"
+              value={formData.full_description}
+              onChange={handleChange}
+              rows="6"
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+              placeholder="Detailed description for the property page"
+            ></textarea>
+          </div>
+
+          {/* Amenities Section */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Amenities
@@ -575,6 +675,78 @@ export default function AddEditPropertyModal({
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Features Section */}
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Property Features
+              </label>
+              <button
+                type="button"
+                onClick={() => handleAddArrayItem('features')}
+                className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-custom-red bg-red-50 hover:bg-red-100"
+              >
+                Add Feature
+              </button>
+            </div>
+            {formData.features.map((feature, index) => (
+              <div key={index} className="flex items-center mb-2">
+                <input
+                  type="text"
+                  value={feature}
+                  onChange={(e) => handleArrayItemChange(e, index, 'features')}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                  placeholder="e.g., Private beach access"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveArrayItem(index, 'features')}
+                  className="ml-2 text-red-600 hover:text-red-800"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Nearby Amenities Section */}
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Nearby Amenities
+              </label>
+              <button
+                type="button"
+                onClick={() => handleAddArrayItem('nearby_amenities')}
+                className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-custom-red bg-red-50 hover:bg-red-100"
+              >
+                Add Nearby Amenity
+              </button>
+            </div>
+            {formData.nearby_amenities.map((amenity, index) => (
+              <div key={index} className="flex items-center mb-2">
+                <input
+                  type="text"
+                  value={amenity}
+                  onChange={(e) => handleArrayItemChange(e, index, 'nearby_amenities')}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                  placeholder="e.g., Premium shopping centers (5 min drive)"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveArrayItem(index, 'nearby_amenities')}
+                  className="ml-2 text-red-600 hover:text-red-800"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ))}
           </div>
 
           <div className="pt-5">

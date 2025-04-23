@@ -3,67 +3,151 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import propertiesData from '@/data/properties.json';
+import { supabase } from "@/lib/supabase";
+import Image from 'next/image';
+import { createClient } from "@supabase/supabase-js";
+
+// Initialize Supabase client
+const supabaseClient = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 export default function SearchResults() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [filteredProperties, setFilteredProperties] = useState([]);
+  const [properties, setProperties] = useState([]);
+  const [propertyImages, setPropertyImages] = useState({});
   const [loading, setLoading] = useState(true);
+  const [locations, setLocations] = useState([]);
   
   // Initialize form data with search parameters
   const [formData, setFormData] = useState({
     location: searchParams.get('location') || '',
-    propertyType: searchParams.get('propertyType') || '',
+    property_type: searchParams.get('property_type') || '',
     minPrice: searchParams.get('minPrice') || '',
     maxPrice: searchParams.get('maxPrice') || '',
     bedrooms: searchParams.get('bedrooms') || '',
     bathrooms: searchParams.get('bathrooms') || ''
   });
 
+  // Fetch unique locations for the filter dropdown
   useEffect(() => {
-    const location = searchParams.get('location');
-    const propertyType = searchParams.get('propertyType');
-    const minPrice = searchParams.get('minPrice');
-    const maxPrice = searchParams.get('maxPrice');
-    const bedrooms = searchParams.get('bedrooms');
-    const bathrooms = searchParams.get('bathrooms');
+    async function fetchLocations() {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('location')
+        .is('location', 'not.null');
+      
+      if (error) {
+        console.error('Error fetching locations:', error);
+        return;
+      }
+
+      const uniqueLocations = [...new Set(data.map(item => item.location))];
+      setLocations(uniqueLocations);
+    }
+
+    fetchLocations();
+  }, []);
+
+  // Fetch filtered properties
+  useEffect(() => {
+    async function fetchProperties() {
+      setLoading(true);
+      
+      try {
+        // Start building the query
+        let query = supabase
+          .from('properties')
+          .select('*');
+        
+        // Add filters based on search params
+        const location = searchParams.get('location');
+        if (location) {
+          query = query.eq('location', location);
+        }
+        
+        const property_type = searchParams.get('property_type');
+        if (property_type && property_type !== 'all') {
+          query = query.eq('property_type', property_type);
+        }
+        
+        const minPrice = searchParams.get('minPrice');
+        if (minPrice) {
+          query = query.gte('price', parseInt(minPrice));
+        }
+        
+        const maxPrice = searchParams.get('maxPrice');
+        if (maxPrice) {
+          query = query.lte('price', parseInt(maxPrice));
+        }
+        
+        const bedrooms = searchParams.get('bedrooms');
+        if (bedrooms) {
+          query = query.gte('bedrooms', parseInt(bedrooms));
+        }
+        
+        const bathrooms = searchParams.get('bathrooms');
+        if (bathrooms) {
+          query = query.gte('bathrooms', parseFloat(bathrooms));
+        }
+        
+        // Execute the query
+        const { data, error } = await query;
+        
+        if (error) throw error;
+        
+        setProperties(data || []);
+
+        // Get signed URLs for the first image of each property
+        const imageUrls = {};
+        
+        for (const property of data || []) {
+          if (property.images && property.images.length > 0) {
+            const imagePath = property.images[0];
+            
+            // Normalize the path
+            const normalizedPath = imagePath.includes("/")
+              ? imagePath
+              : `${property.owner_id}/${imagePath}`;
+              
+            try {
+              const { data: urlData, error: urlError } = await supabaseClient.storage
+                .from("property-images")
+                .createSignedUrl(normalizedPath, 60 * 60); // 1 hour expiry
+              
+              if (urlError) {
+                console.error("Error getting signed URL for property " + property.id + ":", urlError);
+              } else {
+                imageUrls[property.id] = urlData.signedUrl;
+              }
+            } catch (urlError) {
+              console.error("Error getting signed URL:", urlError);
+            }
+          }
+        }
+        
+        setPropertyImages(imageUrls);
+      } catch (error) {
+        console.error('Error fetching properties:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchProperties();
     
     // Update form data when URL parameters change
     setFormData({
-      location: location || '',
-      propertyType: propertyType || '',
-      minPrice: minPrice || '',
-      maxPrice: maxPrice || '',
-      bedrooms: bedrooms || '',
-      bathrooms: bathrooms || ''
+      location: searchParams.get('location') || '',
+      property_type: searchParams.get('property_type') || '',
+      minPrice: searchParams.get('minPrice') || '',
+      maxPrice: searchParams.get('maxPrice') || '',
+      bedrooms: searchParams.get('bedrooms') || '',
+      bathrooms: searchParams.get('bathrooms') || ''
     });
     
-    // Filter properties based on query parameters
-    const filtered = propertiesData.properties.filter(property => {
-      // Filter by location if specified
-      if (location && property.location !== location) return false;
-      
-      // Filter by property type if specified and not "all"
-      if (propertyType && propertyType !== 'all' && property.propertyType !== propertyType) return false;
-      
-      // Filter by min price if specified
-      if (minPrice && property.price < parseInt(minPrice)) return false;
-      
-      // Filter by max price if specified
-      if (maxPrice && property.price > parseInt(maxPrice)) return false;
-      
-      // Filter by minimum number of bedrooms if specified
-      if (bedrooms && property.bedrooms < parseInt(bedrooms)) return false;
-      
-      // Filter by minimum number of bathrooms if specified
-      if (bathrooms && property.bathrooms < parseInt(bathrooms)) return false;
-      
-      return true;
-    });
-    
-    setFilteredProperties(filtered);
-    setLoading(false);
   }, [searchParams]);
 
   const handleChange = (e) => {
@@ -100,6 +184,14 @@ export default function SearchResults() {
     }).format(price);
   };
 
+  const propertyTypes = [
+    { value: "apartment", label: "Apartment" },
+    { value: "house", label: "House" },
+    { value: "condo", label: "Condo" },
+    { value: "townhouse", label: "Townhouse" },
+    { value: "villa", label: "Villa" }
+  ];
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -130,28 +222,25 @@ export default function SearchResults() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
                 >
                   <option value="">Any location</option>
-                  <option value="malibu">Malibu Beach</option>
-                  <option value="beverly">Beverly Hills</option>
-                  <option value="hollywood">Hollywood Hills</option>
-                  <option value="venice">Venice Beach</option>
+                  {locations.map(location => (
+                    <option key={location} value={location}>{location}</option>
+                  ))}
                 </select>
               </div>
               
               <div>
-                <label htmlFor="propertyType" className="block text-sm font-medium text-gray-700 mb-1">Property Type</label>
+                <label htmlFor="property_type" className="block text-sm font-medium text-gray-700 mb-1">Property Type</label>
                 <select 
-                  id="propertyType"
-                  name="propertyType"
-                  value={formData.propertyType}
+                  id="property_type"
+                  name="property_type"
+                  value={formData.property_type}
                   onChange={handleChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
                 >
                   <option value="">Any type</option>
-                  <option value="all">All types</option>
-                  <option value="apartments">Apartments</option>
-                  <option value="houses">Houses</option>
-                  <option value="townhouses">Town houses</option>
-                  <option value="units">Units</option>
+                  {propertyTypes.map(type => (
+                    <option key={type.value} value={type.value}>{type.label}</option>
+                  ))}
                 </select>
               </div>
               
@@ -248,14 +337,14 @@ export default function SearchResults() {
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Search Results</h1>
           <p className="text-gray-600">
-            Found {filteredProperties.length} {filteredProperties.length === 1 ? 'property' : 'properties'} matching your criteria
+            Found {properties.length} {properties.length === 1 ? 'property' : 'properties'} matching your criteria
           </p>
           <Link href="/" className="text-custom-red hover:text-red-700 font-medium mt-2 inline-block">
             Back to Home
           </Link>
         </div>
 
-        {filteredProperties.length === 0 ? (
+        {properties.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg shadow">
             <h2 className="text-xl font-semibold text-gray-800 mb-2">No properties found</h2>
             <p className="text-gray-600 mb-6">Try adjusting your search filters to see more results.</p>
@@ -265,16 +354,24 @@ export default function SearchResults() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredProperties.map(property => (
+            {properties.map(property => (
               <div key={property.id} className="bg-white rounded-lg overflow-hidden shadow-lg transition-transform duration-300 hover:transform hover:scale-105">
                 <div 
-                  className="bg-gray-300 h-48 relative cursor-pointer" 
+                  className="bg-gray-200 h-48 relative cursor-pointer" 
                   onClick={() => router.push(`/property/${property.id}`)}
                 >
-                  {/* In a real app, you'd use real images */}
-                  <div className="absolute inset-0 flex items-center justify-center text-gray-500">
-                    <span>Property Image</span>
-                  </div>
+                  {propertyImages[property.id] ? (
+                    <Image 
+                      src={propertyImages[property.id]}
+                      alt={property.title}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-gray-500">
+                      <span>No Image Available</span>
+                    </div>
+                  )}
                 </div>
                 <div className="p-6">
                   <h3 
