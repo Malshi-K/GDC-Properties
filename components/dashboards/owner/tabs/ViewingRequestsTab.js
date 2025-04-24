@@ -107,7 +107,7 @@ export default function ViewingRequestsTab({
         <div className="space-y-6">
           {activeRequests.map((request) => (
             <div key={request.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-              <div className="p-6">
+              <div className="p-6 text-gray-900">
                 <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-4">
                   <div>
                     <h3 className="text-xl font-semibold text-gray-900 mb-1">

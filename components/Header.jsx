@@ -176,11 +176,6 @@ const Header = () => {
     return pathname === link || pathname.startsWith(`${link}/`);
   };
 
-  // Check if any job-seekers related page is active
-  const isJobSeekersActive =
-    pathname.includes("/job-seekers/caregivers") ||
-    pathname.includes("/job-seekers/nurses");
-
   return (
     <>
       <header

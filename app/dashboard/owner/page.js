@@ -13,11 +13,11 @@ import PropertiesTab from "@/components/dashboards/owner/tabs/PropertiesTab";
 import ViewingRequestsTab from "@/components/dashboards/owner/tabs/ViewingRequestsTab";
 import ApplicationsTab from "@/components/dashboards/owner/tabs/ApplicationsTab";
 import AnalyticsTab from "@/components/dashboards/owner/tabs/AnalyticsTab";
-import SettingsTab from "@/components/dashboards/owner/tabs/SettingsTab";
 import AddEditPropertyModal from "@/components/dashboards/owner/property/AddEditPropertyModal";
 
 // Import services
 import { propertyService } from "@/lib/services/propertyService";
+import SettingsTab from "@/components/dashboards/SettingsTab";
 
 export default function OwnerDashboard() {
   const { user, profile } = useAuth();
@@ -347,7 +347,7 @@ export default function OwnerDashboard() {
               {activeTab === "analytics" && <AnalyticsTab />}
 
               {/* Settings Tab */}
-              {activeTab === "settings" && <SettingsTab user={user} />}
+              {activeTab === "settings" && <SettingsTab user={user} profile={profile} />}
             </div>
           </div>
         </main>
