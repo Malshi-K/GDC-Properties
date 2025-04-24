@@ -2,12 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 
 export default function ResetPassword() {
-  const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -15,7 +13,7 @@ export default function ResetPassword() {
   const [error, setError] = useState(null);
   const [validToken, setValidToken] = useState(false);
   const [tokenChecked, setTokenChecked] = useState(false);
-  const [resetComplete, setResetComplete] = useState(false);
+  const [redirectCountdown, setRedirectCountdown] = useState(null);
 
   useEffect(() => {
     // Parse the hash fragment from the URL to get the access token
@@ -24,31 +22,51 @@ export default function ResetPassword() {
       setTimeout(async () => {
         try {
           const { data, error } = await supabase.auth.getSession();
-          
+
           if (error || !data?.session) {
             console.error("Session error:", error);
-            setError("Invalid or expired password reset link. Please request a new one.");
+            setError(
+              "Invalid or expired password reset link. Please request a new one."
+            );
             setTokenChecked(true);
             return;
           }
-          
+
           // Valid session found
           setValidToken(true);
           setTokenChecked(true);
         } catch (e) {
           console.error("Error checking session:", e);
-          setError("An error occurred while verifying your reset link. Please try again.");
+          setError(
+            "An error occurred while verifying your reset link. Please try again."
+          );
           setTokenChecked(true);
         }
       }, 500); // Short delay to ensure Supabase has processed the hash
     };
-    
+
     checkTokenFromHash();
   }, []);
 
+  // Handle countdown and redirect
+  useEffect(() => {
+    if (redirectCountdown !== null) {
+      if (redirectCountdown <= 0) {
+        // Force a hard refresh to the login page
+        window.location.replace("/login?reset=success");
+      } else {
+        const timer = setTimeout(() => {
+          setRedirectCountdown(redirectCountdown - 1);
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [redirectCountdown]);
+
   async function handleSubmit(e) {
     e.preventDefault();
-    
+
+    // Validate passwords
     if (password !== confirmPassword) {
       setError("Passwords don't match");
       return;
@@ -66,27 +84,24 @@ export default function ResetPassword() {
     try {
       // Update the user's password
       const { error } = await supabase.auth.updateUser({
-        password: password
+        password: password,
       });
 
       if (error) throw error;
-      
-      // Critical change: set loading to false here
+
+      // IMPORTANT: First set loading to false
       setLoading(false);
-      setMessage("Password updated successfully!");
-      setResetComplete(true);
       
-      // Sign out after password reset with a delay
-      setTimeout(async () => {
-        try {
-          await supabase.auth.signOut();
-          router.push("/login?reset=success");
-        } catch (error) {
-          console.error("Error during sign out:", error);
-          // Even if sign out fails, still redirect
-          router.push("/login?reset=success");
-        }
-      }, 2000);
+      // Show success message with countdown
+      setMessage("Password updated successfully! Redirecting in");
+      
+      // Start countdown for redirect
+      setRedirectCountdown(3);
+      
+      // As a fallback, force redirect after 4 seconds
+      setTimeout(() => {
+        window.location.replace("/login?reset=success");
+      }, 4000);
       
     } catch (error) {
       console.error("Password update error:", error);
@@ -103,7 +118,7 @@ export default function ResetPassword() {
           <Image
             src="/images/logo.png"
             alt="GDC Properties"
-            width={128} 
+            width={128}
             height={80}
             className="h-12 w-auto object-contain"
           />
@@ -125,8 +140,17 @@ export default function ResetPassword() {
 
           {error && (
             <div className="mb-6 p-4 bg-red-100 text-red-700 rounded flex items-center">
-              <svg className="h-5 w-5 text-red-500 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              <svg
+                className="h-5 w-5 text-red-500 mr-2"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
               </svg>
               <span>{error}</span>
             </div>
@@ -134,22 +158,31 @@ export default function ResetPassword() {
 
           {message && (
             <div className="mb-6 p-4 bg-green-100 text-green-700 rounded flex items-center">
-              <svg className="h-5 w-5 text-green-500 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              <svg
+                className="h-5 w-5 text-green-500 mr-2"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
               </svg>
-              <div className="flex-1">{message}</div>
-              {resetComplete && (
-                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-green-500"></div>
-              )}
+              <div className="flex-1">
+                {message} {redirectCountdown !== null ? `${redirectCountdown}...` : ""}
+              </div>
+              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-green-500"></div>
             </div>
           )}
-          
-          {tokenChecked && validToken && !resetComplete && (
+
+          {tokenChecked && validToken && redirectCountdown === null && (
             <>
               <p className="text-gray-600 mb-6 text-center">
                 Please create a new secure password for your account.
               </p>
-              
+
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
                   <label
@@ -211,7 +244,9 @@ export default function ResetPassword() {
 
           {tokenChecked && !validToken && (
             <div className="text-center mt-4">
-              <p className="mb-4">Your password reset link is invalid or has expired.</p>
+              <p className="mb-4">
+                Your password reset link is invalid or has expired.
+              </p>
               <Link
                 href="/forgot-password"
                 className="text-custom-red hover:underline font-medium"
@@ -221,14 +256,13 @@ export default function ResetPassword() {
             </div>
           )}
 
-          <div className="mt-6 text-center">
-            <Link
-              href="/login"
-              className="text-custom-red hover:underline"
-            >
-              Return to Sign In
-            </Link>
-          </div>
+          {redirectCountdown === null && (
+            <div className="mt-6 text-center">
+              <Link href="/login" className="text-custom-red hover:underline">
+                Return to Sign In
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </div>
