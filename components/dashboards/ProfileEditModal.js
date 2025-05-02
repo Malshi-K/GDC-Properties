@@ -1,21 +1,90 @@
+// In ProfileEditModal.jsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { FaUser, FaUpload, FaSave, FaTimes } from "react-icons/fa";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase"; // Make sure to import supabase
 
 export default function ProfileEditModal({ isOpen, onClose }) {
-  const { user, profile, updateProfile, updateProfilePhoto } = useAuth();
+  const { user, profile, updateProfile, updateProfilePhoto, refreshProfile } =
+    useAuth();
   const [formData, setFormData] = useState({
     full_name: "",
     phone: "",
     address: "",
-    preferences: ""
+    preferences: "",
   });
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [profileImageUrl, setProfileImageUrl] = useState("");
+  const [loadingImage, setLoadingImage] = useState(false);
+
+  // Get profile image directly from storage
+  useEffect(() => {
+    const getDirectProfileImage = async () => {
+      if (!user?.id) return;
+
+      try {
+        setLoadingImage(true);
+
+        // List files in user's folder
+        const { data: files, error } = await supabase.storage
+          .from("profile-images")
+          .list(user.id);
+
+        if (error) {
+          console.error("Error listing files:", error);
+          setLoadingImage(false);
+          return;
+        }
+
+        if (files && files.length > 0) {
+          // Sort files to get the most recent
+          const sortedFiles = [...files].sort((a, b) => {
+            if (!a.created_at || !b.created_at) return 0;
+            return new Date(b.created_at) - new Date(a.created_at);
+          });
+
+          // Get the latest file
+          const latestFile = sortedFiles[0];
+          const filePath = `${user.id}/${latestFile.name}`;
+
+          // Download file directly
+          const { data, error: downloadError } = await supabase.storage
+            .from("profile-images")
+            .download(filePath);
+
+          if (downloadError) {
+            console.error("Error downloading file:", downloadError);
+            setLoadingImage(false);
+            return;
+          }
+
+          // Create blob URL
+          const blobUrl = URL.createObjectURL(data);
+          setProfileImageUrl(blobUrl);
+        }
+      } catch (error) {
+        console.error("Error getting profile image:", error);
+      } finally {
+        setLoadingImage(false);
+      }
+    };
+
+    if (isOpen) {
+      getDirectProfileImage();
+    }
+
+    // Clean up blob URLs
+    return () => {
+      if (profileImageUrl && profileImageUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(profileImageUrl);
+      }
+    };
+  }, [user, isOpen]);
 
   // Initialize form data when profile is loaded
   useEffect(() => {
@@ -24,7 +93,7 @@ export default function ProfileEditModal({ isOpen, onClose }) {
         full_name: profile.full_name || "",
         phone: profile.phone || "",
         address: profile.address || "",
-        preferences: profile.preferences || ""
+        preferences: profile.preferences || "",
       });
     }
   }, [profile]);
@@ -53,9 +122,9 @@ export default function ProfileEditModal({ isOpen, onClose }) {
   // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -64,7 +133,7 @@ export default function ProfileEditModal({ isOpen, onClose }) {
     const file = e.target.files[0];
     if (file) {
       setPhotoFile(file);
-      
+
       // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -77,25 +146,49 @@ export default function ProfileEditModal({ isOpen, onClose }) {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
       setLoading(true);
-      
-      // Update profile info
-      const { error: profileError } = await updateProfile(formData);
+
+      // Update profile basic info
+      const { error: profileError } = await updateProfile({
+        full_name: formData.full_name,
+        phone: formData.phone,
+        address: formData.address,
+        preferences: formData.preferences,
+      });
+
       if (profileError) throw profileError;
-      
+
       // Upload photo if selected
       if (photoFile) {
-        const { error: photoError } = await updateProfilePhoto(photoFile);
-        if (photoError) throw photoError;
+        try {
+          const fileExt = photoFile.name.split(".").pop();
+          const filePath = `${user.id}/profile.${fileExt}`;
+
+          console.log("Uploading profile photo to:", filePath);
+
+          const { error: uploadError } = await supabase.storage
+            .from("profile-images")
+            .upload(filePath, photoFile, {
+              upsert: true,
+            });
+
+          if (uploadError) throw uploadError;
+
+          console.log("Profile photo uploaded successfully");
+        } catch (photoError) {
+          console.error("Error uploading profile photo:", photoError);
+          toast.error("Profile updated but photo upload failed");
+        }
       }
-      
+
+      await refreshProfile();
       toast.success("Profile updated successfully");
       onClose();
     } catch (error) {
       console.error("Error updating profile:", error);
-      toast.error("Failed to update profile. Please try again.");
+      toast.error("Failed to update profile");
     } finally {
       setLoading(false);
     }
@@ -107,8 +200,8 @@ export default function ProfileEditModal({ isOpen, onClose }) {
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         {/* Background overlay */}
-        <div 
-          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" 
+        <div
+          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
           onClick={onClose}
         ></div>
 
@@ -124,25 +217,37 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                 <form onSubmit={handleSubmit}>
                   {/* Profile Photo */}
                   <div className="mb-5 flex flex-col items-center">
-                    <div className="w-24 h-24 relative rounded-full overflow-hidden mb-3">
+                    <div className="w-24 h-24 relative rounded-full overflow-hidden mb-3 bg-gray-300">
                       {photoPreview ? (
                         <img
                           src={photoPreview}
                           alt="Profile Preview"
                           className="w-full h-full object-cover"
                         />
-                      ) : profile?.profile_image_url ? (
+                      ) : profileImageUrl ? (
                         <img
-                          src={profile.profile_image_url}
+                          src={profileImageUrl}
                           alt="Profile"
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.error("Image failed to load");
+                            e.target.onerror = null;
+                            e.target.src = "";
+                            e.target.style.display = "none";
+                          }}
                         />
                       ) : (
                         <div className="absolute inset-0 bg-gray-300 flex items-center justify-center">
-                          <FaUser className="text-gray-600 text-2xl" />
+                          <FaUser className="text-gray-600 text-4xl" />
                         </div>
                       )}
-                      
+
+                      {loadingImage && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-200 bg-opacity-50">
+                          <div className="w-5 h-5 border-2 border-gray-600 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      )}
+
                       <label className="absolute bottom-0 right-0 bg-custom-red hover:bg-red-700 text-white rounded-full p-1.5 cursor-pointer transition-colors duration-300">
                         <FaUpload className="text-xs" />
                         <input
@@ -170,7 +275,7 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                         placeholder="Enter your full name"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Phone
@@ -184,7 +289,7 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                         placeholder="Enter your phone number"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Address
@@ -198,7 +303,7 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                         placeholder="Enter your address"
                       ></textarea>
                     </div>
-                    
+
                     {/* Role-specific fields */}
                     {profile?.role === "user" && (
                       <div>
@@ -216,7 +321,7 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Action Buttons */}
                   <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
                     <button

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -15,51 +15,143 @@ import ViewingRequestsTab from "@/components/dashboards/user/tabs/ViewingRequest
 import ProfileCard from "@/components/dashboards/ProfileCard";
 import SettingsTab from "@/components/dashboards/SettingsTab";
 
+// Dashboard data tabs skeleton loader component
+const TabSkeleton = () => (
+  <div className="bg-white rounded-lg shadow p-6 animate-pulse">
+    <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+    <div className="space-y-4">
+      {[...Array(3)].map((_, index) => (
+        <div key={index} className="bg-gray-200 rounded h-24"></div>
+      ))}
+    </div>
+  </div>
+);
+
 /**
- * User Dashboard Page
+ * User Dashboard Page with optimized data loading
  */
 export default function UserDashboard() {
   const { user, profile } = useAuth();
-  const [activeTab, setActiveTab] = useState("viewingRequests"); // Set default to viewingRequests
+  const [activeTab, setActiveTab] = useState(() => {
+    // Get last active tab from localStorage if available
+    if (typeof window !== 'undefined') {
+      const savedTab = localStorage.getItem('userDashboardTab');
+      return savedTab || "viewingRequests";
+    }
+    return "viewingRequests";
+  });
+  
+  // Data states
   const [favorites, setFavorites] = useState([]);
-  const [loadingFavorites, setLoadingFavorites] = useState(true);
   const [applications, setApplications] = useState([]);
-  const [loadingApplications, setLoadingApplications] = useState(true);
   const [viewingRequests, setViewingRequests] = useState([]);
-  const [loadingViewingRequests, setLoadingViewingRequests] = useState(true);
-
-  // Fetch all user data in parallel when component mounts
+  
+  // Loading states (separate for each tab)
+  const [loadingFavorites, setLoadingFavorites] = useState(false);
+  const [loadingApplications, setLoadingApplications] = useState(false);
+  const [loadingViewingRequests, setLoadingViewingRequests] = useState(false);
+  
+  // Cache state with expiry timestamps
+  const [dataCache, setDataCache] = useState({
+    favorites: { data: null, timestamp: null },
+    applications: { data: null, timestamp: null },
+    viewingRequests: { data: null, timestamp: null }
+  });
+  
+  // Cache expiry - 5 minutes
+  const CACHE_EXPIRY = 5 * 60 * 1000;
+  
+  // Track current tab for focused data loading
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('userDashboardTab', activeTab);
+    }
+    
+    // Load data for the active tab if not cached or cache expired
+    loadTabData(activeTab);
+    
+    // Prefetch data for other tabs after active tab is loaded
+    prefetchOtherTabs(activeTab);
+  }, [activeTab, user]);
+  
+  // Function to determine if cached data is valid
+  const isCacheValid = (tabName) => {
+    if (!dataCache[tabName]?.timestamp) return false;
+    return Date.now() - dataCache[tabName].timestamp < CACHE_EXPIRY;
+  };
+  
+  // Load data for the current active tab
+  const loadTabData = async (tabName) => {
     if (!user) return;
-
-    const fetchUserData = async () => {
-      try {
-        // Create array of promises to fetch data in parallel
-        const dataPromises = [
-          fetchFavorites(),
-          fetchApplications(),
-          fetchViewingRequests()
-        ];
-
-        // Wait for all promises to resolve
-        await Promise.all(dataPromises);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-        toast.error("Failed to load some data. Please refresh the page.");
+    
+    // Check if we have valid cached data first
+    if (isCacheValid(tabName)) {
+      switch (tabName) {
+        case 'favorites':
+          setFavorites(dataCache.favorites.data);
+          break;
+        case 'applications':
+          setApplications(dataCache.applications.data);
+          break;
+        case 'viewingRequests':
+          setViewingRequests(dataCache.viewingRequests.data);
+          break;
       }
-    };
-
-    fetchUserData();
-  }, [user]);
+      return;
+    }
+    
+    // Otherwise fetch fresh data
+    switch (tabName) {
+      case 'favorites':
+        await fetchFavorites();
+        break;
+      case 'applications':
+        await fetchApplications();
+        break;
+      case 'viewingRequests':
+        await fetchViewingRequests();
+        break;
+    }
+  };
+  
+  // Prefetch data for other tabs after a delay
+  const prefetchOtherTabs = async (currentTab) => {
+    if (!user) return;
+    
+    // Wait for active tab to finish loading
+    setTimeout(async () => {
+      const tabsToLoad = ['favorites', 'applications', 'viewingRequests'].filter(
+        tab => tab !== currentTab && !isCacheValid(tab)
+      );
+      
+      for (const tab of tabsToLoad) {
+        switch (tab) {
+          case 'favorites':
+            if (!loadingFavorites && !isCacheValid('favorites')) {
+              fetchFavorites(true); // true = background fetch
+            }
+            break;
+          case 'applications':
+            if (!loadingApplications && !isCacheValid('applications')) {
+              fetchApplications(true);
+            }
+            break;
+          case 'viewingRequests':
+            if (!loadingViewingRequests && !isCacheValid('viewingRequests')) {
+              fetchViewingRequests(true);
+            }
+            break;
+        }
+      }
+    }, 500);
+  };
 
   // Fetch user's favorite properties
-  const fetchFavorites = async () => {
+  const fetchFavorites = async (isBackgroundFetch = false) => {
     if (!user) return;
+    if (!isBackgroundFetch) setLoadingFavorites(true);
 
     try {
-      setLoadingFavorites(true);
-      console.log("Fetching favorites for user:", user.id);
-
       // Get favorites from Supabase
       const { data, error } = await supabase
         .from("favorites")
@@ -82,9 +174,8 @@ export default function UserDashboard() {
         .eq("user_id", user.id);
 
       if (error) throw error;
-      console.log("Raw favorites data:", data);
 
-      // Filter out any null property entries (could happen if property was deleted)
+      // Filter out any null property entries
       const validData = data.filter(item => item.properties !== null);
 
       // Format the data for display
@@ -95,26 +186,31 @@ export default function UserDashboard() {
         owner_id: item.properties.owner_id, 
       }));
 
-      console.log("Formatted favorites:", formattedFavorites);
+      // Update state and cache
       setFavorites(formattedFavorites);
+      setDataCache(prev => ({
+        ...prev,
+        favorites: { 
+          data: formattedFavorites, 
+          timestamp: Date.now() 
+        }
+      }));
     } catch (error) {
       console.error("Error fetching favorites:", error);
-      toast.error("Failed to load saved properties.");
-      setFavorites([]);
+      if (!isBackgroundFetch) {
+        toast.error("Failed to load saved properties.");
+      }
     } finally {
-      setLoadingFavorites(false);
+      if (!isBackgroundFetch) setLoadingFavorites(false);
     }
   };
 
   // Fetch rental applications
-  const fetchApplications = async () => {
+  const fetchApplications = async (isBackgroundFetch = false) => {
     if (!user) return;
+    if (!isBackgroundFetch) setLoadingApplications(true);
 
     try {
-      setLoadingApplications(true);
-
-      console.log("Fetching applications for user:", user.id);
-
       // Get applications from Supabase
       const { data, error } = await supabase
         .from("rental_applications")
@@ -132,12 +228,7 @@ export default function UserDashboard() {
         )
         .eq("user_id", user.id);
 
-      if (error) {
-        console.error("Supabase error:", error);
-        throw error;
-      }
-
-      console.log("Applications data from DB:", data);
+      if (error) throw error;
 
       // Format the data for display
       const formattedApplications = data.map((item) => {
@@ -166,26 +257,31 @@ export default function UserDashboard() {
         };
       });
 
-      console.log("Formatted applications:", formattedApplications);
+      // Update state and cache
       setApplications(formattedApplications);
+      setDataCache(prev => ({
+        ...prev,
+        applications: { 
+          data: formattedApplications, 
+          timestamp: Date.now() 
+        }
+      }));
     } catch (error) {
       console.error("Error fetching applications:", error);
-      setApplications([]);
-      toast.error("Failed to load applications.");
+      if (!isBackgroundFetch) {
+        toast.error("Failed to load applications.");
+      }
     } finally {
-      setLoadingApplications(false);
+      if (!isBackgroundFetch) setLoadingApplications(false);
     }
   };
 
   // Fetch viewing requests
-  const fetchViewingRequests = async () => {
+  const fetchViewingRequests = async (isBackgroundFetch = false) => {
     if (!user) return;
+    if (!isBackgroundFetch) setLoadingViewingRequests(true);
 
     try {
-      setLoadingViewingRequests(true);
-
-      console.log("Fetching viewing requests for user:", user.id);
-
       // Get viewing requests from Supabase
       const { data, error } = await supabase
         .from("viewing_requests")
@@ -203,12 +299,7 @@ export default function UserDashboard() {
         )
         .eq("user_id", user.id);
 
-      if (error) {
-        console.error("Supabase error:", error);
-        throw error;
-      }
-
-      console.log("Viewing requests data from DB:", data);
+      if (error) throw error;
 
       // Format the data for display
       const formattedRequests = data.map((item) => {
@@ -236,14 +327,22 @@ export default function UserDashboard() {
         };
       });
 
-      console.log("Formatted viewing requests:", formattedRequests);
+      // Update state and cache
       setViewingRequests(formattedRequests);
+      setDataCache(prev => ({
+        ...prev,
+        viewingRequests: { 
+          data: formattedRequests, 
+          timestamp: Date.now() 
+        }
+      }));
     } catch (error) {
       console.error("Error fetching viewing requests:", error);
-      setViewingRequests([]);
-      toast.error("Failed to load viewing requests.");
+      if (!isBackgroundFetch) {
+        toast.error("Failed to load viewing requests.");
+      }
     } finally {
-      setLoadingViewingRequests(false);
+      if (!isBackgroundFetch) setLoadingViewingRequests(false);
     }
   };
 
@@ -259,12 +358,32 @@ export default function UserDashboard() {
 
       // Update local state
       setFavorites(favorites.filter((favorite) => favorite.id !== favoriteId));
+      
+      // Update cache
+      setDataCache(prev => ({
+        ...prev,
+        favorites: { 
+          data: favorites.filter((favorite) => favorite.id !== favoriteId), 
+          timestamp: Date.now() 
+        }
+      }));
+      
       toast.success("Property removed from favorites");
     } catch (error) {
       console.error("Error removing favorite:", error);
       toast.error("Failed to remove property from favorites");
     }
   };
+
+  // Determine if we're loading the active tab
+  const isActiveTabLoading = useMemo(() => {
+    switch (activeTab) {
+      case 'viewingRequests': return loadingViewingRequests;
+      case 'applications': return loadingApplications;
+      case 'favorites': return loadingFavorites;
+      default: return false;
+    }
+  }, [activeTab, loadingViewingRequests, loadingApplications, loadingFavorites]);
 
   return (
     <ProtectedRoute allowedRoles={["user"]}>
@@ -297,15 +416,14 @@ export default function UserDashboard() {
             <div className="lg:col-span-3">
               {activeTab === "viewingRequests" && (
                 <div>
-                  {loadingViewingRequests ? (
-                    <div className="flex justify-center my-12">
-                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
-                    </div>
+                  {loadingViewingRequests && !dataCache.viewingRequests.data ? (
+                    <TabSkeleton />
                   ) : (
                     <ViewingRequestsTab
                       viewingRequests={viewingRequests}
                       setViewingRequests={setViewingRequests}
                       isOwner={false}
+                      loading={loadingViewingRequests}
                     />
                   )}
                 </div>
@@ -313,26 +431,30 @@ export default function UserDashboard() {
 
               {activeTab === "applications" && (
                 <div>
-                  {loadingApplications ? (
-                    <div className="flex justify-center my-12">
-                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
-                    </div>
+                  {loadingApplications && !dataCache.applications.data ? (
+                    <TabSkeleton />
                   ) : (
                     <PropertyApplications
                       applications={applications}
                       setApplications={setApplications}
-                      loading={false}
+                      loading={loadingApplications}
                     />
                   )}
                 </div>
               )}
 
               {activeTab === "favorites" && (
-                <SavedProperties
-                  favorites={favorites}
-                  loadingFavorites={loadingFavorites}
-                  onRemoveFavorite={removeFavorite}
-                />
+                <div>
+                  {loadingFavorites && !dataCache.favorites.data ? (
+                    <TabSkeleton />
+                  ) : (
+                    <SavedProperties
+                      favorites={favorites}
+                      loadingFavorites={loadingFavorites}
+                      onRemoveFavorite={removeFavorite}
+                    />
+                  )}
+                </div>
               )}
 
               {activeTab === "settings" && (

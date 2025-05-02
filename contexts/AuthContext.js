@@ -1,9 +1,8 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase'; // Make sure path is correct
-import { toast } from 'react-hot-toast'; // Optional but recommended for user feedback
+import { createContext, useContext, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase"; // Make sure path is correct
 
 // Create context with expanded functionality
 const AuthContext = createContext({
@@ -16,6 +15,7 @@ const AuthContext = createContext({
   updateProfile: async () => {},
   updateProfilePhoto: async () => {},
   navigateToDashboard: () => {},
+  getProfileImageUrl: () => {},
 });
 
 // Provider component
@@ -30,41 +30,75 @@ export function AuthProvider({ children }) {
   const fetchProfile = async (userId) => {
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
         .single();
 
       if (error) {
-        console.error('Error fetching profile:', error);
+        console.error("Error fetching profile:", error);
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('Error fetching profile:', error.message);
+      console.error("Error fetching profile:", error.message);
       return null;
     }
   };
 
-  // Function to refresh user profile data
+  // Function to refresh user profile data with retry logic
   const refreshProfile = async () => {
-    if (!user) return;
-    
-    const profileData = await fetchProfile(user.id);
-    if (profileData) {
-      setProfile(profileData);
-      setUserRole(profileData.role);
+    if (!user) return { error: new Error("No authenticated user") };
+
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (error) {
+        // Try once more with a delay in case of network issue
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        const retryResult = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        if (retryResult.error) throw retryResult.error;
+
+        setProfile(retryResult.data);
+        setUserRole(retryResult.data.role);
+        return { data: retryResult.data, error: null };
+      }
+
+      setProfile(data);
+      setUserRole(data.role);
+      return { data, error: null };
+    } catch (error) {
+      console.error("Error refreshing profile:", error);
+      return { data: null, error };
     }
   };
 
   // Update profile information
   const updateProfile = async (profileData) => {
     if (!user) {
-      return { error: new Error('No authenticated user') };
+      return { error: new Error("No authenticated user") };
     }
 
     try {
+      // Validate data
+      if (
+        profileData.full_name !== undefined &&
+        !profileData.full_name.trim()
+      ) {
+        return { error: new Error("Full name is required") };
+      }
+
       // Prepare data with current timestamp
       const dataToUpdate = {
         ...profileData,
@@ -73,9 +107,9 @@ export function AuthProvider({ children }) {
 
       // Update profile in database
       const { data, error } = await supabase
-        .from('profiles')
+        .from("profiles")
         .update(dataToUpdate)
-        .eq('id', user.id)
+        .eq("id", user.id)
         .select()
         .single();
 
@@ -91,63 +125,149 @@ export function AuthProvider({ children }) {
 
       return { data, error: null };
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error("Error updating profile:", error);
       return { data: null, error };
     }
   };
 
-  // Update profile photo
-  const updateProfilePhoto = async (file) => {
+  // Updated updateProfilePhoto function with better error handling and database updates
+  const updateProfilePhoto = async (photoData, isBase64 = false) => {
     if (!user) {
-      return { error: new Error('No authenticated user') };
+      return { error: new Error("No authenticated user") };
     }
 
     try {
-      // Create a unique file path
-      const filePath = `${user.id}/${Date.now()}_profile`;
-      
-      // Upload the file to Supabase storage
-      const { error: uploadError } = await supabase.storage
-        .from('profile-images')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
+      // Generate a unique filename with timestamp to avoid caching issues
+      const timestamp = Date.now();
+      let filePath;
+      let uploadResult;
 
-      if (uploadError) {
-        throw uploadError;
+      if (isBase64) {
+        filePath = `${user.id}/profile_${timestamp}.jpg`;
+
+        const base64Response = await fetch(
+          `data:image/jpeg;base64,${photoData}`
+        );
+        const blob = await base64Response.blob();
+
+        uploadResult = await supabase.storage
+          .from("profile-images")
+          .upload(filePath, blob, {
+            contentType: "image/jpeg",
+            upsert: true,
+          });
+      } else {
+        const fileExt = photoData.name.split(".").pop();
+        filePath = `${user.id}/profile_${timestamp}.${fileExt}`;
+
+        uploadResult = await supabase.storage
+          .from("profile-images")
+          .upload(filePath, photoData, {
+            upsert: true,
+          });
       }
 
-      // Get the public URL for the file
-      const { data: publicUrlData } = await supabase.storage
-        .from('profile-images')
+      if (uploadResult.error) {
+        console.error("Upload error:", uploadResult.error);
+        throw uploadResult.error;
+      }
+
+      console.log("Upload successful. File path:", filePath);
+
+      // Get the public URL - this is critical for the database update
+      const { data: publicUrlData } = supabase.storage
+        .from("profile-images")
         .getPublicUrl(filePath);
 
-      const publicUrl = publicUrlData.publicUrl;
+      if (!publicUrlData || !publicUrlData.publicUrl) {
+        throw new Error("Failed to get public URL for uploaded image");
+      }
 
-      // Update the profile with the new image path
+      console.log("Public URL generated:", publicUrlData.publicUrl);
+
+      // CRITICAL FIX: Explicitly construct the correct data object for the database update
+      const profileUpdateData = {
+        profile_image: filePath,
+        profile_image_url: publicUrlData.publicUrl,
+        updated_at: new Date().toISOString(),
+      };
+
+      console.log("Updating profile with data:", profileUpdateData);
+
+      // Update profile in the database
       const { data, error } = await supabase
-        .from('profiles')
-        .update({
-          profile_image: filePath,
-          profile_image_url: publicUrl,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id)
+        .from("profiles")
+        .update(profileUpdateData)
+        .eq("id", user.id)
         .select()
         .single();
 
       if (error) {
+        console.error("Database update error:", error);
         throw error;
       }
+
+      console.log("Profile updated successfully:", data);
 
       // Update local state
       setProfile(data);
 
       return { data, error: null };
     } catch (error) {
-      console.error('Error updating profile photo:', error);
+      console.error("Error updating profile photo:", error);
       return { data: null, error };
+    }
+  };
+
+  // Updated getProfileImageUrl function
+  const getProfileImageUrl = async () => {
+    // Debug what values are available
+    console.log("Profile data in getProfileImageUrl:", profile);
+
+    // Check both profile_image and profile_image_url
+    if (!profile?.profile_image && !profile?.profile_image_url) {
+      console.log("No profile image data available");
+      return null;
+    }
+
+    try {
+      // If we have a profile_image path, try to generate a signed URL
+      if (profile.profile_image) {
+        console.log("Generating signed URL for:", profile.profile_image);
+
+        const { data, error } = await supabase.storage
+          .from("profile-images")
+          .createSignedUrl(profile.profile_image, 3600);
+
+        if (error) {
+          console.error("Error generating signed URL:", error);
+
+          // Fallback to public URL with cache busting
+          if (profile.profile_image_url) {
+            console.log("Falling back to public URL with cache busting");
+            return `${profile.profile_image_url}?t=${Date.now()}`;
+          }
+          return null;
+        }
+
+        console.log("Successfully generated signed URL:", data.signedUrl);
+        return data.signedUrl;
+      }
+      // Fallback to public URL with cache busting
+      else if (profile.profile_image_url) {
+        console.log("Using profile_image_url with cache busting");
+        return `${profile.profile_image_url}?t=${Date.now()}`;
+      }
+
+      return null;
+    } catch (error) {
+      console.error("Error in getProfileImageUrl:", error);
+
+      // Last resort fallback
+      if (profile.profile_image_url) {
+        return `${profile.profile_image_url}?t=${Date.now()}`;
+      }
+      return null;
     }
   };
 
@@ -155,9 +275,9 @@ export function AuthProvider({ children }) {
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
-      router.push('/');
+      router.push("/");
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error("Error signing out:", error);
     }
   };
 
@@ -165,10 +285,12 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const setupUser = async () => {
       setIsLoading(true);
-      
+
       // Get initial session
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       if (session?.user) {
         setUser(session.user);
         const profileData = await fetchProfile(session.user.id);
@@ -177,31 +299,31 @@ export function AuthProvider({ children }) {
           setUserRole(profileData.role);
         }
       }
-      
+
       setIsLoading(false);
     };
-    
+
     setupUser();
-    
+
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          setUser(session.user);
-          const profileData = await fetchProfile(session.user.id);
-          if (profileData) {
-            setProfile(profileData);
-            setUserRole(profileData.role);
-          }
-        } else {
-          setUser(null);
-          setProfile(null);
-          setUserRole(null);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        const profileData = await fetchProfile(session.user.id);
+        if (profileData) {
+          setProfile(profileData);
+          setUserRole(profileData.role);
         }
-        setIsLoading(false);
+      } else {
+        setUser(null);
+        setProfile(null);
+        setUserRole(null);
       }
-    );
-    
+      setIsLoading(false);
+    });
+
     return () => {
       subscription?.unsubscribe();
     };
@@ -209,10 +331,10 @@ export function AuthProvider({ children }) {
 
   // Navigate to dashboard based on role
   const navigateToDashboard = () => {
-    if (userRole === 'owner') {
-      router.push('/dashboard/owner');
+    if (userRole === "owner") {
+      router.push("/dashboard/owner");
     } else {
-      router.push('/dashboard/user');
+      router.push("/dashboard/user");
     }
   };
 
@@ -233,13 +355,10 @@ export function AuthProvider({ children }) {
     updateProfilePhoto,
     navigateToDashboard,
     hasRole,
+    getProfileImageUrl,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 // Custom hook to use the auth context
