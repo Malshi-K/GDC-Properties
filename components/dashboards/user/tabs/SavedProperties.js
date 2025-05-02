@@ -1,14 +1,8 @@
+"use client";
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { supabase } from "@/lib/supabase";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase"; // Use your app's supabase instance
 import Image from 'next/image';
-
-// Initialize Supabase client for storage
-const supabaseClient = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
 
 /**
  * Saved properties component for user dashboard
@@ -17,49 +11,111 @@ const SavedProperties = ({ favorites, loadingFavorites, onRemoveFavorite }) => {
   const [propertyImages, setPropertyImages] = useState({});
   const [loadingImages, setLoadingImages] = useState(true);
 
-  // Fetch property images
+  // Fetch property images in parallel
   useEffect(() => {
     async function fetchPropertyImages() {
-      if (!favorites || favorites.length === 0) {
+      // Check if favorites exists and has items
+      if (!favorites || !Array.isArray(favorites) || favorites.length === 0) {
         setLoadingImages(false);
         return;
       }
       
       setLoadingImages(true);
-      const images = {};
       
-      for (const property of favorites) {
-        if (property.images && property.images.length > 0) {
-          const imagePath = property.images[0];
-          
-          // Normalize the path - be careful about how you handle the path
-          const normalizedPath = imagePath.includes("/")
-            ? imagePath
-            : `${property.owner_id || property.propertyId}/${imagePath}`;
+      try {
+        // Create array of promises for parallel fetching
+        const imagePromises = favorites
+          .filter(property => property.images && Array.isArray(property.images) && property.images.length > 0)
+          .map(async (property) => {
+            const imagePath = property.images[0];
             
-          try {
-            const { data, error } = await supabaseClient.storage
-              .from("property-images")
-              .createSignedUrl(normalizedPath, 60 * 60); // 1 hour expiry
-            
-            if (error) {
-              console.error("Error getting signed URL:", error);
-              continue;
+            // Normalize the path
+            const normalizedPath = imagePath.includes("/")
+              ? imagePath
+              : `${property.owner_id || property.propertyId}/${imagePath}`;
+              
+            try {
+              const { data, error } = await supabase.storage
+                .from("property-images")
+                .createSignedUrl(normalizedPath, 60 * 60); // 1 hour expiry
+              
+              if (error) {
+                console.error("Error getting signed URL for property " + property.id + ":", error);
+                return [property.id, null];
+              }
+              
+              return [property.id, data.signedUrl];
+            } catch (error) {
+              console.error("Error fetching image for property " + property.id + ":", error);
+              return [property.id, null];
             }
-            
-            images[property.id] = data.signedUrl;
-          } catch (error) {
-            console.error("Error fetching image:", error);
-          }
-        }
+          });
+        
+        // Wait for all promises to resolve
+        const results = await Promise.all(imagePromises);
+        
+        // Convert results to an object
+        const images = {};
+        results.forEach(([propertyId, url]) => {
+          if (url) images[propertyId] = url;
+        });
+        
+        setPropertyImages(images);
+      } catch (error) {
+        console.error("Error in fetchPropertyImages:", error);
+      } finally {
+        setLoadingImages(false);
       }
-      
-      setPropertyImages(images);
-      setLoadingImages(false);
     }
     
     fetchPropertyImages();
   }, [favorites]);
+
+  // Handle the case where favorites is undefined or not an array
+  if (!favorites || !Array.isArray(favorites)) {
+    if (loadingFavorites) {
+      return (
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Saved Properties</h2>
+            <div className="flex justify-center my-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="p-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Saved Properties</h2>
+          <div className="text-center py-10">
+            <div className="mb-4">
+              <svg 
+                className="mx-auto h-12 w-12 text-gray-400" 
+                fill="none" 
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth="2" 
+                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-1">You haven't saved any properties yet</h3>
+            <p className="text-gray-500 mb-6">Save properties to view them later and compare your options</p>
+            <Link href="/search" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-custom-red hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red">
+              Browse Properties
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -111,6 +167,8 @@ const SavedProperties = ({ favorites, loadingFavorites, onRemoveFavorite }) => {
                             alt={property.title || "Property"}
                             fill
                             className="object-cover"
+                            loading="lazy"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           />
                         </div>
                       ) : (
@@ -137,21 +195,24 @@ const SavedProperties = ({ favorites, loadingFavorites, onRemoveFavorite }) => {
                       href={`/property/${property.propertyId}`}
                       className="block"
                     >
-                      <h3 className="text-lg font-semibold text-custom-red hover:text-red-700 transition-colors mb-1">{property.title}</h3>
+                      <h3 className="text-lg font-semibold text-custom-red hover:text-red-700 transition-colors mb-1">{property.title || "Property"}</h3>
                     </Link>
                     
-                    <p className="text-gray-600 text-sm mb-2">{property.location}</p>
+                    <p className="text-gray-600 text-sm mb-2">{property.location || "Location not specified"}</p>
                     
                     <div className="flex justify-between items-center mb-3">
                       <span className="text-custom-red font-bold">
-                        {new Intl.NumberFormat('en-US', {
-                          style: 'currency',
-                          currency: 'USD',
-                          maximumFractionDigits: 0
-                        }).format(property.price)}
+                        {property.price 
+                          ? new Intl.NumberFormat('en-US', {
+                              style: 'currency',
+                              currency: 'USD',
+                              maximumFractionDigits: 0
+                            }).format(property.price)
+                          : "Price not available"
+                        }
                       </span>
                       <div className="text-gray-600 text-sm">
-                        <span>{property.bedrooms} beds</span> • <span>{property.bathrooms} baths</span>
+                        <span>{property.bedrooms || 0} beds</span> • <span>{property.bathrooms || 0} baths</span>
                       </div>
                     </div>
                     

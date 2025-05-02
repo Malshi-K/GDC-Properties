@@ -6,27 +6,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { supabase } from "@/lib/supabase";
 import { toast } from "react-hot-toast";
-
-// Import components
-import DashboardSidebar from "@/components/dashboards/user/DashboardSidebar";
-import PropertyApplications from "@/components/dashboards/user/tabs/PropertyApplications";
 import SavedProperties from "@/components/dashboards/user/tabs/SavedProperties";
-import ViewingRequestsTab from "@/components/dashboards/user/tabs/ViewingRequestsTab";
-import ProfileCard from "@/components/dashboards/ProfileCard";
-import SettingsTab from "@/components/dashboards/SettingsTab";
 
-/**
- * User Dashboard Page
- */
 export default function UserDashboard() {
   const { user, profile } = useAuth();
-  const [activeTab, setActiveTab] = useState("viewingRequests"); // Set default to viewingRequests
   const [favorites, setFavorites] = useState([]);
   const [loadingFavorites, setLoadingFavorites] = useState(true);
-  const [applications, setApplications] = useState([]);
-  const [loadingApplications, setLoadingApplications] = useState(true);
-  const [viewingRequests, setViewingRequests] = useState([]);
-  const [loadingViewingRequests, setLoadingViewingRequests] = useState(true);
 
   // Fetch all user data in parallel when component mounts
   useEffect(() => {
@@ -38,7 +23,7 @@ export default function UserDashboard() {
         const dataPromises = [
           fetchFavorites(),
           fetchApplications(),
-          fetchViewingRequests()
+          fetchViewingRequests(),
         ];
 
         // Wait for all promises to resolve
@@ -85,14 +70,14 @@ export default function UserDashboard() {
       console.log("Raw favorites data:", data);
 
       // Filter out any null property entries (could happen if property was deleted)
-      const validData = data.filter(item => item.properties !== null);
+      const validData = data.filter((item) => item.properties !== null);
 
       // Format the data for display
       const formattedFavorites = validData.map((item) => ({
         id: item.id,
         propertyId: item.property_id,
         ...item.properties,
-        owner_id: item.properties.owner_id, 
+        owner_id: item.properties.owner_id,
       }));
 
       console.log("Formatted favorites:", formattedFavorites);
@@ -282,64 +267,12 @@ export default function UserDashboard() {
         </header>
 
         {/* Main Content */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Sidebar */}
-            <div className="lg:col-span-1">
-              <ProfileCard user={user} profile={profile} />
-              <DashboardSidebar
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-              />
-            </div>
-
-            {/* Main Content */}
-            <div className="lg:col-span-3">
-              {activeTab === "viewingRequests" && (
-                <div>
-                  {loadingViewingRequests ? (
-                    <div className="flex justify-center my-12">
-                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
-                    </div>
-                  ) : (
-                    <ViewingRequestsTab
-                      viewingRequests={viewingRequests}
-                      setViewingRequests={setViewingRequests}
-                      isOwner={false}
-                    />
-                  )}
-                </div>
-              )}
-
-              {activeTab === "applications" && (
-                <div>
-                  {loadingApplications ? (
-                    <div className="flex justify-center my-12">
-                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
-                    </div>
-                  ) : (
-                    <PropertyApplications
-                      applications={applications}
-                      setApplications={setApplications}
-                      loading={false}
-                    />
-                  )}
-                </div>
-              )}
-
-              {activeTab === "favorites" && (
-                <SavedProperties
-                  favorites={favorites}
-                  loadingFavorites={loadingFavorites}
-                  onRemoveFavorite={removeFavorite}
-                />
-              )}
-
-              {activeTab === "settings" && (
-                <SettingsTab user={user} profile={profile} />
-              )}
-            </div>
-          </div>
+        <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <SavedProperties
+            favorites={favorites}
+            loadingFavorites={loadingFavorites}
+            onRemoveFavorite={removeFavorite}
+          />
         </main>
       </div>
     </ProtectedRoute>

@@ -1,3 +1,4 @@
+import ConsultServices from "@/components/home/ConsultServices";
 import FeaturedProperties from "@/components/home/FeaturedProperties";
 import HeroSection from "@/components/home/HeroSection";
 import PropertyTypesOverview from "@/components/home/PropertyTypesOverview";
@@ -15,6 +16,7 @@ export default function Home() {
         <PropertyTypesOverview />
         
         <FeaturedProperties />
+        <ConsultServices />
       </div>
     </div>
   );

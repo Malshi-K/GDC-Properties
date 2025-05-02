@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import ResetPassword from "@/components/ResetPassword";
+import ResetPassword from "@/components/auth/ResetPassword";
 
 export default function ResetPasswordPage() {
   const [isReady, setIsReady] = useState(false);

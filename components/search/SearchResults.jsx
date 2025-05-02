@@ -47,19 +47,16 @@ export default function SearchResults() {
   useEffect(() => {
     const fetchAllData = async () => {
       setLoading(true);
-      
+
       try {
         // Create an array of promises for parallel fetching
-        const promises = [
-          fetchLocations(),
-          fetchProperties(),
-        ];
-        
+        const promises = [fetchLocations(), fetchProperties()];
+
         // If user is logged in, also fetch favorites
         if (user) {
           promises.push(fetchUserFavorites());
         }
-        
+
         // Wait for all promises to resolve
         await Promise.all(promises);
       } catch (error) {
@@ -69,7 +66,7 @@ export default function SearchResults() {
         setLoading(false);
       }
     };
-    
+
     fetchAllData();
   }, [searchParams, user]);
 
@@ -170,14 +167,14 @@ export default function SearchResults() {
   // Function to fetch property images
   const fetchPropertyImages = async (propertiesData) => {
     if (!propertiesData.length) return;
-    
+
     try {
       // Create an array of promises for parallel image fetching
       const imagePromises = propertiesData
-        .filter(property => property.images && property.images.length > 0)
+        .filter((property) => property.images && property.images.length > 0)
         .map(async (property) => {
           const imagePath = property.images[0];
-          
+
           // Normalize the path
           const normalizedPath = imagePath.includes("/")
             ? imagePath
@@ -195,7 +192,7 @@ export default function SearchResults() {
               );
               return [property.id, null];
             }
-            
+
             return [property.id, data.signedUrl];
           } catch (error) {
             console.error("Error fetching image:", error);
@@ -205,13 +202,13 @@ export default function SearchResults() {
 
       // Wait for all image fetches to complete
       const results = await Promise.all(imagePromises);
-      
+
       // Convert results to an object
       const imageUrls = {};
       results.forEach(([propertyId, url]) => {
         if (url) imageUrls[propertyId] = url;
       });
-      
+
       setPropertyImages(imageUrls);
     } catch (error) {
       console.error("Error fetching property images:", error);
@@ -258,12 +255,10 @@ export default function SearchResults() {
         toast.success("Property removed from favorites");
       } else {
         // Add to favorites - single object, not array
-        const { error } = await supabase
-          .from("favorites")
-          .insert({
-            user_id: user.id,
-            property_id: propertyId,
-          });
+        const { error } = await supabase.from("favorites").insert({
+          user_id: user.id,
+          property_id: propertyId,
+        });
 
         if (error) throw error;
 
@@ -339,11 +334,11 @@ export default function SearchResults() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-40 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-100 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Search filters */}
         <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-          <h2 className="text-xl font-bold text-center text-gray-800 mb-4">
+          <h2 className="text-2xl font-bold text-center text-gray-800 mb-4">
             Refine Your Search
           </h2>
 
@@ -352,7 +347,10 @@ export default function SearchResults() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Location dropdown */}
               <div>
-                <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="location"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Location
                 </label>
                 <select
@@ -373,7 +371,10 @@ export default function SearchResults() {
 
               {/* Property type dropdown */}
               <div>
-                <label htmlFor="property_type" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="property_type"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Property Type
                 </label>
                 <select
@@ -396,7 +397,10 @@ export default function SearchResults() {
               <div className="grid grid-cols-2 gap-2">
                 {/* Bedrooms dropdown */}
                 <div>
-                  <label htmlFor="bedrooms" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="bedrooms"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Bedrooms
                   </label>
                   <select
@@ -414,10 +418,13 @@ export default function SearchResults() {
                     <option value="5">5+</option>
                   </select>
                 </div>
-                
+
                 {/* Bathrooms dropdown */}
                 <div>
-                  <label htmlFor="bathrooms" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="bathrooms"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Bathrooms
                   </label>
                   <select
@@ -442,7 +449,10 @@ export default function SearchResults() {
               <div className="grid grid-cols-2 gap-2">
                 {/* Min price dropdown */}
                 <div>
-                  <label htmlFor="minPrice" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="minPrice"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Min Price
                   </label>
                   <select
@@ -460,10 +470,13 @@ export default function SearchResults() {
                     <option value="2000000">$2,000,000</option>
                   </select>
                 </div>
-                
+
                 {/* Max price dropdown */}
                 <div>
-                  <label htmlFor="maxPrice" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="maxPrice"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Max Price
                   </label>
                   <select
@@ -482,9 +495,7 @@ export default function SearchResults() {
                   </select>
                 </div>
               </div>
-              
               <div></div> {/* Empty div for spacing */}
-              
               {/* Search button */}
               <div className="flex items-end">
                 <button
@@ -500,20 +511,11 @@ export default function SearchResults() {
 
         {/* Search results section */}
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Search Results
-          </h1>
           <p className="text-gray-600">
             Found {properties.length}{" "}
             {properties.length === 1 ? "property" : "properties"} matching your
             criteria
-          </p>
-          <Link
-            href="/"
-            className="text-custom-red hover:text-red-700 font-medium mt-2 inline-block"
-          >
-            Back to Home
-          </Link>
+          </p>          
         </div>
 
         {/* No results message */}
@@ -525,12 +527,6 @@ export default function SearchResults() {
             <p className="text-gray-600 mb-6">
               Try adjusting your search filters to see more results.
             </p>
-            <Link
-              href="/"
-              className="bg-custom-red hover:bg-red-700 text-white font-bold py-2 px-6 rounded-md transition-colors duration-300"
-            >
-              Return Home
-            </Link>
           </div>
         ) : (
           /* Property grid */
@@ -605,7 +601,9 @@ export default function SearchResults() {
                   >
                     {property.title}
                   </h3>
-                  <p className="text-gray-600 mb-4 line-clamp-2">{property.description}</p>
+                  <p className="text-gray-600 mb-4 line-clamp-2">
+                    {property.description}
+                  </p>
                   <div className="flex justify-between mb-4">
                     <span className="text-custom-red font-bold text-lg">
                       {formatPrice(property.price)}
