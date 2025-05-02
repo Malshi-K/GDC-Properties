@@ -35,6 +35,12 @@ export default function SettingsTab({ user, profile }) {
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [passwordResetSent, setPasswordResetSent] = useState(false);
 
+  // State for account deletion
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deletePasswordError, setDeletePasswordError] = useState("");
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
   const isOwner = profile?.role === "owner";
   const isTenant = profile?.role === "user";
 
@@ -65,6 +71,15 @@ export default function SettingsTab({ user, profile }) {
       ...prev,
       [name]: value
     }));
+  };
+
+  // Handle delete password input change
+  const handleDeletePasswordChange = (e) => {
+    setDeletePassword(e.target.value);
+    // Clear previous error when typing
+    if (deletePasswordError) {
+      setDeletePasswordError("");
+    }
   };
 
   // Handle notification checkbox changes
@@ -135,14 +150,84 @@ export default function SettingsTab({ user, profile }) {
     }
   };
 
+  // Handle account deletion confirmation toggle
+  const toggleDeleteConfirmation = () => {
+    setShowDeleteConfirmation(!showDeleteConfirmation);
+    // Reset the password field and error when toggling
+    setDeletePassword("");
+    setDeletePasswordError("");
+  };
+
+  // Handle the actual account deletion
+  const handleAccountDeletion = async (e) => {
+    e.preventDefault();
+    
+    if (!deletePassword) {
+      setDeletePasswordError("Please enter your password");
+      return;
+    }
+    
+    setIsDeletingAccount(true);
+    setDeletePasswordError("");
+    
+    try {
+      // Step 1: Verify the password by attempting to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: deletePassword,
+      });
+      
+      if (signInError) {
+        setDeletePasswordError("Incorrect password. Please try again.");
+        setIsDeletingAccount(false);
+        return;
+      }
+      
+      // Step 2: Delete user data from profiles table
+      const { error: profileDeleteError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', user.id);
+        
+      if (profileDeleteError) throw profileDeleteError;
+      
+      // Step 3: Delete user from auth
+      const { error: authDeleteError } = await supabase.auth.admin.deleteUser(
+        user.id
+      );
+      
+      if (authDeleteError) {
+        // If we can't delete the auth user, we should show an error,
+        // but at this point the profile is already deleted
+        throw new Error("Failed to delete your account. Please contact support.");
+      }
+      
+      // Step 4: Sign out
+      await supabase.auth.signOut();
+      
+      // Show success message
+      toast.success("Your account has been deleted successfully. You will be redirected to the homepage.");
+      
+      // Redirect to home page after a short delay
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 2000);
+      
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      toast.error(error.message || "Failed to delete account. Please try again later.");
+      setIsDeletingAccount(false);
+    }
+  };
+
   return (
     <div className="bg-white shadow rounded-lg p-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Account Settings</h2>
+      <h2 className="text-2xl font-bold text-custom-red mb-6">Account Settings</h2>
       
       {/* Basic Profile Information */}
       <form className="space-y-6" onSubmit={handleSubmit}>
-        <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Profile Information</h3>
+        <div className="text-gray-600">
+          <h3 className="text-xl font-bold text-gray-900 mb-4">Profile Information</h3>
           
           <div className="space-y-4">
             <div>
@@ -305,7 +390,7 @@ export default function SettingsTab({ user, profile }) {
         
         {/* Notification Preferences */}
         <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Email Notifications</h3>
+          <h3 className="text-xl font-bold text-gray-900 mb-4">Email Notifications</h3>
           <div className="space-y-3">
             {/* Common notifications for all users */}
             <div className="flex items-center">
@@ -470,16 +555,80 @@ export default function SettingsTab({ user, profile }) {
       
       {/* Delete Account Section */}
       <div className="mt-10 pt-6 border-t border-gray-200">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Delete Account</h3>
+        <h3 className="text-xl font-bold text-custom-red mb-4">Delete Account</h3>
         <p className="text-sm text-gray-500 mb-4">
-          Once you delete your account, there is no going back. Please be certain.
+          Once you delete your account, there is no going back. All of your data will be permanently removed.
         </p>
-        <button
-          type="button"
-          className="px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50"
-        >
-          Delete Account
-        </button>
+        
+        {!showDeleteConfirmation ? (
+          <button
+            type="button"
+            onClick={toggleDeleteConfirmation}
+            className="px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50"
+          >
+            Delete Account
+          </button>
+        ) : (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <h4 className="text-lg font-medium text-red-800 mb-2">Confirm Account Deletion</h4>
+            <p className="text-sm text-red-700 mb-4">
+              This action cannot be undone. Please confirm your password to proceed with account deletion.
+            </p>
+            
+            <form onSubmit={handleAccountDeletion} className="space-y-4">
+              <div>
+                <label htmlFor="deletePassword" className="block text-sm font-medium text-gray-700 mb-1">
+                  Enter your password
+                </label>
+                <input
+                  id="deletePassword"
+                  type="password"
+                  value={deletePassword}
+                  onChange={handleDeletePasswordChange}
+                  className={`block w-full px-3 py-2 border ${
+                    deletePasswordError ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-custom-red focus:border-custom-red'
+                  } rounded-md shadow-sm`}
+                  placeholder="Your current password"
+                />
+                {deletePasswordError && (
+                  <p className="mt-1 text-sm text-red-600">{deletePasswordError}</p>
+                )}
+              </div>
+              
+              <div className="flex items-center text-sm text-gray-700 bg-yellow-50 p-3 rounded-md border border-yellow-200">
+                <svg className="h-5 w-5 text-yellow-400 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                By proceeding, all of your data will be permanently deleted, including your profile, saved properties, applications, and viewing requests.
+              </div>
+              
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={toggleDeleteConfirmation}
+                  className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isDeletingAccount}
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                >
+                  {isDeletingAccount ? (
+                    <span className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Deleting...
+                    </span>
+                  ) : "Permanently Delete Account"}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
       </div>
     </div>
   );

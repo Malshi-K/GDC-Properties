@@ -30,6 +30,7 @@ export default function PropertyDetails() {
   const [activeImage, setActiveImage] = useState(0);
   const [showViewingModal, setShowViewingModal] = useState(false);
   const [showApplicationModal, setShowApplicationModal] = useState(false); // New state for application modal
+  const [userRole, setUserRole] = useState(null); // Add state for user role
 
   useEffect(() => {
     async function fetchPropertyDetails() {
@@ -92,6 +93,33 @@ export default function PropertyDetails() {
     fetchPropertyDetails();
   }, [id]);
 
+  // Add effect to fetch user role when user changes
+  useEffect(() => {
+    async function getUserRole() {
+      if (!user) {
+        setUserRole(null);
+        return;
+      }
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+          
+        if (error) throw error;
+        
+        setUserRole(data.role);
+        console.log("User role fetched:", data.role);
+      } catch (error) {
+        console.error("Error fetching user role:", error);
+      }
+    }
+    
+    getUserRole();
+  }, [user]);
+
   const handleImageClick = (index) => {
     setActiveImage(index);
   };
@@ -141,6 +169,9 @@ export default function PropertyDetails() {
   const handleApplicationSuccess = (application) => {
     toast.success('Application submitted successfully! The owner will review your application soon.');
   };
+
+  // Check if the action buttons should be shown (only for non-owner users)
+  const shouldShowActionButtons = userRole !== "owner";
 
   if (loading) {
     return (
@@ -367,33 +398,35 @@ export default function PropertyDetails() {
                 </div>
               )}
               
-              {/* Contact section */}
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Interested in this property?</h2>
-                <p className="text-gray-700 mb-4">Contact us to schedule a viewing or apply for this property.</p>
-                
-                <div className="space-y-3">
-                  <button 
-                    onClick={openViewingModal}
-                    className="w-full bg-custom-red hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md transition-colors duration-300"
-                    disabled={property.status !== 'available'}
-                  >
-                    Schedule a Viewing
-                  </button>
-                  <button 
-                    onClick={openApplicationModal}
-                    className="w-full bg-white hover:bg-gray-100 text-gray-800 font-semibold py-3 px-4 border border-gray-300 rounded-md transition-colors duration-300"
-                  >
-                    Apply For Property
-                  </button>
+              {/* Contact section - Only show for non-owner users */}
+              {shouldShowActionButtons && (
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">Interested in this property?</h2>
+                  <p className="text-gray-700 mb-4">Contact us to schedule a viewing or apply for this property.</p>
+                  
+                  <div className="space-y-3">
+                    <button 
+                      onClick={openViewingModal}
+                      className="w-full bg-custom-red hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md transition-colors duration-300"
+                      disabled={property.status !== 'available'}
+                    >
+                      Schedule a Viewing
+                    </button>
+                    <button 
+                      onClick={openApplicationModal}
+                      className="w-full bg-white hover:bg-gray-100 text-gray-800 font-semibold py-3 px-4 border border-gray-300 rounded-md transition-colors duration-300"
+                    >
+                      Apply For Property
+                    </button>
+                  </div>
+                  
+                  {property.status !== 'available' && (
+                    <p className="text-sm text-yellow-600 mt-2">
+                      Note: This property is currently {property.status}. You can still apply, but viewings may be limited.
+                    </p>
+                  )}
                 </div>
-                
-                {property.status !== 'available' && (
-                  <p className="text-sm text-yellow-600 mt-2">
-                    Note: This property is currently {property.status}. You can still apply, but viewings may be limited.
-                  </p>
-                )}
-              </div>
+              )}
             </div>
           </div>
         </div>

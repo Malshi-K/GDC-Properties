@@ -182,6 +182,9 @@ const Header = () => {
     return null;
   }
 
+  // Check if user should see Saved Properties option
+  const shouldShowSavedProperties = userRole !== "owner";
+
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -302,13 +305,15 @@ const Header = () => {
                         >
                           Profile
                         </button>
-                        <Link
-                          href="/favorites"
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          onClick={() => setUserMenuOpen(false)}
-                        >
-                          Saved Properties
-                        </Link>
+                        {shouldShowSavedProperties && (
+                          <Link
+                            href="/favorites"
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => setUserMenuOpen(false)}
+                          >
+                            Saved Properties
+                          </Link>
+                        )}
                         <button
                           onClick={handleSignOut}
                           className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -420,13 +425,15 @@ const Header = () => {
                       >
                         Profile
                       </button>
-                      <Link
-                        href="/favorites"
-                        className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                        onClick={() => setIsMenuOpen(false)}
-                      >
-                        Saved Properties
-                      </Link>
+                      {shouldShowSavedProperties && (
+                        <Link
+                          href="/favorites"
+                          className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                          onClick={() => setIsMenuOpen(false)}
+                        >
+                          Saved Properties
+                        </Link>
+                      )}
                       <button
                         onClick={() => {
                           handleSignOut();

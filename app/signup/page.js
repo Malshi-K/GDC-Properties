@@ -119,7 +119,7 @@ export default function SignupPage() {
 
       <div className="flex-grow flex items-center justify-center px-4 py-8">
         <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-8">
-          <h2 className="text-2xl font-bold mb-6 text-center">Create an Account</h2>
+          <h2 className="text-2xl font-bold text-custom-gray mb-6 text-center">Create an Account</h2>
 
           {message && (
             <div className="mb-6 p-4 bg-green-100 text-green-700 rounded flex items-center">
@@ -140,7 +140,7 @@ export default function SignupPage() {
           )}
 
           <form onSubmit={handleSubmit}>
-            <div className="mb-4">
+            <div className="mb-4 text-gray-600">
               <label
                 className="block text-gray-700 text-sm font-bold mb-2"
                 htmlFor="full-name"
@@ -219,7 +219,7 @@ export default function SignupPage() {
                 Account Type
               </label>
               <div className="flex space-x-4">
-                <label className="flex items-center">
+                <label className="flex items-center text-gray-600">
                   <input
                     type="radio"
                     name="role"
@@ -231,7 +231,7 @@ export default function SignupPage() {
                   />
                   <span>Property Seeker</span>
                 </label>
-                <label className="flex items-center">
+                <label className="flex items-center text-gray-600">
                   <input
                     type="radio"
                     name="role"

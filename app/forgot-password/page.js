@@ -50,7 +50,7 @@ export default function ForgotPasswordPage() {
 
       <div className="flex-grow flex items-center justify-center px-4">
         <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-8">
-          <h2 className="text-2xl font-bold mb-6 text-center">
+          <h2 className="text-2xl font-bold mb-6 text-center text-custom-gray">
             Forgot Your Password?
           </h2>
           
@@ -77,7 +77,7 @@ export default function ForgotPasswordPage() {
           )}
 
           <form onSubmit={handleSubmit}>
-            <div className="mb-6">
+            <div className="mb-6 text-gray-600">
               <label
                 className="block text-gray-700 text-sm font-bold mb-2"
                 htmlFor="email"

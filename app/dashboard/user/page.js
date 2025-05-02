@@ -28,50 +28,59 @@ export default function UserDashboard() {
   const [loadingViewingRequests, setLoadingViewingRequests] = useState(true);
 
   // Fetch user's favorite properties
-  useEffect(() => {
-    const fetchFavorites = async () => {
-      if (!user) return;
+  const fetchFavorites = async () => {
+    if (!user) return;
 
-      try {
-        setLoadingFavorites(true);
+    try {
+      setLoadingFavorites(true);
+      console.log("Fetching favorites for user:", user.id);
 
-        // Get favorites from Supabase
-        const { data, error } = await supabase
-          .from("favorites")
-          .select(
-            `
-            id,
-            property_id,
-            properties (
-              id,
-              title,
-              location,
-              price,
-              bedrooms,
-              bathrooms,
-              images
-            )
+      // Get favorites from Supabase
+      const { data, error } = await supabase
+        .from("favorites")
+        .select(
           `
-          )
-          .eq("user_id", user.id);
+        id,
+        property_id,
+        properties (
+          id,
+          title,
+          location,
+          price,
+          bedrooms,
+          bathrooms,
+          images,
+          owner_id
+        )
+      `
+        )
+        .eq("user_id", user.id);
 
-        if (error) throw error;
+      if (error) throw error;
+      console.log("Raw favorites data:", data);
 
-        // Format the data for display
-        const formattedFavorites = data.map((item) => ({
-          id: item.id,
-          propertyId: item.property_id,
-          ...item.properties,
-        }));
+      // Filter out any null property entries (could happen if property was deleted)
+      const validData = data.filter((item) => item.properties !== null);
 
-        setFavorites(formattedFavorites);
-      } catch (error) {
-        console.error("Error fetching favorites:", error);
-      } finally {
-        setLoadingFavorites(false);
-      }
-    };
+      // Format the data for display
+      const formattedFavorites = validData.map((item) => ({
+        id: item.id,
+        propertyId: item.property_id,
+        ...item.properties,
+        owner_id: item.properties.owner_id,
+      }));
 
+      console.log("Formatted favorites:", formattedFavorites);
+      setFavorites(formattedFavorites);
+    } catch (error) {
+      console.error("Error fetching favorites:", error);
+    } finally {
+      setLoadingFavorites(false);
+    }
+  };
+
+  // Make sure to call fetchFavorites in the useEffect
+  useEffect(() => {
     fetchFavorites();
   }, [user]);
 

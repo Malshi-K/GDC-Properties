@@ -109,7 +109,7 @@ export default function LoginPage() {
 
       <div className="flex-grow flex items-center justify-center px-4">
         <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-8">
-          <h2 className="text-2xl font-bold mb-6 text-center">Sign In</h2>
+          <h2 className="text-2xl font-bold text-custom-gray mb-6 text-center">Sign In</h2>
 
           {message && (
             <div className="mb-6 p-4 bg-green-100 text-green-700 rounded flex items-center">
@@ -130,7 +130,7 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit}>
-            <div className="mb-4">
+            <div className="mb-4 text-gray-600">
               <label
                 className="block text-gray-700 text-sm font-bold mb-2"
                 htmlFor="email"
