@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { toast } from "react-hot-toast";
@@ -11,11 +10,9 @@ import { supabase } from "@/lib/supabase";
 import { propertyService } from "@/lib/services/propertyService";
 
 // Import shared components
-import ProfileCard from "@/components/dashboards/ProfileCard";
-import SettingsTab from "@/components/dashboards/SettingsTab";
+import SettingsTab from "@/components/dashboards/common/SettingsTab";
 
 // Import owner components
-import OwnerSidebar from "@/components/dashboards/owner/Sidebar";
 import PropertiesTab from "@/components/dashboards/owner/tabs/PropertiesTab";
 import OwnerViewingRequestsTab from "@/components/dashboards/owner/tabs/ViewingRequestsTab";
 import ApplicationsTab from "@/components/dashboards/owner/tabs/ApplicationsTab";
@@ -23,10 +20,10 @@ import AnalyticsTab from "@/components/dashboards/owner/tabs/AnalyticsTab";
 import AddEditPropertyModal from "@/components/dashboards/owner/property/AddEditPropertyModal";
 
 // Import user components
-import UserSidebar from "@/components/dashboards/user/DashboardSidebar";
 import PropertyApplications from "@/components/dashboards/user/tabs/PropertyApplications";
 import SavedProperties from "@/components/dashboards/user/tabs/SavedProperties";
 import UserViewingRequestsTab from "@/components/dashboards/user/tabs/ViewingRequestsTab";
+import DashboardSidebar from "@/components/dashboards/common/DashboardSidebar";
 
 // Dashboard data tabs skeleton loader component
 const TabSkeleton = () => (
@@ -38,7 +35,7 @@ const TabSkeleton = () => (
       ))}
     </div>
   </div>
-);
+)
 
 export default function Dashboard() {
   const { user, profile, userRole } = useAuth();
@@ -619,142 +616,134 @@ export default function Dashboard() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-100 py-20">  
-        {/* Main Content */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Sidebar */}
-            <div className="lg:col-span-1">
-              <ProfileCard user={user} profile={profile} />
-              
-              {/* Render appropriate sidebar based on role */}
-              {userRole === "owner" ? (
-                <OwnerSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-              ) : (
-                <UserSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      {/* Remove the outer padding/margin and make dashboard full height and width */}
+      <div className="flex h-screen w-screen overflow-hidden">
+        {/* Sidebar - Fixed width with no margins/padding */}
+        <div className="h-full">              
+          <DashboardSidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} profile={profile} />
+        </div>
+
+        {/* Main Content Area - With scrolling */}
+        <div className="flex-1 overflow-y-auto bg-gray-100 p-8">
+          {/* Main Content - Owner Dashboard */}
+          {userRole === "owner" && (
+            <div>
+              {/* Properties Tab */}
+              {activeTab === "properties" && (
+                <PropertiesTab
+                  properties={properties}
+                  loading={loading.properties}
+                  error={error.properties}
+                  viewingRequests={viewingRequests}
+                  applications={rentalApplications}
+                  onEdit={handleEditProperty}
+                  onDelete={handleDeleteProperty}
+                  onAddNew={() => {
+                    setEditPropertyId(null);
+                    setShowAddPropertyModal(true);
+                  }}
+                  onViewAllRequests={() => setActiveTab("viewings")}
+                  onViewAllApplications={() => setActiveTab("applications")}
+                  onRefresh={fetchProperties}
+                />
+              )}
+
+              {/* Viewing Requests Tab */}
+              {activeTab === "viewings" && (
+                <OwnerViewingRequestsTab
+                  viewingRequests={viewingRequests}
+                  loading={loading.viewings}
+                  error={error.viewings}
+                  onStatusUpdate={handleViewingRequestStatusUpdate}
+                  onRefresh={fetchViewingRequests}
+                />
+              )}
+
+              {/* Applications Tab */}
+              {activeTab === "applications" && (
+                <ApplicationsTab
+                  applications={rentalApplications}
+                  loading={loading.applications}
+                  error={error.applications}
+                  onStatusUpdate={handleApplicationStatusUpdate}
+                  onRefresh={fetchRentalApplications}
+                />
+              )}
+
+              {/* Analytics Tab */}
+              {activeTab === "analytics" && <AnalyticsTab />}
+
+              {/* Settings Tab */}
+              {activeTab === "settings" && <SettingsTab user={user} profile={profile} />}
+            </div>
+          )}
+
+          {/* Main Content - User Dashboard */}
+          {userRole === "user" && (
+            <div>
+              {activeTab === "viewingRequests" && (
+                <div>
+                  {loading.viewings && !dataCache.viewingRequests.data ? (
+                    <TabSkeleton />
+                  ) : (
+                    <UserViewingRequestsTab
+                      viewingRequests={userViewingRequests}
+                      setViewingRequests={setUserViewingRequests}
+                      isOwner={false}
+                      loading={loading.viewings}
+                    />
+                  )}
+                </div>
+              )}
+
+              {activeTab === "applications" && (
+                <div>
+                  {loading.applications && !dataCache.applications.data ? (
+                    <TabSkeleton />
+                  ) : (
+                    <PropertyApplications
+                      applications={userApplications}
+                      setApplications={setUserApplications}
+                      loading={loading.applications}
+                    />
+                  )}
+                </div>
+              )}
+
+              {activeTab === "favorites" && (
+                <div>
+                  {loading.favorites && !dataCache.favorites.data ? (
+                    <TabSkeleton />
+                  ) : (
+                    <SavedProperties
+                      favorites={favorites}
+                      loadingFavorites={loading.favorites}
+                      onRemoveFavorite={removeFavorite}
+                    />
+                  )}
+                </div>
+              )}
+
+              {activeTab === "settings" && (
+                <SettingsTab user={user} profile={profile} />
               )}
             </div>
-
-            {/* Main Content - Owner Dashboard */}
-            {userRole === "owner" && (
-              <div className="lg:col-span-3">
-                {/* Properties Tab */}
-                {activeTab === "properties" && (
-                  <PropertiesTab
-                    properties={properties}
-                    loading={loading.properties}
-                    error={error.properties}
-                    viewingRequests={viewingRequests}
-                    applications={rentalApplications}
-                    onEdit={handleEditProperty}
-                    onDelete={handleDeleteProperty}
-                    onAddNew={() => {
-                      setEditPropertyId(null);
-                      setShowAddPropertyModal(true);
-                    }}
-                    onViewAllRequests={() => setActiveTab("viewings")}
-                    onViewAllApplications={() => setActiveTab("applications")}
-                    onRefresh={fetchProperties}
-                  />
-                )}
-
-                {/* Viewing Requests Tab */}
-                {activeTab === "viewings" && (
-                  <OwnerViewingRequestsTab
-                    viewingRequests={viewingRequests}
-                    loading={loading.viewings}
-                    error={error.viewings}
-                    onStatusUpdate={handleViewingRequestStatusUpdate}
-                    onRefresh={fetchViewingRequests}
-                  />
-                )}
-
-                {/* Applications Tab */}
-                {activeTab === "applications" && (
-                  <ApplicationsTab
-                    applications={rentalApplications}
-                    loading={loading.applications}
-                    error={error.applications}
-                    onStatusUpdate={handleApplicationStatusUpdate}
-                    onRefresh={fetchRentalApplications}
-                  />
-                )}
-
-                {/* Analytics Tab */}
-                {activeTab === "analytics" && <AnalyticsTab />}
-
-                {/* Settings Tab */}
-                {activeTab === "settings" && <SettingsTab user={user} profile={profile} />}
-              </div>
-            )}
-
-            {/* Main Content - User Dashboard */}
-            {userRole === "user" && (
-              <div className="lg:col-span-3">
-                {activeTab === "viewingRequests" && (
-                  <div>
-                    {loading.viewings && !dataCache.viewingRequests.data ? (
-                      <TabSkeleton />
-                    ) : (
-                      <UserViewingRequestsTab
-                        viewingRequests={userViewingRequests}
-                        setViewingRequests={setUserViewingRequests}
-                        isOwner={false}
-                        loading={loading.viewings}
-                      />
-                    )}
-                  </div>
-                )}
-
-                {activeTab === "applications" && (
-                  <div>
-                    {loading.applications && !dataCache.applications.data ? (
-                      <TabSkeleton />
-                    ) : (
-                      <PropertyApplications
-                        applications={userApplications}
-                        setApplications={setUserApplications}
-                        loading={loading.applications}
-                      />
-                    )}
-                  </div>
-                )}
-
-                {activeTab === "favorites" && (
-                  <div>
-                    {loading.favorites && !dataCache.favorites.data ? (
-                      <TabSkeleton />
-                    ) : (
-                      <SavedProperties
-                        favorites={favorites}
-                        loadingFavorites={loading.favorites}
-                        onRemoveFavorite={removeFavorite}
-                      />
-                    )}
-                  </div>
-                )}
-
-                {activeTab === "settings" && (
-                  <SettingsTab user={user} profile={profile} />
-                )}
-              </div>
-            )}
-          </div>
-        </main>
-
-        {/* Add/Edit Property Modal - Only for owner */}
-        {userRole === "owner" && showAddPropertyModal && (
-          <AddEditPropertyModal
-            isOpen={showAddPropertyModal}
-            onClose={() => {
-              setShowAddPropertyModal(false);
-              setEditPropertyId(null);
-            }}
-            property={propertyToEdit}
-            onSave={handleSaveProperty}
-          />
-        )}
+          )}
+        </div>
       </div>
+
+      {/* Add/Edit Property Modal - Only for owner */}
+      {userRole === "owner" && showAddPropertyModal && (
+        <AddEditPropertyModal
+          isOpen={showAddPropertyModal}
+          onClose={() => {
+            setShowAddPropertyModal(false);
+            setEditPropertyId(null);
+          }}
+          property={propertyToEdit}
+          onSave={handleSaveProperty}
+        />
+      )}
     </ProtectedRoute>
   );
 }

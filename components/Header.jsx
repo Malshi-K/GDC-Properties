@@ -167,11 +167,12 @@ const Header = () => {
     return pathname === link || pathname.startsWith(`${link}/`);
   };
 
-  // Skip rendering header on auth pages
+  // Skip rendering header on auth pages or dashboard page
   if (pathname.startsWith('/login') || 
       pathname.startsWith('/signup') || 
       pathname.startsWith('/forgot-password') || 
-      pathname.startsWith('/reset-password')) {
+      pathname.startsWith('/reset-password') ||
+      pathname.startsWith('/dashboard')) {
     return null;
   }
 

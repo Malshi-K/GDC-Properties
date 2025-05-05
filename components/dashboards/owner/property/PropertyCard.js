@@ -11,23 +11,10 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-export default function PropertyCard({
-  property,
-  viewingRequests,
-  applications,
-  onEdit,
-  onDelete,
-}) {
+export default function PropertyCard({ property, viewingRequests = [], applications = [], onEdit, onDelete }) {
   const router = useRouter();
   const [propertyImage, setPropertyImage] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  // Debug logs
-  useEffect(() => {
-    console.log("PropertyCard - Property:", property);
-    console.log("PropertyCard - Viewing Requests:", viewingRequests);
-    console.log("PropertyCard - Applications:", applications);
-  }, [property, viewingRequests, applications]);
 
   useEffect(() => {
     const fetchImageUrl = async () => {
@@ -75,156 +62,154 @@ export default function PropertyCard({
     router.push(`/property/${property.id}`);
   };
 
+  const handleEdit = () => {
+    if (typeof onEdit === 'function') {
+      onEdit(property.id);
+    }
+  };
+
+  const handleDelete = () => {
+    if (typeof onDelete === 'function') {
+      onDelete(property.id);
+    }
+  };
+
+  // Format date for display
+  const formatAvailableDate = (dateString) => {
+    if (!dateString) return "Available Now";
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch (e) {
+      return dateString;
+    }
+  };
+
   return (
-    <div className="bg-white shadow rounded-lg overflow-hidden">
+    <div className="bg-white shadow rounded-lg overflow-hidden text-gray-600">
       <div className="md:flex">
-        <div className="md:flex-shrink-0 h-48 md:h-auto md:w-48 bg-gray-300 relative">
+        {/* Property Image Section */}
+        <div className="md:w-1/3 h-64 md:h-auto bg-gray-100 relative">
           {loading ? (
-            <div className="absolute inset-0 flex items-center justify-center text-gray-500">
-              <span>Loading...</span>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-custom-red"></div>
             </div>
           ) : propertyImage ? (
             <img
               src={propertyImage}
-              alt={property.title}
+              alt={property.title || "Property"}
               className="w-full h-full object-cover"
-              onError={(e) => {
-                console.error("Image failed to load:", propertyImage);
-                e.target.onerror = null;
-              }}
             />
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-gray-500">
-              <span>No Image</span>
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-200">
+              <svg className="h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" 
+                  d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" 
+                  d="M9 22V12h6v10" />
+              </svg>
             </div>
           )}
         </div>
-
-        <div className="p-6 w-full text-gray-600">
-          <div className="flex justify-between items-start">
+        
+        {/* Property Details Section */}
+        <div className="md:w-2/3 p-6">
+          <div className="flex justify-between items-start mb-4">
             <div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-1">
-                {property.title}
-              </h3>
-              <p className="text-gray-600 mb-2">{property.location}</p>
-              <p className="text-custom-red font-bold mb-4">
-                {formatPrice(property.price)}
+              <h3 className="text-xl font-bold text-gray-900">{property.title || "Untitled Property"}</h3>
+              <p className="text-gray-600 mb-1">{property.location || "Location not specified"}</p>
+              <p className="text-custom-red font-bold text-lg">
+                {typeof formatPrice === 'function' ? formatPrice(property.price) : 
+                  `$${property.price?.toLocaleString() || "Price not specified"}`}
               </p>
             </div>
+            
             <div className="flex space-x-2">
               <button
-                onClick={() => onEdit(property.id)}
-                className="inline-flex items-center p-2 border border-gray-300 rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50"
-                title="Edit Property"
+                onClick={handleEdit}
+                className="p-2 text-gray-600 hover:text-custom-red transition-colors duration-300"
+                title="Edit property"
               >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                  />
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
               </button>
               <button
-                onClick={() => onDelete(property.id)}
-                className="inline-flex items-center p-2 border border-red-300 rounded-md text-sm text-red-700 bg-white hover:bg-red-50"
-                title="Delete Property"
+                onClick={handleDelete}
+                className="p-2 text-gray-600 hover:text-custom-red transition-colors duration-300"
+                title="Delete property"
               >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" 
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </button>
             </div>
           </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+          
+          {/* Property Specifications */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 my-4">
             <div>
-              <span className="block text-gray-600 text-sm">Bedrooms</span>
-              <span className="font-medium">{property.bedrooms}</span>
+              <p className="text-sm text-gray-500">Bedrooms</p>
+              <p className="font-medium">{property.bedrooms || "N/A"}</p>
             </div>
             <div>
-              <span className="block text-gray-600 text-sm">Bathrooms</span>
-              <span className="font-medium">{property.bathrooms}</span>
+              <p className="text-sm text-gray-500">Bathrooms</p>
+              <p className="font-medium">{property.bathrooms || "N/A"}</p>
             </div>
             <div>
-              <span className="block text-gray-600 text-sm">Square Feet</span>
-              <span className="font-medium">
-                {property.square_footage?.toLocaleString() || "N/A"}
-              </span>
+              <p className="text-sm text-gray-500">Square Feet</p>
+              <p className="font-medium">
+                {property.square_footage?.toLocaleString() || 
+                 property.square_feet?.toLocaleString() || "N/A"}
+              </p>
             </div>
             <div>
-              <span className="block text-gray-600 text-sm">
-                Available From
-              </span>
-              <span className="font-medium">
-                {property.available_from
-                  ? new Date(property.available_from).toLocaleDateString()
-                  : "Available Now"}
-              </span>
+              <p className="text-sm text-gray-500">Available From</p>
+              <p className="font-medium">
+                {formatAvailableDate(property.available_from || property.available_date)}
+              </p>
             </div>
           </div>
-
-          <div className="border-t border-gray-200 mt-4 pt-4">
-            <div className="flex flex-wrap justify-between">
-              <div className="mb-2 md:mb-0">
-                <div className="flex items-center">
-                  <div className="mr-6">
-                    <span className="block text-gray-600 text-sm">
-                      Viewing Requests
+          
+          {/* Actions and Status */}
+          <div className="border-t border-gray-100 mt-4 pt-4">
+            <div className="flex flex-wrap items-center justify-between">
+              <div className="flex space-x-6 mb-2 md:mb-0">
+                <div>
+                  <span className="text-gray-500">Viewing Requests</span>
+                  <div className="flex items-center">
+                    <span className="ml-2 px-2 py-1 bg-gray-100 rounded-full text-sm font-medium">
+                      {viewingRequests.length}
                     </span>
-                    <div className="flex items-center">
-                      <span className="font-medium mr-2">
-                        {viewingRequests.length}
+                    {pendingViewings > 0 && (
+                      <span className="ml-2 bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-0.5 rounded-full">
+                        {pendingViewings} pending
                       </span>
-                      {pendingViewings > 0 && (
-                        <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {pendingViewings} pending
-                        </span>
-                      )}
-                    </div>
+                    )}
                   </div>
-                  <div>
-                    <span className="block text-gray-600 text-sm">
-                      Applications
+                </div>
+                <div>
+                  <span className="text-gray-500">Applications</span>
+                  <div className="flex items-center">
+                    <span className="ml-2 px-2 py-1 bg-gray-100 rounded-full text-sm font-medium">
+                      {applications.length}
                     </span>
-                    <div className="flex items-center">
-                      <span className="font-medium mr-2">
-                        {applications.length}
+                    {pendingApplications > 0 && (
+                      <span className="ml-2 bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-0.5 rounded-full">
+                        {pendingApplications} pending
                       </span>
-                      {pendingApplications > 0 && (
-                        <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-0.5 rounded-full">
-                          {pendingApplications} pending
-                        </span>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
-
-              <div>
-                <button
-                  onClick={navigateToPropertyDetails}
-                  className="inline-flex items-center px-4 py-2 border border-custom-red rounded-md text-sm font-medium text-custom-red bg-white hover:bg-red-50"
-                >
-                  View Property Details
-                </button>
-              </div>
+              
+              <button
+                onClick={navigateToPropertyDetails}
+                className="text-custom-red hover:text-red-700 font-medium border border-custom-red rounded-md px-4 py-2 transition-colors duration-300 hover:bg-red-50"
+              >
+                View Property Details
+              </button>
             </div>
           </div>
         </div>

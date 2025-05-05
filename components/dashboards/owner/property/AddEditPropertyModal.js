@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
-import { v4 as uuidv4 } from "uuid"; // You'll need to install this: npm install uuid
+import { v4 as uuidv4 } from "uuid";
 
 export default function AddEditPropertyModal({ 
   isOpen, 
@@ -16,6 +16,7 @@ export default function AddEditPropertyModal({
   const [error, setError] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [showUploadSection, setShowUploadSection] = useState(true);
   const fileInputRef = useRef(null);
   
   const [formData, setFormData] = useState({
@@ -33,7 +34,7 @@ export default function AddEditPropertyModal({
     features: [],
     nearby_amenities: [],
     property_type: "apartment",
-    status: "available", // available, pending, rented
+    status: "available",
     year_built: "",
     images: []
   });
@@ -41,70 +42,113 @@ export default function AddEditPropertyModal({
   const [imagePreviews, setImagePreviews] = useState([]);
 
   useEffect(() => {
-    if (property) {
-      // Convert date format for input field if exists
-      const formattedAvailableFrom = property.available_from 
-        ? new Date(property.available_from).toISOString().split('T')[0]
-        : "";
+    const resetForm = () => {
+      if (property) {
+        // Editing existing property
+        // Convert date format for input field if exists
+        const formattedAvailableFrom = property.available_from 
+          ? new Date(property.available_from).toISOString().split('T')[0]
+          : "";
 
-      setFormData({
-        title: property.title || "",
-        location: property.location || "",
-        address: property.address || "",
-        price: property.price || "",
-        bedrooms: property.bedrooms || "",
-        bathrooms: property.bathrooms || "",
-        square_footage: property.square_footage || "",
-        available_from: formattedAvailableFrom,
-        description: property.description || "",
-        full_description: property.full_description || "",
-        amenities: property.amenities || [],
-        features: property.features || [],
-        nearby_amenities: property.nearby_amenities || [],
-        property_type: property.property_type || "apartment",
-        status: property.status || "available",
-        year_built: property.year_built || "",
-        images: property.images || []
-      });
-
-      // Load image previews for existing images
-      if (property.images && property.images.length > 0) {
-        const previews = property.images.map(imagePath => {
-          return {
-            url: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/property-images/${imagePath}`,
-            path: imagePath
-          };
+        setFormData({
+          title: property.title || "",
+          location: property.location || "",
+          address: property.address || "",
+          price: property.price || "",
+          bedrooms: property.bedrooms || "",
+          bathrooms: property.bathrooms || "",
+          square_footage: property.square_footage || "",
+          available_from: formattedAvailableFrom,
+          description: property.description || "",
+          full_description: property.full_description || "",
+          amenities: property.amenities || [],
+          features: property.features || [],
+          nearby_amenities: property.nearby_amenities || [],
+          property_type: property.property_type || "apartment",
+          status: property.status || "available",
+          year_built: property.year_built || "",
+          images: property.images || []
         });
-        setImagePreviews(previews);
+
+        // Hide upload section initially when editing a property that has images
+        setShowUploadSection(!(property.images && property.images.length > 0));
+        
+        // Load image previews for existing images with signed URLs
+        loadExistingImages(property.images);
       } else {
+        // Adding new property - reset form
+        setFormData({
+          title: "",
+          location: "",
+          address: "",
+          price: "",
+          bedrooms: "",
+          bathrooms: "",
+          square_footage: "",
+          available_from: "",
+          description: "",
+          full_description: "",
+          amenities: [],
+          features: [],
+          nearby_amenities: [],
+          property_type: "apartment",
+          status: "available",
+          year_built: "",
+          images: []
+        });
         setImagePreviews([]);
+        setShowUploadSection(true);
       }
-    } else {
-      // Reset form when adding a new property
-      setFormData({
-        title: "",
-        location: "",
-        address: "",
-        price: "",
-        bedrooms: "",
-        bathrooms: "",
-        square_footage: "",
-        available_from: "",
-        description: "",
-        full_description: "",
-        amenities: [],
-        features: [],
-        nearby_amenities: [],
-        property_type: "apartment",
-        status: "available",
-        year_built: "",
-        images: []
-      });
-      setImagePreviews([]);
+      
+      // Clear any previous errors
+      setError(null);
+    };
+
+    if (isOpen) {
+      resetForm();
     }
-    // Clear any previous errors
-    setError(null);
   }, [property, isOpen]);
+
+  // Function to load existing images with signed URLs
+  const loadExistingImages = async (images) => {
+    if (!images || images.length === 0) {
+      setImagePreviews([]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const previews = [];
+      
+      for (const imagePath of images) {
+        try {
+          // Get a signed URL for each image
+          const { data, error } = await supabase.storage
+            .from('property-images')
+            .createSignedUrl(imagePath, 60 * 60); // 1 hour expiry
+            
+          if (error) {
+            console.error("Error getting signed URL for image:", imagePath, error);
+            continue;
+          }
+          
+          previews.push({
+            url: data.signedUrl,
+            path: imagePath
+          });
+        } catch (err) {
+          console.error("Error processing image:", imagePath, err);
+        }
+      }
+      
+      setImagePreviews(previews);
+    } catch (err) {
+      console.error('Error loading image previews:', err);
+      setError('Failed to load property images. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -214,10 +258,20 @@ export default function AddEditPropertyModal({
         images: newImages
       }));
       
+      // Show upload section if all images are removed
+      if (newPreviews.length === 0) {
+        setShowUploadSection(true);
+      }
+      
     } catch (err) {
       console.error('Error removing image:', err);
       setError(`Error removing image: ${err.message}`);
     }
+  };
+
+  // Toggle upload section visibility
+  const toggleUploadSection = () => {
+    setShowUploadSection(!showUploadSection);
   };
 
   // Handle array fields like features and nearby_amenities
@@ -353,8 +407,8 @@ export default function AddEditPropertyModal({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6 text-gray-400">
-          {/* Image Upload Section */}
+        <form onSubmit={handleSubmit} className="space-y-6 text-gray-700">
+          {/* Image Section */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Property Images
@@ -362,28 +416,55 @@ export default function AddEditPropertyModal({
             
             {/* Image Preview Grid */}
             {imagePreviews.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-4">
-                {imagePreviews.map((preview, index) => (
-                  <div key={index} className="relative group">
-                    <div className="aspect-video w-full bg-gray-100 rounded-md overflow-hidden">
-                      <img 
-                        src={preview.url} 
-                        alt={`Property image ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
+              <div className="mb-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-4">
+                  {imagePreviews.map((preview, index) => (
+                    <div key={index} className="relative group">
+                      <div className="aspect-video w-full bg-gray-100 rounded-md overflow-hidden border border-gray-200">
+                        {loading ? (
+                          <div className="animate-pulse flex items-center justify-center h-full bg-gray-200">
+                            <svg className="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" 
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                        ) : (
+                          <img 
+                            src={preview.url} 
+                            alt={`Property image ${index + 1}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = "/placeholder-image.jpg";
+                            }}
+                          />
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Remove image"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
                     </div>
+                  ))}
+                </div>
+                
+                {property && imagePreviews.length > 0 && (
+                  <div className="flex justify-end mb-4">
                     <button
                       type="button"
-                      onClick={() => handleRemoveImage(index)}
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                      title="Remove image"
+                      onClick={toggleUploadSection}
+                      className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                     >
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      {showUploadSection ? "Hide Upload Section" : "Add More Images"}
                     </button>
                   </div>
-                ))}
+                )}
               </div>
             )}
             
@@ -400,50 +481,54 @@ export default function AddEditPropertyModal({
               </div>
             )}
             
-            {/* Upload Button */}
-            <div className="flex items-center justify-center w-full">
-              <label
-                htmlFor="property-images"
-                className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
-              >
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <svg
-                    className="w-8 h-8 mb-4 text-gray-500"
-                    aria-hidden="true"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 20 16"
+            {/* Upload Section - Only show if showUploadSection is true */}
+            {(showUploadSection || imagePreviews.length === 0) && (
+              <div className="mb-4">
+                <div className="flex items-center justify-center w-full">
+                  <label
+                    htmlFor="property-images"
+                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
                   >
-                    <path
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <svg
+                        className="w-8 h-8 mb-4 text-gray-500"
+                        aria-hidden="true"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 20 16"
+                      >
+                        <path
+                          stroke="currentColor"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
+                        />
+                      </svg>
+                      <p className="mb-2 text-sm text-gray-500">
+                        <span className="font-semibold">Click to upload</span> or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        PNG, JPG or WEBP (MAX. 5MB each)
+                      </p>
+                    </div>
+                    <input
+                      id="property-images"
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleImageUpload}
+                      disabled={isUploading}
                     />
-                  </svg>
-                  <p className="mb-2 text-sm text-gray-500">
-                    <span className="font-semibold">Click to upload</span> or drag and drop
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    PNG, JPG or WEBP (MAX. 5MB each)
-                  </p>
+                  </label>
                 </div>
-                <input
-                  id="property-images"
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={handleImageUpload}
-                  disabled={isUploading}
-                />
-              </label>
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Upload clear images of the property to attract potential tenants
-            </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  Upload clear images of the property to attract potential tenants
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

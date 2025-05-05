@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { formatPrice } from "@/data/mockData";
+import { createClient } from "@supabase/supabase-js";
 import PropertyCard from "../property/PropertyCard";
+
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 export default function PropertiesTab({
   properties,
@@ -44,12 +53,6 @@ export default function PropertiesTab({
           }
           return;
         }
-        
-        console.log("Processing properties data:", {
-          propertiesCount: properties.length,
-          viewingRequestsCount: viewingRequests?.length || 0,
-          applicationsCount: applications?.length || 0
-        });
         
         // Process and combine data safely
         const processed = properties.map(property => {
@@ -119,12 +122,11 @@ export default function PropertiesTab({
   }, [localLoading]);
   
   // Determine if we should still be in loading state
-  // Use boolean true/false for clarity and avoid complex object checks
   const isLoading = loading === true || localLoading;
   
   // Render content based on loading state
   return (
-    <>
+    <div className="max-w-6xl mx-auto px-4">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900">My Properties</h2>
         <button
@@ -187,6 +189,6 @@ export default function PropertiesTab({
           ))}
         </div>
       )}
-    </>
+    </div>
   );
 }
