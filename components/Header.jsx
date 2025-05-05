@@ -101,13 +101,10 @@ const Header = () => {
     router.push("/");
   };
 
-  // Navigate to dashboard based on role
+  // Navigate to dashboard (updated for unified dashboard)
   const navigateToDashboard = () => {
-    if (userRole === "owner") {
-      router.push("/dashboard/owner");
-    } else {
-      router.push("/dashboard/user");
-    }
+    // Use the single dashboard route
+    router.push("/dashboard");
     setUserMenuOpen(false);
   };
 
@@ -154,10 +151,6 @@ const Header = () => {
       }
     };
   }, []);
-
-  const toggleMobileDropdown = () => {
-    setIsMobileDropdownOpen(!isMobileDropdownOpen);
-  };
 
   // Close mobile menu when navigating to a new page
   useEffect(() => {
@@ -295,16 +288,7 @@ const Header = () => {
                           className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         >
                           Dashboard
-                        </button>
-                        <button
-                          onClick={() => {
-                            router.push("/profile");
-                            setUserMenuOpen(false);
-                          }}
-                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        >
-                          Profile
-                        </button>
+                        </button>                        
                         {shouldShowSavedProperties && (
                           <Link
                             href="/favorites"

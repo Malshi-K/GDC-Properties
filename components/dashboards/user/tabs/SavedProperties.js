@@ -120,7 +120,7 @@ const SavedProperties = ({ favorites, loadingFavorites, onRemoveFavorite }) => {
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
       <div className="p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Saved Properties</h2>
+        <h2 className="text-2xl font-bold text-custom-red mb-6">Saved Properties</h2>
         
         {loadingFavorites || loadingImages ? (
           <div className="flex justify-center my-12">

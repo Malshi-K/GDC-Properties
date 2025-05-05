@@ -174,27 +174,23 @@ export function AuthProvider({ children }) {
 
       console.log("Upload successful. File path:", filePath);
 
-      // Get the public URL - this is critical for the database update
+      // Get the public URL
       const { data: publicUrlData } = supabase.storage
         .from("profile-images")
         .getPublicUrl(filePath);
 
-      if (!publicUrlData || !publicUrlData.publicUrl) {
-        throw new Error("Failed to get public URL for uploaded image");
-      }
+      // Also create a signed URL for immediate use
+      const { data: signedUrlData } = await supabase.storage
+        .from("profile-images")
+        .createSignedUrl(filePath, 3600);
 
-      console.log("Public URL generated:", publicUrlData.publicUrl);
-
-      // CRITICAL FIX: Explicitly construct the correct data object for the database update
+      // Update profile in the database
       const profileUpdateData = {
         profile_image: filePath,
         profile_image_url: publicUrlData.publicUrl,
         updated_at: new Date().toISOString(),
       };
 
-      console.log("Updating profile with data:", profileUpdateData);
-
-      // Update profile in the database
       const { data, error } = await supabase
         .from("profiles")
         .update(profileUpdateData)
@@ -207,12 +203,14 @@ export function AuthProvider({ children }) {
         throw error;
       }
 
-      console.log("Profile updated successfully:", data);
-
-      // Update local state
+      // Update local state and return the signed URL for immediate display
       setProfile(data);
 
-      return { data, error: null };
+      return {
+        data,
+        error: null,
+        signedUrl: signedUrlData?.signedUrl || publicUrlData.publicUrl,
+      };
     } catch (error) {
       console.error("Error updating profile photo:", error);
       return { data: null, error };

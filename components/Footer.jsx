@@ -25,7 +25,10 @@ const Footer = () => {
             <h3 className="font-medium text-custom-red mb-4">Quick Link</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/" className="text-gray-600 hover:text-custom-yellow">
+                <Link
+                  href="/"
+                  className="text-gray-600 hover:text-custom-yellow"
+                >
                   Home
                 </Link>
               </li>
@@ -54,36 +57,20 @@ const Footer = () => {
             <h3 className="font-medium text-custom-red mb-4">Propety Types</h3>
             <ul className="space-y-2">
               <li>
-                <Link
-                  href="/categories/av-equipment"
-                  className="text-gray-600 hover:text-custom-yellow"
-                >
+                <p className="text-gray-600 hover:text-custom-yellow">
                   Apartments
-                </Link>
+                </p>
               </li>
               <li>
-                <Link
-                  href="/categories/bikes"
-                  className="text-gray-600 hover:text-custom-yellow"
-                >
-                  Houses
-                </Link>
+                <p className="text-gray-600 hover:text-custom-yellow">Houses</p>
               </li>
               <li>
-                <Link
-                  href="/categories/cameras"
-                  className="text-gray-600 hover:text-custom-yellow"
-                >
+                <p className="text-gray-600 hover:text-custom-yellow">
                   Town Houses
-                </Link>
+                </p>
               </li>
               <li>
-                <Link
-                  href="/categories/motorhomes"
-                  className="text-gray-600 hover:text-custom-yellow"
-                >
-                  Unit
-                </Link>
+                <p className="text-gray-600 hover:text-custom-yellow">Unit</p>
               </li>
             </ul>
           </div>
@@ -110,31 +97,59 @@ const Footer = () => {
               <h3 className="font-medium text-custom-red mb-4">Get in touch</h3>
               <ul className="space-y-2">
                 <li className="flex items-center">
-                  <svg className="w-4 h-4 mr-2 text-gray-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <svg
+                    className="w-4 h-4 mr-2 text-gray-500"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
                     <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
                     <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
                   </svg>
-                  <a href="mailto:info@gdcdigital.net" className="text-gray-600 hover:text-custom-yellow">
+                  <a
+                    href="mailto:info@gdcdigital.net"
+                    className="text-gray-600 hover:text-custom-yellow"
+                  >
                     info@gdcdigital.net
                   </a>
                 </li>
                 <li className="flex items-center">
-                  <svg className="w-4 h-4 mr-2 text-gray-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <svg
+                    className="w-4 h-4 mr-2 text-gray-500"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
                     <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path>
                   </svg>
-                  <a href="tel:+123456789" className="text-gray-600 hover:text-custom-yellow">
-                    +1 (234) 567-89
+                  <a
+                    href="tel:+6478380090"
+                    className="text-gray-600 hover:text-custom-yellow"
+                  >
+                    +64 7 838 0090
                   </a>
                 </li>
                 <li className="flex items-center">
-                  <svg className="w-4 h-4 mr-2 text-gray-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"></path>
+                  <svg
+                    className="w-4 h-4 mr-2 text-gray-500"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                      clipRule="evenodd"
+                    ></path>
                   </svg>
-                  <a href="https://maps.google.com/?q=123+Digital+Street,+Tech+City" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-custom-yellow">
-                    123 Digital Street, Tech City
-                  </a>
+                  <p
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gray-600 hover:text-custom-yellow"
+                  >
+                    89 Church Road, Pukete, Hamilton 3200
+                  </p>
                 </li>
-                
               </ul>
             </div>
 
@@ -200,17 +215,19 @@ const Footer = () => {
                 </a>
               </div>
             </div>
-
           </div>
         </div>
 
         {/* Copyright */}
         <div className="border-t border-gray-200 mt-12 pt-8 text-center text-sm text-gray-500">
-          © {new Date().getFullYear()}{' '}
-          <Link href="https://www.gdcdigital.net/" className="text-gray-600 hover:text-custom-yellow">
+          © {new Date().getFullYear()}{" "}
+          <Link
+            href="https://www.gdcdigital.net/"
+            className="text-gray-600 hover:text-custom-yellow"
+          >
             GDC Digital Solutions.
-          </Link>
-          {' '}All rights reserved.
+          </Link>{" "}
+          All rights reserved.
         </div>
       </div>
     </footer>

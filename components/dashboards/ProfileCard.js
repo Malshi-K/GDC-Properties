@@ -4,82 +4,28 @@ import { useState, useEffect } from "react";
 import { FaUser, FaEdit, FaPhone, FaMapMarkerAlt } from "react-icons/fa";
 import { useAuth } from "@/contexts/AuthContext";
 import ProfileEditModal from "./ProfileEditModal";
-import { supabase } from "@/lib/supabase";
+import { useImageLoader } from "@/lib/services/imageLoaderService";
 
 const ProfileCard = ({ user, profile }) => {
   const [showEditModal, setShowEditModal] = useState(false);
-  const [profileImageUrl, setProfileImageUrl] = useState("");
-  const [loadingImage, setLoadingImage] = useState(true);
-
-  // Direct storage access with proper URL format
+  const [imageError, setImageError] = useState(false);
+  
+  const { getProfileImage, profileImages, isProfileImageLoading } = useImageLoader();
+  
+  // Start loading profile image in the background but don't block rendering
   useEffect(() => {
-    const getProfileImage = async () => {
-      if (!user?.id) return;
-      
-      try {
-        setLoadingImage(true);
-        console.log("Attempting to get profile image for user:", user.id);
-        
-        // List the files in user's folder
-        const { data: files, error } = await supabase.storage
-          .from("profile-images") // Make sure bucket name is correct
-          .list(user.id);
-          
-        if (error) {
-          console.error("Error listing files:", error);
-          setLoadingImage(false);
-          return;
-        }
-        
-        console.log("Files found in storage:", files);
-        
-        if (!files || files.length === 0) {
-          console.log("No profile images found");
-          setLoadingImage(false);
-          return;
-        }
-        
-        // Sort files to get the most recent
-        const sortedFiles = [...files].sort((a, b) => {
-          if (!a.created_at || !b.created_at) return 0;
-          return new Date(b.created_at) - new Date(a.created_at);
+    if (user?.id && profile?.profile_image && !imageError) {
+      getProfileImage(user.id, profile.profile_image)
+        .catch(error => {
+          console.error("Background profile image loading error:", error);
+          setImageError(true);
         });
-        
-        const latestFile = sortedFiles[0];
-        const filePath = `${user.id}/${latestFile.name}`;
-        console.log("Using file path:", filePath);
-        
-        // IMPORTANT: Check if we can download the file directly
-        const { data, error: downloadError } = await supabase.storage
-          .from("profile-images")
-          .download(filePath);
-          
-        if (downloadError) {
-          console.error("Error downloading file:", downloadError);
-          setLoadingImage(false);
-          return;
-        }
-        
-        // Create a blob URL from the downloaded file
-        const blobUrl = URL.createObjectURL(data);
-        console.log("Created blob URL:", blobUrl);
-        setProfileImageUrl(blobUrl);
-      } catch (error) {
-        console.error("Error getting profile image:", error);
-      } finally {
-        setLoadingImage(false);
-      }
-    };
-    
-    getProfileImage();
-    
-    // Clean up blob URLs on unmount
-    return () => {
-      if (profileImageUrl && profileImageUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(profileImageUrl);
-      }
-    };
-  }, [user, profile]);
+    }
+  }, [user?.id, profile?.profile_image, imageError, getProfileImage]);
+
+  // Get image URL from context
+  const profileImageUrl = user?.id ? profileImages[user.id] || "" : "";
+  const isLoading = user?.id ? isProfileImageLoading(user.id) : false;
 
   // Extract user role
   const userRole = profile?.role || "user";
@@ -88,32 +34,30 @@ const ProfileCard = ({ user, profile }) => {
     <>
       <div className="bg-white shadow rounded-lg p-6 mb-6">
         <div className="flex flex-col items-center">
-          {/* Profile Image */}
+          {/* Profile Image - Will render immediately with a placeholder */}
           <div className="w-32 h-32 relative rounded-full overflow-hidden mb-4 bg-gray-300">
-            {profileImageUrl ? (
-              <img
-                src={profileImageUrl}
-                alt={profile?.full_name || "User"}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  console.error("Error loading image:", e);
-                  setProfileImageUrl("");
-                }}
-              />
+            {profileImageUrl && !imageError ? (
+              <>
+                <img
+                  src={profileImageUrl}
+                  alt={profile?.full_name || "User"}
+                  className="w-full h-full object-cover"
+                  onError={() => setImageError(true)}
+                />
+                {isLoading && (
+                  <div className="absolute inset-0 bg-gray-300 bg-opacity-50 flex items-center justify-center">
+                    <div className="w-8 h-8 border-4 border-gray-400 border-t-custom-red rounded-full animate-spin"></div>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="absolute inset-0 bg-gray-300 flex items-center justify-center">
                 <FaUser className="text-gray-600 text-4xl" />
               </div>
             )}
-            
-            {loadingImage && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-200 bg-opacity-50">
-                <div className="w-8 h-8 border-4 border-gray-600 border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            )}
           </div>
 
-          {/* User Name & Role */}
+          {/* User Name & Role - Always show regardless of image loading */}
           <h2 className="text-xl font-semibold text-gray-900 mb-1">
             {profile?.full_name || "User"}
           </h2>
@@ -121,7 +65,7 @@ const ProfileCard = ({ user, profile }) => {
             {userRole}
           </p>
 
-          {/* User Details */}
+          {/* User Details - Always show regardless of image loading */}
           <div className="w-full space-y-2 mb-4">
             <p className="text-gray-600 flex items-center justify-center">
               {user?.email}

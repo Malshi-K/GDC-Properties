@@ -8,8 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase"; // Make sure to import supabase
 
 export default function ProfileEditModal({ isOpen, onClose }) {
-  const { user, profile, updateProfile, updateProfilePhoto, refreshProfile } =
-    useAuth();
+  const { user, profile, updateProfile, refreshProfile } = useAuth();
   const [formData, setFormData] = useState({
     full_name: "",
     phone: "",
@@ -261,7 +260,7 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                   </div>
 
                   {/* Form Fields */}
-                  <div className="space-y-3">
+                  <div className="space-y-3 text-gray-400">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Full Name
@@ -274,6 +273,21 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red"
                         placeholder="Enter your full name"
                       />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        value={user?.email || ""}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 cursor-not-allowed"
+                      />
+                      <p className="mt-1 text-sm text-gray-500">
+                        Email cannot be changed
+                      </p>
                     </div>
 
                     <div>

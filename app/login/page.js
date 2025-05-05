@@ -22,18 +22,8 @@ export default function LoginPage() {
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (data?.session) {
-        // User is already logged in, redirect to dashboard
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", data.session.user.id)
-          .single();
-          
-        if (profileData?.role === "owner") {
-          router.push("/dashboard/owner");
-        } else {
-          router.push("/dashboard/user");
-        }
+        // User is already logged in, redirect to unified dashboard
+        router.push("/dashboard");
       }
     };
     
@@ -68,23 +58,10 @@ export default function LoginPage() {
           role: data.user.user_metadata?.role || "user", // Use metadata or default to user
           full_name: data.user.user_metadata?.full_name || "",
         });
-
-        // Redirect based on user metadata role
-        const role = data.user.user_metadata?.role || "user";
-        
-        if (role === "owner") {
-          router.push("/dashboard/owner");
-        } else {
-          router.push("/dashboard/user");
-        }
-      } else {
-        // Redirect based on profile role
-        if (profileData.role === "owner") {
-          router.push("/dashboard/owner");
-        } else {
-          router.push("/dashboard/user");
-        }
       }
+      
+      // Redirect to unified dashboard regardless of role
+      router.push("/dashboard");
     } catch (error) {
       setError(error.message);
     } finally {
@@ -129,7 +106,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} className="text-gray-600">
             <div className="mb-4 text-gray-600">
               <label
                 className="block text-gray-700 text-sm font-bold mb-2"

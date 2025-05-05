@@ -1,18 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { formatDate } from "@/utils/formatters";
 import { toast } from "react-hot-toast";
 import { supabase } from "@/lib/supabase";
-import { createClient } from "@supabase/supabase-js";
-
-// Initialize Supabase client for storage
-const supabaseClient = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
 
 export default function ViewingRequestsTab({ 
   viewingRequests = [], 
@@ -23,59 +16,116 @@ export default function ViewingRequestsTab({
 }) {
   const [actionInProgress, setActionInProgress] = useState(null);
   const [propertyImages, setPropertyImages] = useState({});
+  const [imageLoading, setImageLoading] = useState(true);
+  const [processingComplete, setProcessingComplete] = useState(false);
 
-  // Fetch property images for all requests
+  // Get unique property IDs from viewing requests 
+  const propertyIds = useMemo(() => {
+    const ids = new Set();
+    viewingRequests.forEach(request => {
+      if (request.property_id) {
+        ids.add(request.property_id);
+      }
+    });
+    return Array.from(ids);
+  }, [viewingRequests]);
+
+  // Fetch property images in bulk
   useEffect(() => {
     const fetchPropertyImages = async () => {
-      const newPropertyImages = { ...propertyImages };
-      
-      for (const request of viewingRequests) {
-        if (!request.property_id || newPropertyImages[request.property_id]) continue;
-        
-        try {
-          // First, get the property data to access the images array
-          const { data: propertyData, error: propertyError } = await supabase
-            .from('properties')
-            .select('images, owner_id')
-            .eq('id', request.property_id)
-            .single();
-            
-          if (propertyError || !propertyData || !propertyData.images || propertyData.images.length === 0) {
-            console.error('Error fetching property images or no images available:', propertyError);
-            continue;
-          }
-          
-          // Get the first image from the property
-          const firstImage = propertyData.images[0];
-          
-          // Normalize the path
-          const normalizedPath = firstImage.includes("/")
-            ? firstImage
-            : `${propertyData.owner_id}/${firstImage}`;
-            
-          // Get signed URL for the image
-          const { data: urlData, error: urlError } = await supabaseClient.storage
-            .from("property-images")
-            .createSignedUrl(normalizedPath, 60 * 60); // 1 hour expiry
-            
-          if (urlError) {
-            console.error("Error getting signed URL:", urlError);
-            continue;
-          }
-          
-          newPropertyImages[request.property_id] = urlData.signedUrl;
-        } catch (error) {
-          console.error('Error fetching property image:', error);
-        }
+      if (propertyIds.length === 0) {
+        setImageLoading(false);
+        setProcessingComplete(true);
+        return;
       }
-      
-      setPropertyImages(newPropertyImages);
+
+      try {
+        setImageLoading(true);
+        
+        // Get all property data in a single query
+        const { data: propertiesData, error: propertiesError } = await supabase
+          .from('properties')
+          .select('id, images, owner_id')
+          .in('id', propertyIds);
+          
+        if (propertiesError) {
+          console.error('Error fetching properties data:', propertiesError);
+          setImageLoading(false);
+          setProcessingComplete(true);
+          return;
+        }
+        
+        // Process all properties in parallel
+        const newPropertyImages = { ...propertyImages };
+        const imagePromises = propertiesData.map(async (property) => {
+          if (!property.images || property.images.length === 0) {
+            return;
+          }
+          
+          try {
+            // Get the first image from the property
+            const firstImage = property.images[0];
+            
+            // Normalize the path
+            const normalizedPath = firstImage.includes("/")
+              ? firstImage
+              : `${property.owner_id}/${firstImage}`;
+              
+            // Get signed URL for the image - with short expiry to avoid caching issues
+            const { data: urlData, error: urlError } = await supabase.storage
+              .from("property-images")
+              .createSignedUrl(normalizedPath, 60 * 60); // 1 hour expiry
+              
+            if (urlError) {
+              console.error(`Error getting signed URL for property ${property.id}:`, urlError);
+              return;
+            }
+            
+            // Store the URL
+            newPropertyImages[property.id] = urlData.signedUrl;
+          } catch (error) {
+            console.error(`Error processing image for property ${property.id}:`, error);
+          }
+        });
+        
+        // Wait for all image promises to complete
+        await Promise.allSettled(imagePromises);
+        
+        // Update state with all images at once
+        setPropertyImages(newPropertyImages);
+      } catch (error) {
+        console.error('Error in bulk image loading:', error);
+      } finally {
+        setImageLoading(false);
+        setProcessingComplete(true);
+      }
     };
     
-    if (viewingRequests.length > 0) {
+    if (propertyIds.length > 0 && !processingComplete) {
       fetchPropertyImages();
+    } else if (propertyIds.length === 0) {
+      setImageLoading(false);
+      setProcessingComplete(true);
     }
+  }, [propertyIds, processingComplete]);
+  
+  // Reset processing state when viewing requests change
+  useEffect(() => {
+    setProcessingComplete(false);
   }, [viewingRequests]);
+  
+  // Failsafe timer to ensure we don't get stuck in loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (imageLoading) {
+        console.log("Forcing end of image loading after timeout");
+        setImageLoading(false);
+        setProcessingComplete(true);
+      }
+    }, 5000); // 5 second max loading time
+    
+    return () => clearTimeout(timer);
+  }, [imageLoading]);
 
   // Get the appropriate status color based on the status
   const getStatusColor = (status) => {
@@ -115,10 +165,27 @@ export default function ViewingRequestsTab({
     await handleStatusUpdate(requestId, 'completed');
   };
 
-  if (loading) {
+  // Determine the actual loading state
+  const isLoading = loading || (!processingComplete && imageLoading);
+
+  if (isLoading) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Viewing Requests</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Property Viewing Requests</h2>
+          
+          {/* Show refresh button even during loading for better UX */}
+          <button
+            onClick={onRefresh}
+            className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red"
+            disabled={isLoading}
+          >
+            <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refresh
+          </button>
+        </div>
         <div className="flex justify-center my-12">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
         </div>
@@ -181,6 +248,11 @@ export default function ViewingRequestsTab({
                           alt={request.property_title || 'Property Image'}
                           fill
                           className="object-cover"
+                          onError={(e) => {
+                            console.error("Image failed to load:", request.property_id);
+                            e.target.style.display = 'none';
+                            e.target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400"><span>Image Unavailable</span></div>';
+                          }}
                         />
                       </div>
                     ) : (
