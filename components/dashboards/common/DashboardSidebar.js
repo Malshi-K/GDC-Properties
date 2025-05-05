@@ -4,10 +4,6 @@ import { useState, useEffect } from "react";
 import {
   FaUser,
   FaEdit,
-  FaPhone,
-  FaMapMarkerAlt,
-  FaUsers,
-  FaHeart,
   FaSignOutAlt,
   FaHome,
 } from "react-icons/fa";
@@ -26,15 +22,35 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
   const { getProfileImage, profileImages, isProfileImageLoading } =
     useImageLoader();
 
-  // Start loading profile image in the background but don't block rendering
+  // Start loading profile image when component mounts or when profile changes
   useEffect(() => {
-    if (user?.id && profile?.profile_image && !imageError) {
-      getProfileImage(user.id, profile.profile_image).catch((error) => {
-        console.error("Background profile image loading error:", error);
-        setImageError(true);
-      });
-    }
-  }, [user?.id, profile?.profile_image, imageError, getProfileImage]);
+    let isMounted = true;
+
+    const loadProfileImage = async () => {
+      // Reset error state when attempting to load
+      if (isMounted) setImageError(false);
+
+      // Only proceed if we have necessary data
+      if (!user?.id || !profile?.profile_image) return;
+
+      try {
+        await getProfileImage(user.id, profile.profile_image);
+        // Successfully loaded the image
+        if (isMounted) setImageError(false);
+      } catch (error) {
+        console.error("Error loading profile image:", error);
+        // Set error state only if component is still mounted
+        if (isMounted) setImageError(true);
+      }
+    };
+
+    loadProfileImage();
+
+    // Cleanup function to prevent state updates if component unmounts
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id, profile?.profile_image, getProfileImage]);
 
   // Get image URL from context
   const profileImageUrl = user?.id ? profileImages[user.id] || "" : "";
@@ -44,11 +60,6 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push("/");
-  };
-
-  // Navigate to saved properties
-  const navigateToFavorites = () => {
-    router.push("/favorites");
   };
 
   // Navigate to home
@@ -243,22 +254,23 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
         {/* Profile Image */}
         <div className="w-24 h-24 relative rounded-full overflow-hidden mb-4 bg-red-500 border-2 border-white">
           {profileImageUrl && !imageError ? (
-            <>
-              <img
-                src={profileImageUrl}
-                alt={profile?.full_name || "User"}
-                className="w-full h-full object-cover"
-                onError={() => setImageError(true)}
-              />
-              {isLoading && (
-                <div className="absolute inset-0 bg-red-500 bg-opacity-50 flex items-center justify-center">
-                  <div className="w-6 h-6 border-3 border-white border-t-red-300 rounded-full animate-spin"></div>
-                </div>
-              )}
-            </>
+            <img
+              src={profileImageUrl}
+              alt={profile?.full_name || "User"}
+              className="w-full h-full object-cover"
+              onError={() => setImageError(true)}
+              onLoad={() => setImageError(false)}
+            />
           ) : (
             <div className="absolute inset-0 bg-white flex items-center justify-center">
               <FaUser className="text-custom-red text-3xl" />
+            </div>
+          )}
+
+          {/* Loading spinner overlay - only shown when loading */}
+          {isLoading && (
+            <div className="absolute inset-0 bg-red-500 bg-opacity-50 flex items-center justify-center">
+              <div className="w-6 h-6 border-3 border-white border-t-red-300 rounded-full animate-spin"></div>
             </div>
           )}
         </div>
