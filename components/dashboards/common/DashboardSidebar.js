@@ -9,7 +9,7 @@ import {
   FaUsers,
   FaHeart,
   FaSignOutAlt,
-  FaHome
+  FaHome,
 } from "react-icons/fa";
 import { useAuth } from "@/contexts/AuthContext";
 import ProfileEditModal from "./ProfileEditModal";
@@ -290,17 +290,17 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
                 <div className="absolute right-0 -top-4 w-4 h-4 bg-[#f3f4f6]">
                   <div className="absolute bottom-0 right-0 w-4 h-4 bg-custom-red rounded-br-full"></div>
                 </div>
-                
+
                 {/* Button background */}
                 <div className="absolute right-0 top-0 bottom-0 w-[calc(100%-12px)] bg-[#f3f4f6] rounded-l-full"></div>
-                
+
                 {/* Bottom curve */}
                 <div className="absolute right-0 -bottom-4 w-4 h-4 bg-[#f3f4f6]">
                   <div className="absolute top-0 right-0 w-4 h-4 bg-custom-red rounded-tr-full"></div>
                 </div>
               </>
             )}
-            
+
             {/* Button content */}
             <button
               onClick={() => setActiveTab(item.id)}
@@ -310,7 +310,11 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
                   : "text-white hover:bg-red-600"
               }`}
             >
-              <div className={`mr-3 ${activeTab === item.id ? "text-custom-red" : "text-white"}`}>
+              <div
+                className={`mr-3 ${
+                  activeTab === item.id ? "text-custom-red" : "text-white"
+                }`}
+              >
                 {item.icon}
               </div>
               <span className="text-sm">{item.label}</span>
@@ -324,25 +328,15 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
         <div className="flex justify-around">
           <button
             onClick={navigateToHome}
-            className="text-white hover:text-red-200 p-2 rounded-full hover:bg-red-600 transition-colors duration-200"
+            className="text-white hover:text-red-200 rounded-full hover:bg-red-600 transition-colors duration-200"
             title="Home"
           >
             <FaHome size={20} />
           </button>
-          
-          {userRole === "user" && (
-            <button
-              onClick={navigateToFavorites}
-              className="text-white hover:text-red-200 p-2 rounded-full hover:bg-red-600 transition-colors duration-200"
-              title="Saved Properties"
-            >
-              <FaHeart size={20} />
-            </button>
-          )}
-          
+
           <button
             onClick={handleSignOut}
-            className="text-white hover:text-red-200 p-2 rounded-full hover:bg-red-600 transition-colors duration-200"
+            className="text-white hover:text-red-200 rounded-full hover:bg-red-600 transition-colors duration-200"
             title="Sign Out"
           >
             <FaSignOutAlt size={20} />

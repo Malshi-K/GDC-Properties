@@ -181,7 +181,7 @@ function LoginFormLoading() {
 // Main page component
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-[#f3f4f6]">
       {/* Minimal header with logo */}
       <div className="py-4 px-6 bg-white shadow-sm mb-8 flex justify-center">
         <Link href="/">
