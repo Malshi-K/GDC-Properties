@@ -9,6 +9,217 @@ import { toast } from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import debounce from 'lodash/debounce';
 
+// Import or replicate the propertySearchService
+const propertySearchService = {
+  /**
+   * Fetch unique locations from properties
+   */
+  async getUniqueLocations() {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('location')
+        .not('location', 'is', null);
+        
+      if (error) throw error;
+      
+      // Filter out any empty locations and create unique set
+      const uniqueLocations = [...new Set(
+        data
+          .map(item => item.location)
+          .filter(location => location && location.trim() !== '')
+      )];
+      
+      return { data: uniqueLocations, error: null };
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+      return { data: [], error };
+    }
+  },
+
+  /**
+   * Fetch min and max property prices
+   */
+  async getPriceRanges() {
+    try {
+      // First check if there are properties with prices
+      const { data, error } = await supabase
+        .from('properties')
+        .select('price')
+        .not('price', 'is', null)
+        .order('price', { ascending: true });
+      
+      if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        return { 
+          data: {
+            minPrices: [1000, 100000, 300000, 500000, 1000000, 2000000],
+            maxPrices: [61000, 500000, 1000000, 2000000, 5000000, 10000000]
+          }, 
+          error: null 
+        };
+      }
+      
+      // Filter out any invalid prices and convert to numbers
+      const validPrices = data
+        .map(item => Number(item.price))
+        .filter(price => !isNaN(price) && price > 0);
+      
+      if (validPrices.length === 0) {
+        return { 
+          data: {
+            minPrices: [1000, 100000, 300000, 500000, 1000000, 2000000],
+            maxPrices: [61000, 500000, 1000000, 2000000, 5000000, 10000000]
+          }, 
+          error: null 
+        };
+      }
+      
+      // Get min and max prices
+      const minPrice = Math.min(...validPrices);
+      const maxPrice = Math.max(...validPrices);
+      
+      // Generate price points
+      const minPricePoints = this.generatePricePoints(minPrice, maxPrice * 0.8, 5);
+      const maxPricePoints = this.generatePricePoints(
+        minPrice * 1.2,
+        maxPrice * 1.2,
+        5
+      );
+      
+      return { 
+        data: {
+          minPrices: minPricePoints,
+          maxPrices: maxPricePoints
+        }, 
+        error: null 
+      };
+    } catch (error) {
+      console.error('Error fetching price ranges:', error);
+      return { 
+        data: {
+          minPrices: [1000, 100000, 300000, 500000, 1000000, 2000000],
+          maxPrices: [61000, 500000, 1000000, 2000000, 5000000, 10000000]
+        }, 
+        error 
+      };
+    }
+  },
+  
+  /**
+   * Fetch bedroom options from database
+   */
+  async getBedroomOptions() {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('bedrooms')
+        .not('bedrooms', 'is', null);
+        
+      if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        return { 
+          data: [1, 2, 3, 4, 5], 
+          error: null 
+        };
+      }
+      
+      // Filter out any invalid values and convert to numbers
+      const validBedrooms = data
+        .map(item => Number(item.bedrooms))
+        .filter(value => !isNaN(value) && value > 0);
+      
+      if (validBedrooms.length === 0) {
+        return { 
+          data: [1, 2, 3, 4, 5], 
+          error: null 
+        };
+      }
+      
+      // Get unique sorted values
+      const uniqueBedrooms = [...new Set(validBedrooms)].sort((a, b) => a - b);
+      
+      return { data: uniqueBedrooms, error: null };
+    } catch (error) {
+      console.error('Error fetching bedroom options:', error);
+      return { data: [1, 2, 3, 4, 5], error };
+    }
+  },
+  
+  /**
+   * Fetch bathroom options from database
+   */
+  async getBathroomOptions() {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('bathrooms')
+        .not('bathrooms', 'is', null);
+        
+      if (error) throw error;
+      
+      if (!data || data.length === 0) {
+        return { 
+          data: [1, 1.5, 2, 2.5, 3, 4], 
+          error: null 
+        };
+      }
+      
+      // Filter out any invalid values and convert to numbers
+      const validBathrooms = data
+        .map(item => Number(item.bathrooms))
+        .filter(value => !isNaN(value) && value > 0);
+      
+      if (validBathrooms.length === 0) {
+        return { 
+          data: [1, 1.5, 2, 2.5, 3, 4], 
+          error: null 
+        };
+      }
+      
+      // Get unique sorted values
+      const uniqueBathrooms = [...new Set(validBathrooms)].sort((a, b) => a - b);
+      
+      return { data: uniqueBathrooms, error: null };
+    } catch (error) {
+      console.error('Error fetching bathroom options:', error);
+      return { data: [1, 1.5, 2, 2.5, 3, 4], error };
+    }
+  },
+  
+  /**
+   * Helper to generate price points
+   */
+  generatePricePoints(min, max, count) {
+    min = Math.max(0, Number(min) || 0);
+    max = Math.max(min + 1000, Number(max) || min + 1000000);
+    
+    const result = [];
+    const range = max - min;
+    const step = range / (count - 1);
+    
+    for (let i = 0; i < count; i++) {
+      // Round to nearest 1000 and ensure no duplicates
+      let price = Math.round((min + (step * i)) / 1000) * 1000;
+      if (result.indexOf(price) === -1) {
+        result.push(price);
+      }
+    }
+    
+    // Ensure the last value is the max
+    if (result[result.length - 1] < max) {
+      const roundedMax = Math.ceil(max / 1000) * 1000;
+      if (result.indexOf(roundedMax) === -1) {
+        result.push(roundedMax);
+      }
+    }
+    
+    return result.sort((a, b) => a - b);
+  }
+};
+
 export default function SearchResults() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -16,10 +227,19 @@ export default function SearchResults() {
   const [properties, setProperties] = useState([]);
   const [propertyImages, setPropertyImages] = useState({});
   const [loading, setLoading] = useState(true);
+  const [formLoading, setFormLoading] = useState(true);
   const [locations, setLocations] = useState([]);
   const [favorites, setFavorites] = useState({});
   const [savingFavorite, setSavingFavorite] = useState(null);
   const [queryCache, setQueryCache] = useState({});
+  
+  // Dynamic form options from database
+  const [priceRanges, setPriceRanges] = useState({
+    minPrices: [],
+    maxPrices: []
+  });
+  const [bedroomOptions, setBedroomOptions] = useState([]);
+  const [bathroomOptions, setBathroomOptions] = useState([]);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -62,16 +282,66 @@ export default function SearchResults() {
 
   // Load initial data on component mount
   useEffect(() => {
-    // Prefetch locations only once
-    if (locations.length === 0) {
-      fetchLocations();
-    }
+    // Fetch form options only once
+    fetchFormOptions();
     
     // Fetch user favorites if user is logged in
     if (user) {
       fetchUserFavorites();
     }
   }, [user]);
+
+  // Function to fetch all form options from database
+  const fetchFormOptions = async () => {
+    try {
+      setFormLoading(true);
+      
+      // Fetch locations
+      const { data: locationsData, error: locationsError } = 
+        await propertySearchService.getUniqueLocations();
+      
+      if (locationsError) {
+        console.error("Error fetching locations:", locationsError);
+      } else {
+        setLocations(locationsData);
+      }
+
+      // Fetch price ranges
+      const { data: priceData, error: priceError } = 
+        await propertySearchService.getPriceRanges();
+      
+      if (priceError) {
+        console.error("Error fetching price ranges:", priceError);
+      } else {
+        setPriceRanges(priceData);
+      }
+      
+      // Fetch bedroom options
+      const { data: bedroomData, error: bedroomError } = 
+        await propertySearchService.getBedroomOptions();
+      
+      if (bedroomError) {
+        console.error("Error fetching bedroom options:", bedroomError);
+      } else {
+        setBedroomOptions(bedroomData);
+      }
+      
+      // Fetch bathroom options
+      const { data: bathroomData, error: bathroomError } = 
+        await propertySearchService.getBathroomOptions();
+      
+      if (bathroomError) {
+        console.error("Error fetching bathroom options:", bathroomError);
+      } else {
+        setBathroomOptions(bathroomData);
+      }
+      
+    } catch (error) {
+      console.error("Error fetching form options:", error);
+    } finally {
+      setFormLoading(false);
+    }
+  };
 
   // Fetch properties when search params or page changes
   useEffect(() => {
@@ -123,23 +393,6 @@ export default function SearchResults() {
       setFavorites(favoritesObj);
     } catch (error) {
       console.error("Error fetching favorites:", error);
-    }
-  };
-
-  // Function to fetch locations
-  const fetchLocations = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("properties")
-        .select("location")
-        .is("location", "not.null");
-
-      if (error) throw error;
-
-      const uniqueLocations = [...new Set(data.map((item) => item.location))];
-      setLocations(uniqueLocations);
-    } catch (error) {
-      console.error("Error fetching locations:", error);
     }
   };
 
@@ -375,6 +628,12 @@ export default function SearchResults() {
       maximumFractionDigits: 0,
     }).format(price);
   };
+  
+  // Format bathroom display with optional decimal
+  const formatBathrooms = (value) => {
+    // If it's a whole number, show as integer
+    return Number.isInteger(value) ? value.toString() : value.toFixed(1);
+  };
 
   const propertyTypes = [
     { value: "apartment", label: "Apartment" },
@@ -431,46 +690,22 @@ export default function SearchResults() {
       </div>
     </div>
   );
-
-  if (loading && !queryCache[cacheKey]) {
-    // Show skeleton loaders instead of full page spinner
-    return (
-      <div className="min-h-screen bg-gray-100 py-10 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          {/* Search filters (always show them) */}
-          <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-            <h2 className="text-2xl font-bold text-center text-gray-800 mb-4">
-              Refine Your Search
-            </h2>
-            {/* Skeleton form */}
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-pulse">
-                <div className="h-16 bg-gray-300 rounded"></div>
-                <div className="h-16 bg-gray-300 rounded"></div>
-                <div className="h-16 bg-gray-300 rounded"></div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 animate-pulse">
-                <div className="h-16 bg-gray-300 rounded"></div>
-                <div></div>
-                <div className="h-10 bg-gray-300 rounded"></div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Property grid skeletons */}
-          <div className="text-center mb-6">
-            <p className="text-gray-600">Loading properties...</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {Array(6).fill(0).map((_, index) => (
-              <PropertySkeleton key={index} />
-            ))}
-          </div>
-        </div>
+  
+  // Form skeleton loader
+  const FormSkeleton = () => (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-pulse">
+        <div className="h-16 bg-gray-300 rounded"></div>
+        <div className="h-16 bg-gray-300 rounded"></div>
+        <div className="h-16 bg-gray-300 rounded"></div>
       </div>
-    );
-  }
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 animate-pulse">
+        <div className="h-16 bg-gray-300 rounded"></div>
+        <div></div>
+        <div className="h-10 bg-gray-300 rounded"></div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4 sm:px-6 lg:px-8">
@@ -481,293 +716,313 @@ export default function SearchResults() {
             Refine Your Search
           </h2>
 
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            {/* Form fields */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Location dropdown */}
-              <div>
-                <label
-                  htmlFor="location"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Location
-                </label>
-                <select
-                  id="location"
-                  name="location"
-                  defaultValue={formData.location}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
-                >
-                  <option value="">Any location</option>
-                  {locations.map((location) => (
-                    <option key={location} value={location}>
-                      {location}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Property type dropdown */}
-              <div>
-                <label
-                  htmlFor="property_type"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Property Type
-                </label>
-                <select
-                  id="property_type"
-                  name="property_type"
-                  defaultValue={formData.property_type}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
-                >
-                  <option value="">Any type</option>
-                  {propertyTypes.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Bedrooms and bathrooms */}
-              <div className="grid grid-cols-2 gap-2">
-                {/* Bedrooms dropdown */}
+          {formLoading ? (
+            <FormSkeleton />
+          ) : (
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              {/* Form fields */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Location dropdown */}
                 <div>
                   <label
-                    htmlFor="bedrooms"
+                    htmlFor="location"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Bedrooms
+                    Location
                   </label>
                   <select
-                    id="bedrooms"
-                    name="bedrooms"
-                    defaultValue={formData.bedrooms}
+                    id="location"
+                    name="location"
+                    defaultValue={searchParams.get("location") || ""}
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
                   >
-                    <option value="">Any</option>
-                    <option value="1">1+</option>
-                    <option value="2">2+</option>
-                    <option value="3">3+</option>
-                    <option value="4">4+</option>
-                    <option value="5">5+</option>
+                    <option value="">Any location</option>
+                    {locations.map((location) => (
+                      <option key={location} value={location}>
+                        {location}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
-                {/* Bathrooms dropdown */}
+                {/* Property type dropdown */}
                 <div>
                   <label
-                    htmlFor="bathrooms"
+                    htmlFor="property_type"
                     className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    Bathrooms
+                    Property Type
                   </label>
                   <select
-                    id="bathrooms"
-                    name="bathrooms"
-                    defaultValue={formData.bathrooms}
+                    id="property_type"
+                    name="property_type"
+                    defaultValue={searchParams.get("property_type") || ""}
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
                   >
-                    <option value="">Any</option>
-                    <option value="1">1+</option>
-                    <option value="2">2+</option>
-                    <option value="3">3+</option>
-                    <option value="4">4+</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Price range and search button */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-              <div className="grid grid-cols-2 gap-2">
-                {/* Min price dropdown */}
-                <div>
-                  <label
-                    htmlFor="minPrice"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Min Price
-                  </label>
-                  <select
-                    id="minPrice"
-                    name="minPrice"
-                    defaultValue={formData.minPrice}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
-                  >
-                    <option value="">No min</option>
-                    <option value="100000">$100,000</option>
-                    <option value="300000">$300,000</option>
-                    <option value="500000">$500,000</option>
-                    <option value="1000000">$1,000,000</option>
-                    <option value="2000000">$2,000,000</option>
+                    <option value="">Any type</option>
+                    {propertyTypes.map((type) => (
+                      <option key={type.value} value={type.value}>
+                        {type.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
-                {/* Max price dropdown */}
-                <div>
-                  <label
-                    htmlFor="maxPrice"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Max Price
-                  </label>
-                  <select
-                    id="maxPrice"
-                    name="maxPrice"
-                    defaultValue={formData.maxPrice}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
-                  >
-                    <option value="">No max</option>
-                    <option value="500000">$500,000</option>
-                    <option value="1000000">$1,000,000</option>
-                    <option value="2000000">$2,000,000</option>
-                    <option value="5000000">$5,000,000</option>
-                    <option value="10000000">$10,000,000+</option>
-                  </select>
+                {/* Bedrooms and bathrooms */}
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Bedrooms dropdown */}
+                  <div>
+                    <label
+                      htmlFor="bedrooms"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Bedrooms
+                    </label>
+                    <select
+                      id="bedrooms"
+                      name="bedrooms"
+                      defaultValue={searchParams.get("bedrooms") || ""}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
+                    >
+                      <option value="">Any</option>
+                      {bedroomOptions.map(value => (
+                        <option key={`bed-${value}`} value={value}>
+                          {value}+ {value === 1 ? 'Bedroom' : 'Bedrooms'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Bathrooms dropdown */}
+                  <div>
+                    <label
+                      htmlFor="bathrooms"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Bathrooms
+                    </label>
+                    <select
+                      id="bathrooms"
+                      name="bathrooms"
+                      defaultValue={searchParams.get("bathrooms") || ""}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
+                    >
+                      <option value="">Any</option>
+                      {bathroomOptions.map(value => (
+                        <option key={`bath-${value}`} value={value}>
+                          {formatBathrooms(value)}+ {value === 1 ? 'Bathroom' : 'Bathrooms'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
-              <div></div> {/* Empty div for spacing */}
-              {/* Search button */}
-              <div className="flex items-end">
-                <button
-                  type="submit"
-                  className="w-full bg-custom-red hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300"
-                >
-                  Update Search
-                </button>
+
+              {/* Price range and search button */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Min price dropdown */}
+                  <div>
+                    <label
+                      htmlFor="minPrice"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Min Price
+                    </label>
+                    <select
+                      id="minPrice"
+                      name="minPrice"
+                      defaultValue={searchParams.get("minPrice") || ""}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
+                    >
+                      <option value="">No min</option>
+                      {priceRanges.minPrices.map(price => (
+                        <option key={`min-${price}`} value={price}>
+                          {formatPrice(price)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Max price dropdown */}
+                  <div>
+                    <label
+                      htmlFor="maxPrice"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Max Price
+                    </label>
+                    <select
+                      id="maxPrice"
+                      name="maxPrice"
+                      defaultValue={searchParams.get("maxPrice") || ""}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
+                    >
+                      <option value="">No max</option>
+                      {priceRanges.maxPrices.map(price => (
+                        <option key={`max-${price}`} value={price}>
+                          {formatPrice(price)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div></div> {/* Empty div for spacing */}
+                {/* Search button */}
+                <div className="flex items-end">
+                  <button
+                    type="submit"
+                    className="w-full bg-custom-red hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300"
+                  >
+                    Update Search
+                  </button>
+                </div>
               </div>
-            </div>
-          </form>
+            </form>
+          )}
         </div>
 
         {/* Search results section */}
-        <div className="text-center mb-6">
-          <p className="text-gray-600">
-            Found {totalCount}{" "}
-            {totalCount === 1 ? "property" : "properties"} matching your
-            criteria
-          </p>          
-        </div>
-
-        {/* No results message */}
-        {properties.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg shadow">
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">
-              No properties found
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Try adjusting your search filters to see more results.
-            </p>
+        {loading && !queryCache[cacheKey] ? (
+          <div>
+            <div className="text-center mb-6">
+              <p className="text-gray-600">Loading properties...</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {Array(6).fill(0).map((_, index) => (
+                <PropertySkeleton key={index} />
+              ))}
+            </div>
           </div>
         ) : (
           <>
-            {/* Property grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {properties.map((property) => (
-                <div
-                  key={property.id}
-                  className="bg-white rounded-lg overflow-hidden shadow-lg transition-transform duration-200 hover:transform hover:scale-105"
-                >
-                  <div className="relative">
-                    {/* Favorite Heart Button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleFavorite(property.id);
-                      }}
-                      disabled={savingFavorite === property.id}
-                      className="absolute top-2 right-2 z-10 p-2 bg-white bg-opacity-80 rounded-full shadow-md hover:bg-opacity-100 transition-all duration-200"
-                      aria-label={
-                        favorites[property.id]
-                          ? "Remove from favorites"
-                          : "Add to favorites"
-                      }
-                    >
-                      {/* Heart SVG icon */}
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill={favorites[property.id] ? "#dc2626" : "none"}
-                        stroke={
-                          favorites[property.id] ? "#dc2626" : "currentColor"
-                        }
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className={`${
-                          savingFavorite === property.id ? "animate-pulse" : ""
-                        }`}
-                      >
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                      </svg>
-                    </button>
+            <div className="text-center mb-6">
+              <p className="text-gray-600">
+                Found {totalCount}{" "}
+                {totalCount === 1 ? "property" : "properties"} matching your
+                criteria
+              </p>          
+            </div>
 
-                    {/* Property Image */}
+            {/* No results message */}
+            {properties.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-lg shadow">
+                <h2 className="text-xl font-semibold text-gray-800 mb-2">
+                  No properties found
+                </h2>
+                <p className="text-gray-600 mb-6">
+                  Try adjusting your search filters to see more results.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Property grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {properties.map((property) => (
                     <div
-                      className="h-48 bg-gray-200 relative cursor-pointer"
-                      onClick={() => router.push(`/property/${property.id}`)}
+                      key={property.id}
+                      className="bg-white rounded-lg overflow-hidden shadow-lg transition-transform duration-200 hover:transform hover:scale-105"
                     >
-                      {propertyImages[property.id] ? (
-                        <Image
-                          src={propertyImages[property.id]}
-                          alt={property.title}
-                          fill
-                          className="object-cover"
-                          loading="lazy"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          placeholder="blur"
-                          blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
-                        />
-                      ) : (
-                        <div className="absolute inset-0 flex items-center justify-center text-gray-500">
-                          <span>No Image Available</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                      <div className="relative">
+                        {/* Favorite Heart Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(property.id);
+                          }}
+                          disabled={savingFavorite === property.id}
+                          className="absolute top-2 right-2 z-10 p-2 bg-white bg-opacity-80 rounded-full shadow-md hover:bg-opacity-100 transition-all duration-200"
+                          aria-label={
+                            favorites[property.id]
+                              ? "Remove from favorites"
+                              : "Add to favorites"
+                          }
+                        >
+                          {/* Heart SVG icon */}
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill={favorites[property.id] ? "#dc2626" : "none"}
+                            stroke={
+                              favorites[property.id] ? "#dc2626" : "currentColor"
+                            }
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className={`${
+                              savingFavorite === property.id ? "animate-pulse" : ""
+                            }`}
+                          >
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                          </svg>
+                        </button>
 
-                  <div className="p-4">
-                    <h3
-                      className="text-xl font-bold text-gray-800 mb-2 cursor-pointer hover:text-custom-red transition-colors"
-                      onClick={() => router.push(`/property/${property.id}`)}
-                    >
-                      {property.title}
-                    </h3>
-                    <p className="text-gray-600 mb-4 line-clamp-2">
-                      {property.description}
-                    </p>
-                    <div className="flex justify-between mb-4">
-                      <span className="text-custom-red font-bold text-lg">
-                        {formatPrice(property.price)}
-                      </span>
-                      <div className="text-gray-700">
-                        <span className="mr-2">{property.bedrooms} beds</span>•
-                        <span className="ml-2">{property.bathrooms} baths</span>
+                        {/* Property Image */}
+                        <div
+                          className="h-48 bg-gray-200 relative cursor-pointer"
+                          onClick={() => router.push(`/property/${property.id}`)}
+                        >
+                          {propertyImages[property.id] ? (
+                            <Image
+                              src={propertyImages[property.id]}
+                              alt={property.title}
+                              fill
+                              className="object-cover"
+                              loading="lazy"
+                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                              placeholder="blur"
+                              blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center text-gray-500">
+                              <span>No Image Available</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="p-4">
+                        <h3
+                          className="text-xl font-bold text-gray-800 mb-2 cursor-pointer hover:text-custom-red transition-colors"
+                          onClick={() => router.push(`/property/${property.id}`)}
+                        >
+                          {property.title}
+                        </h3>
+                        <p className="text-gray-600 mb-4 line-clamp-2">
+                          {property.description}
+                        </p>
+                        <div className="flex justify-between mb-4">
+                          <span className="text-custom-red font-bold text-lg">
+                            {formatPrice(property.price)}
+                          </span>
+                          <div className="text-gray-700">
+                            <span className="mr-2">{property.bedrooms} beds</span>•
+                            <span className="ml-2">{property.bathrooms} baths</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => router.push(`/property/${property.id}`)}
+                          className="w-full bg-custom-red hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300"
+                        >
+                          View Details
+                        </button>
                       </div>
                     </div>
-                    <button
-                      onClick={() => router.push(`/property/${property.id}`)}
-                      className="w-full bg-custom-red hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300"
-                    >
-                      View Details
-                    </button>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            
-            {/* Pagination component */}
-            <Pagination />
+                
+                {/* Pagination component */}
+                <Pagination />
+              </>
+            )}
           </>
         )}
       </div>

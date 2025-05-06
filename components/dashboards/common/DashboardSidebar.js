@@ -299,17 +299,6 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
     item.roles.includes(userRole)
   );
 
-  // Debugging function - uncomment if needed
-  // useEffect(() => {
-  //   console.log("Profile image debug info:");
-  //   console.log("User:", user?.id);
-  //   console.log("Profile image path:", profile?.profile_image);
-  //   console.log("Loaded image URL:", profileImageUrl);
-  //   console.log("Loading state:", isLoadingImage);
-  //   console.log("Error state:", imageError);
-  //   console.log("Active tab:", activeTab);
-  // }, [user?.id, profile?.profile_image, profileImageUrl, isLoadingImage, imageError, activeTab]);
-
   // Reload profile image when active tab changes
   useEffect(() => {
     loadProfileImage();

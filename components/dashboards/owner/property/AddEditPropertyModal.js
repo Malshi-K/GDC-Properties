@@ -41,6 +41,17 @@ export default function AddEditPropertyModal({
 
   const [imagePreviews, setImagePreviews] = useState([]);
 
+  // Define the list of New Zealand locations for the dropdown
+  const nzLocations = [
+    "Auckland",
+    "Hamilton",
+    "Tauranga",
+    "Lower Hutt",
+    "Wellington",
+    "Christchurch",
+    "Dunedin"
+  ];
+
   useEffect(() => {
     const resetForm = () => {
       if (property) {
@@ -547,19 +558,24 @@ export default function AddEditPropertyModal({
               />
             </div>
 
+            {/* Modified Location field to use a dropdown with proper empty default */}
             <div>
               <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-                Location* (City/Area)
+                Location*
               </label>
-              <input
-                type="text"
+              <select
                 id="location"
                 name="location"
                 value={formData.location}
                 onChange={handleChange}
                 required
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
-              />
+              >
+                <option value="">Select a location</option>
+                {nzLocations.map(location => (
+                  <option key={location} value={location}>{location}</option>
+                ))}
+              </select>
             </div>
 
             <div>
