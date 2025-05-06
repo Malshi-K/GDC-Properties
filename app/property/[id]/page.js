@@ -267,20 +267,18 @@ export default function PropertyDetails() {
 
   // Placeholder for property images during skeleton loading
   const PropertyImagesSkeleton = () => (
-    <div className="px-6 pb-8">
-      <div className="space-y-4">
-        {/* Main image skeleton */}
-        <div className="relative h-80 sm:h-96 w-full rounded-lg overflow-hidden bg-gray-200 animate-pulse"></div>
+    <div className="property-image-container">
+      {/* Main image skeleton */}
+      <div className="main-image-skeleton bg-gray-200 h-96 animate-pulse rounded-lg"></div>
 
-        {/* Thumbnail gallery skeleton */}
-        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
-          {[...Array(5)].map((_, index) => (
-            <div
-              key={index}
-              className="h-20 rounded-md overflow-hidden bg-gray-300 animate-pulse"
-            ></div>
-          ))}
-        </div>
+      {/* Thumbnail gallery skeleton */}
+      <div className="thumbnails-skeleton flex mt-2 space-x-2">
+        {[...Array(5)].map((_, index) => (
+          <div
+            key={index}
+            className="h-24 w-24 rounded-md bg-gray-300 animate-pulse"
+          ></div>
+        ))}
       </div>
     </div>
   );
@@ -496,11 +494,16 @@ export default function PropertyDetails() {
                   Property Description
                 </h2>
                 <div className="prose max-w-none text-gray-700">
-                  {property.full_description ? (
-                    <p>{property.full_description}</p>
-                  ) : (
-                    <p>{property.description}</p>
-                  )}
+                  <p>{property.description}</p>
+                </div>
+              </div>
+
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 mb-3">
+                  Property Address
+                </h2>
+                <div className="prose max-w-none text-gray-700">
+                  <p>{property.address}</p>
                 </div>
               </div>
 
@@ -508,7 +511,7 @@ export default function PropertyDetails() {
               <div>
                 <h2 className="text-xl font-bold text-gray-900 mb-3">
                   Property Details
-                </h2>
+                </h2>                
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4">
                   <div>
                     <span className="block text-sm text-gray-500">

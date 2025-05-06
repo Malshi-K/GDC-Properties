@@ -5,11 +5,11 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { v4 as uuidv4 } from "uuid";
 
-export default function AddEditPropertyModal({ 
-  isOpen, 
-  onClose, 
-  property, 
-  onSave 
+export default function AddEditPropertyModal({
+  isOpen,
+  onClose,
+  property,
+  onSave,
 }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -18,7 +18,7 @@ export default function AddEditPropertyModal({
   const [isUploading, setIsUploading] = useState(false);
   const [showUploadSection, setShowUploadSection] = useState(true);
   const fileInputRef = useRef(null);
-  
+
   const [formData, setFormData] = useState({
     title: "",
     location: "",
@@ -29,14 +29,13 @@ export default function AddEditPropertyModal({
     square_footage: "",
     available_from: "",
     description: "",
-    full_description: "",
     amenities: [],
     features: [],
     nearby_amenities: [],
     property_type: "apartment",
     status: "available",
     year_built: "",
-    images: []
+    images: [],
   });
 
   const [imagePreviews, setImagePreviews] = useState([]);
@@ -49,7 +48,7 @@ export default function AddEditPropertyModal({
     "Lower Hutt",
     "Wellington",
     "Christchurch",
-    "Dunedin"
+    "Dunedin",
   ];
 
   useEffect(() => {
@@ -57,8 +56,8 @@ export default function AddEditPropertyModal({
       if (property) {
         // Editing existing property
         // Convert date format for input field if exists
-        const formattedAvailableFrom = property.available_from 
-          ? new Date(property.available_from).toISOString().split('T')[0]
+        const formattedAvailableFrom = property.available_from
+          ? new Date(property.available_from).toISOString().split("T")[0]
           : "";
 
         setFormData({
@@ -71,19 +70,18 @@ export default function AddEditPropertyModal({
           square_footage: property.square_footage || "",
           available_from: formattedAvailableFrom,
           description: property.description || "",
-          full_description: property.full_description || "",
           amenities: property.amenities || [],
           features: property.features || [],
           nearby_amenities: property.nearby_amenities || [],
           property_type: property.property_type || "apartment",
           status: property.status || "available",
           year_built: property.year_built || "",
-          images: property.images || []
+          images: property.images || [],
         });
 
         // Hide upload section initially when editing a property that has images
         setShowUploadSection(!(property.images && property.images.length > 0));
-        
+
         // Load image previews for existing images with signed URLs
         loadExistingImages(property.images);
       } else {
@@ -98,19 +96,18 @@ export default function AddEditPropertyModal({
           square_footage: "",
           available_from: "",
           description: "",
-          full_description: "",
           amenities: [],
           features: [],
           nearby_amenities: [],
           property_type: "apartment",
           status: "available",
           year_built: "",
-          images: []
+          images: [],
         });
         setImagePreviews([]);
         setShowUploadSection(true);
       }
-      
+
       // Clear any previous errors
       setError(null);
     };
@@ -130,32 +127,36 @@ export default function AddEditPropertyModal({
     setLoading(true);
     try {
       const previews = [];
-      
+
       for (const imagePath of images) {
         try {
           // Get a signed URL for each image
           const { data, error } = await supabase.storage
-            .from('property-images')
+            .from("property-images")
             .createSignedUrl(imagePath, 60 * 60); // 1 hour expiry
-            
+
           if (error) {
-            console.error("Error getting signed URL for image:", imagePath, error);
+            console.error(
+              "Error getting signed URL for image:",
+              imagePath,
+              error
+            );
             continue;
           }
-          
+
           previews.push({
             url: data.signedUrl,
-            path: imagePath
+            path: imagePath,
           });
         } catch (err) {
           console.error("Error processing image:", imagePath, err);
         }
       }
-      
+
       setImagePreviews(previews);
     } catch (err) {
-      console.error('Error loading image previews:', err);
-      setError('Failed to load property images. Please try again.');
+      console.error("Error loading image previews:", err);
+      setError("Failed to load property images. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -172,58 +173,57 @@ export default function AddEditPropertyModal({
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
-    
+
     setIsUploading(true);
     setError(null);
-    
+
     try {
       // Store uploaded image paths
       const uploadedImagePaths = [];
       const newPreviews = [...imagePreviews];
-      
+
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        
+
         // Create a unique file name to avoid collisions
-        const fileExt = file.name.split('.').pop();
+        const fileExt = file.name.split(".").pop();
         const fileName = `${uuidv4()}.${fileExt}`;
         const filePath = `${user.id}/${fileName}`;
-        
+
         // Upload the file to Supabase Storage
         const { data, error } = await supabase.storage
-          .from('property-images')
+          .from("property-images")
           .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: false
+            cacheControl: "3600",
+            upsert: false,
           });
-          
+
         if (error) throw error;
-        
+
         // Add the file path to our array
         uploadedImagePaths.push(filePath);
-        
+
         // Create a local preview URL
         const previewUrl = URL.createObjectURL(file);
         newPreviews.push({
           url: previewUrl,
-          path: filePath
+          path: filePath,
         });
-        
+
         // Update progress
-        setUploadProgress(Math.round((i + 1) / files.length * 100));
+        setUploadProgress(Math.round(((i + 1) / files.length) * 100));
       }
-      
+
       // Update the form data with the new image paths
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        images: [...prev.images, ...uploadedImagePaths]
+        images: [...prev.images, ...uploadedImagePaths],
       }));
-      
+
       // Update the image previews
       setImagePreviews(newPreviews);
-      
     } catch (err) {
-      console.error('Error uploading images:', err);
+      console.error("Error uploading images:", err);
       setError(`Error uploading images: ${err.message}`);
     } finally {
       setIsUploading(false);
@@ -237,45 +237,46 @@ export default function AddEditPropertyModal({
 
   const handleRemoveImage = async (index) => {
     const imageToRemove = imagePreviews[index];
-    
+
     // Create a copy of the arrays to mutate
     const newPreviews = [...imagePreviews];
     const newImages = [...formData.images];
-    
+
     try {
       // If this is an image stored in Supabase (not just a preview of a new upload)
       if (imageToRemove.path && imageToRemove.path.includes(user.id)) {
         // Delete from Supabase storage
         const { error } = await supabase.storage
-          .from('property-images')
+          .from("property-images")
           .remove([imageToRemove.path]);
-          
+
         if (error) throw error;
       }
-      
+
       // Remove from preview array
       newPreviews.splice(index, 1);
-      
+
       // Find and remove from formData.images array
-      const pathIndex = newImages.findIndex(path => path === imageToRemove.path);
+      const pathIndex = newImages.findIndex(
+        (path) => path === imageToRemove.path
+      );
       if (pathIndex !== -1) {
         newImages.splice(pathIndex, 1);
       }
-      
+
       // Update state
       setImagePreviews(newPreviews);
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        images: newImages
+        images: newImages,
       }));
-      
+
       // Show upload section if all images are removed
       if (newPreviews.length === 0) {
         setShowUploadSection(true);
       }
-      
     } catch (err) {
-      console.error('Error removing image:', err);
+      console.error("Error removing image:", err);
       setError(`Error removing image: ${err.message}`);
     }
   };
@@ -288,30 +289,30 @@ export default function AddEditPropertyModal({
   // Handle array fields like features and nearby_amenities
   const handleArrayItemChange = (e, index, arrayName) => {
     const value = e.target.value;
-    setFormData(prev => {
+    setFormData((prev) => {
       const newArray = [...prev[arrayName]];
       newArray[index] = value;
       return {
         ...prev,
-        [arrayName]: newArray
+        [arrayName]: newArray,
       };
     });
   };
 
   const handleAddArrayItem = (arrayName) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [arrayName]: [...prev[arrayName], ""]
+      [arrayName]: [...prev[arrayName], ""],
     }));
   };
 
   const handleRemoveArrayItem = (index, arrayName) => {
-    setFormData(prev => {
+    setFormData((prev) => {
       const newArray = [...prev[arrayName]];
       newArray.splice(index, 1);
       return {
         ...prev,
-        [arrayName]: newArray
+        [arrayName]: newArray,
       };
     });
   };
@@ -320,12 +321,12 @@ export default function AddEditPropertyModal({
     e.preventDefault();
     setLoading(true);
     setError(null);
-    
+
     try {
       if (!user || !user.id) {
         throw new Error("You must be logged in to save a property");
       }
-      
+
       // Prepare data for Supabase
       const propertyData = {
         ...formData,
@@ -335,15 +336,14 @@ export default function AddEditPropertyModal({
         bathrooms: parseFloat(formData.bathrooms),
         square_footage: parseInt(formData.square_footage),
         year_built: parseInt(formData.year_built) || null,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
-      
+
       // Call the parent's onSave function which handles the actual database update
       await onSave(propertyData);
-      
     } catch (err) {
-      console.error('Error saving property:', err);
-      setError(err.message || 'Failed to save property. Please try again.');
+      console.error("Error saving property:", err);
+      setError(err.message || "Failed to save property. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -352,17 +352,17 @@ export default function AddEditPropertyModal({
   // Handle amenities as a multi-select
   const handleAmenityChange = (e) => {
     const { value, checked } = e.target;
-    
-    setFormData(prevData => {
+
+    setFormData((prevData) => {
       if (checked) {
         return {
           ...prevData,
-          amenities: [...prevData.amenities, value]
+          amenities: [...prevData.amenities, value],
         };
       } else {
         return {
           ...prevData,
-          amenities: prevData.amenities.filter(item => item !== value)
+          amenities: prevData.amenities.filter((item) => item !== value),
         };
       }
     });
@@ -371,9 +371,19 @@ export default function AddEditPropertyModal({
   if (!isOpen) return null;
 
   const amenitiesList = [
-    "Air Conditioning", "Heating", "Washer/Dryer", "Dishwasher", 
-    "Parking", "Gym", "Pool", "Pet Friendly", "Balcony", 
-    "Elevator", "Security System", "WiFi", "Furnished"
+    "Air Conditioning",
+    "Heating",
+    "Washer/Dryer",
+    "Dishwasher",
+    "Parking",
+    "Gym",
+    "Pool",
+    "Pet Friendly",
+    "Balcony",
+    "Elevator",
+    "Security System",
+    "WiFi",
+    "Furnished",
   ];
 
   const propertyTypes = [
@@ -381,7 +391,7 @@ export default function AddEditPropertyModal({
     { value: "house", label: "House" },
     { value: "condo", label: "Condo" },
     { value: "townhouse", label: "Townhouse" },
-    { value: "villa", label: "Villa" }
+    { value: "villa", label: "Villa" },
   ];
 
   return (
@@ -424,7 +434,7 @@ export default function AddEditPropertyModal({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Property Images
             </label>
-            
+
             {/* Image Preview Grid */}
             {imagePreviews.length > 0 && (
               <div className="mb-4">
@@ -434,14 +444,23 @@ export default function AddEditPropertyModal({
                       <div className="aspect-video w-full bg-gray-100 rounded-md overflow-hidden border border-gray-200">
                         {loading ? (
                           <div className="animate-pulse flex items-center justify-center h-full bg-gray-200">
-                            <svg className="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" 
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            <svg
+                              className="w-10 h-10 text-gray-400"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="1"
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              />
                             </svg>
                           </div>
                         ) : (
-                          <img 
-                            src={preview.url} 
+                          <img
+                            src={preview.url}
                             alt={`Property image ${index + 1}`}
                             className="w-full h-full object-cover"
                             onError={(e) => {
@@ -457,14 +476,24 @@ export default function AddEditPropertyModal({
                         className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                         title="Remove image"
                       >
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        <svg
+                          className="h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
                         </svg>
                       </button>
                     </div>
                   ))}
                 </div>
-                
+
                 {property && imagePreviews.length > 0 && (
                   <div className="flex justify-end mb-4">
                     <button
@@ -472,26 +501,30 @@ export default function AddEditPropertyModal({
                       onClick={toggleUploadSection}
                       className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                     >
-                      {showUploadSection ? "Hide Upload Section" : "Add More Images"}
+                      {showUploadSection
+                        ? "Hide Upload Section"
+                        : "Add More Images"}
                     </button>
                   </div>
                 )}
               </div>
             )}
-            
+
             {/* Upload Progress */}
             {isUploading && (
               <div className="mb-4">
                 <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div 
-                    className="bg-custom-red h-2.5 rounded-full" 
+                  <div
+                    className="bg-custom-red h-2.5 rounded-full"
                     style={{ width: `${uploadProgress}%` }}
                   ></div>
                 </div>
-                <p className="text-sm text-gray-500 mt-1">Uploading: {uploadProgress}%</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Uploading: {uploadProgress}%
+                </p>
               </div>
             )}
-            
+
             {/* Upload Section - Only show if showUploadSection is true */}
             {(showUploadSection || imagePreviews.length === 0) && (
               <div className="mb-4">
@@ -517,7 +550,8 @@ export default function AddEditPropertyModal({
                         />
                       </svg>
                       <p className="mb-2 text-sm text-gray-500">
-                        <span className="font-semibold">Click to upload</span> or drag and drop
+                        <span className="font-semibold">Click to upload</span>{" "}
+                        or drag and drop
                       </p>
                       <p className="text-xs text-gray-500">
                         PNG, JPG or WEBP (MAX. 5MB each)
@@ -536,7 +570,8 @@ export default function AddEditPropertyModal({
                   </label>
                 </div>
                 <p className="text-xs text-gray-500 mt-2">
-                  Upload clear images of the property to attract potential tenants
+                  Upload clear images of the property to attract potential
+                  tenants
                 </p>
               </div>
             )}
@@ -544,7 +579,10 @@ export default function AddEditPropertyModal({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="title"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Property Title*
               </label>
               <input
@@ -560,7 +598,10 @@ export default function AddEditPropertyModal({
 
             {/* Modified Location field to use a dropdown with proper empty default */}
             <div>
-              <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="location"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Location*
               </label>
               <select
@@ -572,14 +613,19 @@ export default function AddEditPropertyModal({
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
               >
                 <option value="">Select a location</option>
-                {nzLocations.map(location => (
-                  <option key={location} value={location}>{location}</option>
+                {nzLocations.map((location) => (
+                  <option key={location} value={location}>
+                    {location}
+                  </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="address"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Full Address
               </label>
               <input
@@ -593,7 +639,10 @@ export default function AddEditPropertyModal({
             </div>
 
             <div>
-              <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="price"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Price (USD)*
               </label>
               <input
@@ -609,7 +658,10 @@ export default function AddEditPropertyModal({
             </div>
 
             <div>
-              <label htmlFor="property_type" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="property_type"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Property Type*
               </label>
               <select
@@ -620,14 +672,19 @@ export default function AddEditPropertyModal({
                 required
                 className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
               >
-                {propertyTypes.map(type => (
-                  <option key={type.value} value={type.value}>{type.label}</option>
+                {propertyTypes.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label htmlFor="bedrooms" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="bedrooms"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Bedrooms*
               </label>
               <input
@@ -643,7 +700,10 @@ export default function AddEditPropertyModal({
             </div>
 
             <div>
-              <label htmlFor="bathrooms" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="bathrooms"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Bathrooms*
               </label>
               <input
@@ -660,7 +720,10 @@ export default function AddEditPropertyModal({
             </div>
 
             <div>
-              <label htmlFor="square_footage" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="square_footage"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Square Footage*
               </label>
               <input
@@ -676,7 +739,10 @@ export default function AddEditPropertyModal({
             </div>
 
             <div>
-              <label htmlFor="year_built" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="year_built"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Year Built
               </label>
               <input
@@ -692,7 +758,10 @@ export default function AddEditPropertyModal({
             </div>
 
             <div>
-              <label htmlFor="available_from" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="available_from"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Available From
               </label>
               <input
@@ -706,7 +775,10 @@ export default function AddEditPropertyModal({
             </div>
 
             <div>
-              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="status"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Status
               </label>
               <select
@@ -724,7 +796,10 @@ export default function AddEditPropertyModal({
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="description"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Short Description*
             </label>
             <textarea
@@ -739,28 +814,13 @@ export default function AddEditPropertyModal({
             ></textarea>
           </div>
 
-          <div>
-            <label htmlFor="full_description" className="block text-sm font-medium text-gray-700 mb-1">
-              Full Description
-            </label>
-            <textarea
-              id="full_description"
-              name="full_description"
-              value={formData.full_description}
-              onChange={handleChange}
-              rows="6"
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
-              placeholder="Detailed description for the property page"
-            ></textarea>
-          </div>
-
           {/* Amenities Section */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Amenities
             </label>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {amenitiesList.map(amenity => (
+              {amenitiesList.map((amenity) => (
                 <div key={amenity} className="flex items-center">
                   <input
                     type="checkbox"
@@ -770,7 +830,10 @@ export default function AddEditPropertyModal({
                     onChange={handleAmenityChange}
                     className="h-4 w-4 text-custom-red border-gray-300 rounded focus:ring-custom-red"
                   />
-                  <label htmlFor={`amenity-${amenity}`} className="ml-2 block text-sm text-gray-700">
+                  <label
+                    htmlFor={`amenity-${amenity}`}
+                    className="ml-2 block text-sm text-gray-700"
+                  >
                     {amenity}
                   </label>
                 </div>
@@ -786,7 +849,7 @@ export default function AddEditPropertyModal({
               </label>
               <button
                 type="button"
-                onClick={() => handleAddArrayItem('features')}
+                onClick={() => handleAddArrayItem("features")}
                 className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-custom-red bg-red-50 hover:bg-red-100"
               >
                 Add Feature
@@ -797,17 +860,27 @@ export default function AddEditPropertyModal({
                 <input
                   type="text"
                   value={feature}
-                  onChange={(e) => handleArrayItemChange(e, index, 'features')}
+                  onChange={(e) => handleArrayItemChange(e, index, "features")}
                   className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
                   placeholder="e.g., Private beach access"
                 />
                 <button
                   type="button"
-                  onClick={() => handleRemoveArrayItem(index, 'features')}
+                  onClick={() => handleRemoveArrayItem(index, "features")}
                   className="ml-2 text-red-600 hover:text-red-800"
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -822,7 +895,7 @@ export default function AddEditPropertyModal({
               </label>
               <button
                 type="button"
-                onClick={() => handleAddArrayItem('nearby_amenities')}
+                onClick={() => handleAddArrayItem("nearby_amenities")}
                 className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-custom-red bg-red-50 hover:bg-red-100"
               >
                 Add Nearby Amenity
@@ -833,17 +906,31 @@ export default function AddEditPropertyModal({
                 <input
                   type="text"
                   value={amenity}
-                  onChange={(e) => handleArrayItemChange(e, index, 'nearby_amenities')}
+                  onChange={(e) =>
+                    handleArrayItemChange(e, index, "nearby_amenities")
+                  }
                   className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
                   placeholder="e.g., Premium shopping centers (5 min drive)"
                 />
                 <button
                   type="button"
-                  onClick={() => handleRemoveArrayItem(index, 'nearby_amenities')}
+                  onClick={() =>
+                    handleRemoveArrayItem(index, "nearby_amenities")
+                  }
                   className="ml-2 text-red-600 hover:text-red-800"
                 >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -866,9 +953,25 @@ export default function AddEditPropertyModal({
                 className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-red hover:bg-red-700 disabled:opacity-50 flex items-center"
               >
                 {loading && (
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                 )}
                 {property ? "Update Property" : "Add Property"}

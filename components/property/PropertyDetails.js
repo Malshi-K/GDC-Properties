@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { createClient } from "@supabase/supabase-js";
-import Image from 'next/image';
-import Link from 'next/link';
+import Image from "next/image";
+import Link from "next/link";
 
 // Initialize Supabase client
 const supabaseClient = createClient(
@@ -17,7 +17,7 @@ export default function PropertyDetails() {
   const params = useParams();
   const router = useRouter();
   const { id } = params;
-  
+
   const [property, setProperty] = useState(null);
   const [imageUrls, setImageUrls] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,41 +27,42 @@ export default function PropertyDetails() {
   useEffect(() => {
     async function fetchPropertyDetails() {
       if (!id) return;
-      
+
       try {
         setLoading(true);
-        
+
         // Fetch property details
         const { data, error } = await supabase
-          .from('properties')
-          .select('*')
-          .eq('id', id)
+          .from("properties")
+          .select("*")
+          .eq("id", id)
           .single();
-        
+
         if (error) throw error;
-        
+
         if (!data) {
-          setError('Property not found');
+          setError("Property not found");
           return;
         }
-        
+
         setProperty(data);
-        
+
         // Fetch signed URLs for all property images
         if (data.images && data.images.length > 0) {
           const urls = [];
-          
+
           for (const imagePath of data.images) {
             // Normalize the path
             const normalizedPath = imagePath.includes("/")
               ? imagePath
               : `${data.owner_id}/${imagePath}`;
-              
+
             try {
-              const { data: urlData, error: urlError } = await supabaseClient.storage
-                .from("property-images")
-                .createSignedUrl(normalizedPath, 60 * 60); // 1 hour expiry
-              
+              const { data: urlData, error: urlError } =
+                await supabaseClient.storage
+                  .from("property-images")
+                  .createSignedUrl(normalizedPath, 60 * 60); // 1 hour expiry
+
               if (urlError) {
                 console.error("Error getting signed URL:", urlError);
               } else {
@@ -71,17 +72,17 @@ export default function PropertyDetails() {
               console.error("Error getting signed URL:", urlError);
             }
           }
-          
+
           setImageUrls(urls);
         }
       } catch (err) {
-        console.error('Error fetching property details:', err);
-        setError(err.message || 'Failed to load property details');
+        console.error("Error fetching property details:", err);
+        setError(err.message || "Failed to load property details");
       } finally {
         setLoading(false);
       }
     }
-    
+
     fetchPropertyDetails();
   }, [id]);
 
@@ -90,20 +91,20 @@ export default function PropertyDetails() {
   };
 
   const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 0
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
     }).format(price);
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Available Now';
+    if (!dateString) return "Available Now";
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -111,7 +112,9 @@ export default function PropertyDetails() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Loading property details...</h2>
+          <h2 className="text-2xl font-bold mb-4">
+            Loading property details...
+          </h2>
           <div className="w-12 h-12 border-4 border-gray-300 border-t-custom-red rounded-full animate-spin mx-auto"></div>
         </div>
       </div>
@@ -122,9 +125,16 @@ export default function PropertyDetails() {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="text-center max-w-lg">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Oops! Something went wrong</h2>
-          <p className="text-gray-600 mb-6">{error || 'The property could not be found.'}</p>
-          <Link href="/search" className="bg-custom-red hover:bg-red-700 text-white font-bold py-2 px-6 rounded-md transition-colors duration-300">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            Oops! Something went wrong
+          </h2>
+          <p className="text-gray-600 mb-6">
+            {error || "The property could not be found."}
+          </p>
+          <Link
+            href="/search"
+            className="bg-custom-red hover:bg-red-700 text-white font-bold py-2 px-6 rounded-md transition-colors duration-300"
+          >
             Back to Search
           </Link>
         </div>
@@ -138,20 +148,32 @@ export default function PropertyDetails() {
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           {/* Back button */}
           <div className="p-6 flex items-center">
-            <button 
-              onClick={() => router.back()} 
+            <button
+              onClick={() => router.back()}
               className="flex items-center text-gray-700 hover:text-custom-red transition-colors"
             >
-              <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              <svg
+                className="w-5 h-5 mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                />
               </svg>
               Back to Search
             </button>
           </div>
-          
+
           {/* Property headline */}
           <div className="px-6 pb-6 pt-2">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{property.title}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              {property.title}
+            </h1>
             <p className="text-gray-700 text-lg mb-2">{property.location}</p>
             <div className="flex items-center text-gray-700">
               <span className="mr-4">{property.bedrooms} Bedrooms</span>
@@ -159,7 +181,7 @@ export default function PropertyDetails() {
               <span>{property.square_footage} sq ft</span>
             </div>
           </div>
-          
+
           {/* Property images */}
           <div className="px-6 pb-8">
             {property.images && property.images.length > 0 ? (
@@ -167,7 +189,7 @@ export default function PropertyDetails() {
                 {/* Main image */}
                 <div className="relative h-80 sm:h-96 w-full rounded-lg overflow-hidden bg-gray-200">
                   {imageUrls[activeImage] ? (
-                    <Image 
+                    <Image
                       src={imageUrls[activeImage]}
                       alt={`${property.title} - Image ${activeImage + 1}`}
                       fill
@@ -179,17 +201,21 @@ export default function PropertyDetails() {
                     </div>
                   )}
                 </div>
-                
+
                 {/* Thumbnail gallery */}
                 {imageUrls.length > 1 && (
                   <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
                     {imageUrls.map((imageUrl, index) => (
-                      <div 
+                      <div
                         key={index}
-                        className={`relative h-20 rounded-md overflow-hidden cursor-pointer border-2 ${activeImage === index ? 'border-custom-red' : 'border-transparent'}`}
+                        className={`relative h-20 rounded-md overflow-hidden cursor-pointer border-2 ${
+                          activeImage === index
+                            ? "border-custom-red"
+                            : "border-transparent"
+                        }`}
                         onClick={() => handleImageClick(index)}
                       >
-                        <Image 
+                        <Image
                           src={imageUrl}
                           alt={`${property.title} - Thumbnail ${index + 1}`}
                           fill
@@ -206,87 +232,134 @@ export default function PropertyDetails() {
               </div>
             )}
           </div>
-          
+
           <div className="px-6 pb-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main content */}
             <div className="lg:col-span-2 space-y-8">
               {/* Price and status */}
               <div className="flex flex-wrap justify-between items-center bg-gray-50 rounded-lg p-6">
                 <div>
-                  <span className="text-3xl font-bold text-custom-red">{formatPrice(property.price)}</span>
+                  <span className="text-3xl font-bold text-custom-red">
+                    {formatPrice(property.price)}
+                  </span>
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center">
-                    <span className="font-semibold text-gray-700 mr-2">Status:</span>
-                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                      property.status === 'available' ? 'bg-green-100 text-green-800' : 
-                      property.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {property.status === 'available' ? 'Available' : 
-                       property.status === 'pending' ? 'Pending' : 
-                       property.status === 'rented' ? 'Rented' : property.status}
+                    <span className="font-semibold text-gray-700 mr-2">
+                      Status:
+                    </span>
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                        property.status === "available"
+                          ? "bg-green-100 text-green-800"
+                          : property.status === "pending"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {property.status === "available"
+                        ? "Available"
+                        : property.status === "pending"
+                        ? "Pending"
+                        : property.status === "rented"
+                        ? "Rented"
+                        : property.status}
                     </span>
                   </div>
                   <div>
-                    <span className="font-semibold text-gray-700 mr-2">Available From:</span>
-                    <span className="text-gray-600">{formatDate(property.available_from)}</span>
+                    <span className="font-semibold text-gray-700 mr-2">
+                      Available From:
+                    </span>
+                    <span className="text-gray-600">
+                      {formatDate(property.available_from)}
+                    </span>
                   </div>
                 </div>
               </div>
-              
+
               {/* Description */}
               <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-3">Property Description</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-3">
+                  Property Description
+                </h2>
                 <div className="prose max-w-none text-gray-700">
-                  {property.full_description ? (
-                    <p>{property.full_description}</p>
-                  ) : (
-                    <p>{property.description}</p>
-                  )}
+                  <p>{property.description}</p>
                 </div>
               </div>
-              
+
               {/* Property details */}
               <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-3">Property Details</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-3">
+                  Property Details
+                </h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4">
                   <div>
-                    <span className="block text-sm text-gray-500">Property Type</span>
+                    <span className="block text-sm text-gray-500">
+                      Property Type
+                    </span>
                     <span className="block font-medium text-gray-900 capitalize">
-                      {property.property_type || 'Not specified'}
+                      {property.property_type || "Not specified"}
                     </span>
                   </div>
                   <div>
-                    <span className="block text-sm text-gray-500">Bedrooms</span>
-                    <span className="block font-medium text-gray-900">{property.bedrooms}</span>
-                  </div>
-                  <div>
-                    <span className="block text-sm text-gray-500">Bathrooms</span>
-                    <span className="block font-medium text-gray-900">{property.bathrooms}</span>
-                  </div>
-                  <div>
-                    <span className="block text-sm text-gray-500">Square Footage</span>
-                    <span className="block font-medium text-gray-900">{property.square_footage} sq ft</span>
-                  </div>
-                  <div>
-                    <span className="block text-sm text-gray-500">Year Built</span>
+                    <span className="block text-sm text-gray-500">
+                      Bedrooms
+                    </span>
                     <span className="block font-medium text-gray-900">
-                      {property.year_built || 'Not specified'}
+                      {property.bedrooms}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-sm text-gray-500">
+                      Bathrooms
+                    </span>
+                    <span className="block font-medium text-gray-900">
+                      {property.bathrooms}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-sm text-gray-500">
+                      Square Footage
+                    </span>
+                    <span className="block font-medium text-gray-900">
+                      {property.square_footage} sq ft
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-sm text-gray-500">
+                      Year Built
+                    </span>
+                    <span className="block font-medium text-gray-900">
+                      {property.year_built || "Not specified"}
                     </span>
                   </div>
                 </div>
               </div>
-              
+
               {/* Property features */}
-              {(property.features && property.features.length > 0) && (
+              {property.features && property.features.length > 0 && (
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-3">Property Features</h2>
+                  <h2 className="text-xl font-bold text-gray-900 mb-3">
+                    Property Features
+                  </h2>
                   <ul className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4">
                     {property.features.map((feature, index) => (
-                      <li key={index} className="flex items-center text-gray-700">
-                        <svg className="w-5 h-5 text-custom-red mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                      <li
+                        key={index}
+                        className="flex items-center text-gray-700"
+                      >
+                        <svg
+                          className="w-5 h-5 text-custom-red mr-2"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M5 13l4 4L19 7"
+                          />
                         </svg>
                         {feature}
                       </li>
@@ -294,36 +367,67 @@ export default function PropertyDetails() {
                   </ul>
                 </div>
               )}
-              
+
               {/* Nearby amenities */}
-              {(property.nearby_amenities && property.nearby_amenities.length > 0) && (
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-3">Nearby Amenities</h2>
-                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4">
-                    {property.nearby_amenities.map((amenity, index) => (
-                      <li key={index} className="flex items-center text-gray-700">
-                        <svg className="w-5 h-5 text-custom-red mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        {amenity}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              {property.nearby_amenities &&
+                property.nearby_amenities.length > 0 && (
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 mb-3">
+                      Nearby Amenities
+                    </h2>
+                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4">
+                      {property.nearby_amenities.map((amenity, index) => (
+                        <li
+                          key={index}
+                          className="flex items-center text-gray-700"
+                        >
+                          <svg
+                            className="w-5 h-5 text-custom-red mr-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                          {amenity}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
             </div>
-            
+
             {/* Sidebar */}
             <div className="space-y-6">
               {/* Amenities */}
-              {(property.amenities && property.amenities.length > 0) && (
+              {property.amenities && property.amenities.length > 0 && (
                 <div className="bg-gray-50 rounded-lg p-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4">Amenities</h2>
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">
+                    Amenities
+                  </h2>
                   <ul className="space-y-3">
                     {property.amenities.map((amenity, index) => (
-                      <li key={index} className="flex items-center text-gray-700">
-                        <svg className="w-5 h-5 text-custom-red mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                      <li
+                        key={index}
+                        className="flex items-center text-gray-700"
+                      >
+                        <svg
+                          className="w-5 h-5 text-custom-red mr-2"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M5 13l4 4L19 7"
+                          />
                         </svg>
                         {amenity}
                       </li>
@@ -331,12 +435,16 @@ export default function PropertyDetails() {
                   </ul>
                 </div>
               )}
-              
+
               {/* Contact section */}
               <div className="bg-gray-50 rounded-lg p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Interested in this property?</h2>
-                <p className="text-gray-700 mb-4">Contact us to schedule a viewing or apply for this property.</p>
-                
+                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                  Interested in this property?
+                </h2>
+                <p className="text-gray-700 mb-4">
+                  Contact us to schedule a viewing or apply for this property.
+                </p>
+
                 <div className="space-y-3">
                   <button className="w-full bg-custom-red hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md transition-colors duration-300">
                     Schedule a Viewing
