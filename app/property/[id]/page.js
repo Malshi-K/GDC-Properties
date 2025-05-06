@@ -285,11 +285,11 @@ export default function PropertyDetails() {
 
   // Property details skeleton
   const PropertyDetailsSkeleton = () => (
-    <div className="min-h-screen bg-gray-100 py-28 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+    <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
           {/* Back button */}
-          <div className="p-6 flex items-center">
+          <div className="p-4 flex items-center">
             <div className="h-8 w-24 bg-gray-200 rounded animate-pulse"></div>
           </div>
 
@@ -307,7 +307,7 @@ export default function PropertyDetails() {
             {/* Main content skeleton */}
             <div className="lg:col-span-2 space-y-8">
               {/* Price and status */}
-              <div className="h-24 bg-gray-200 rounded-lg animate-pulse"></div>
+              <div className="h-16 bg-gray-200 rounded-lg animate-pulse"></div>
 
               {/* Description */}
               <div>
@@ -372,204 +372,273 @@ export default function PropertyDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-28 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          {/* Property headline */}
-          <div className="p-10">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {property.title}
-            </h1>
-            <p className="text-gray-700 text-lg mb-2">{property.location}</p>
-            <div className="flex items-center text-gray-700">
-              <span className="mr-4">{property.bedrooms} Bedrooms</span>
-              <span className="mr-4">{property.bathrooms} Bathrooms</span>
-              <span>{property.square_footage} sq ft</span>
+    <div className="min-h-screen bg-white py-40 px-4 sm:px-6 lg:px-8 text-gray-600">
+      <div className="max-w-6xl mx-auto">
+        {/* Property header with location */}
+        <div className="mb-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {property.title || ""}
+              </h1>
+              <p className="text-gray-600 mt-1">
+                {property.location || property.address}
+              </p>
+            </div>
+            <div className="flex space-x-2">
+              <button className="flex items-center px-3 py-1 border border-gray-300 rounded-md">
+                <svg
+                  className="w-4 h-4 mr-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+                  />
+                </svg>
+                Share
+              </button>
+              <button className="flex items-center px-3 py-1 border border-gray-300 rounded-md">
+                <svg
+                  className="w-4 h-4 mr-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                  />
+                </svg>
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Main image section with thumbnails on the right */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          {/* Main image - takes 3/4 of the space */}
+          <div className="md:col-span-3">
+            <div className="relative aspect-[4/3] w-full rounded-lg overflow-hidden">
+              {imageUrls[activeImage] ? (
+                <Image
+                  src={imageUrls[activeImage]}
+                  alt={`${property.title} - Image ${activeImage + 1}`}
+                  fill
+                  className="object-cover"
+                  priority={activeImage === 0}
+                  sizes="(max-width: 768px) 100vw, 75vw"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full bg-gray-200 text-gray-500">
+                  <div className="w-10 h-10 border-4 border-gray-300 border-t-custom-red rounded-full animate-spin"></div>
+                </div>
+              )}
+
+              {/* Previous/Next buttons */}
+              <button className="absolute left-2 top-1/2 -translate-y-1/2 bg-white rounded-full p-1 shadow-md z-10">
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+              <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-white rounded-full p-1 shadow-md z-10">
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
             </div>
           </div>
 
-          {/* Property images */}
-          <div className="px-6 pb-8">
-            {property.images && property.images.length > 0 ? (
-              <div className="space-y-4">
-                {/* Main image */}
-                <div className="relative h-80 sm:h-96 w-full rounded-lg overflow-hidden bg-gray-200">
-                  {imageUrls[activeImage] ? (
-                    <Image
-                      src={imageUrls[activeImage]}
-                      alt={`${property.title} - Image ${activeImage + 1}`}
-                      fill
-                      className="object-cover"
-                      loading="eager"
-                      priority={activeImage === 0}
-                      sizes="(max-width: 768px) 100vw, 90vw"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-gray-500">
-                      <div className="w-12 h-12 border-4 border-gray-300 border-t-custom-red rounded-full animate-spin"></div>
-                    </div>
-                  )}
+          {/* Thumbnail gallery - 1/4 of the space */}
+          <div className="md:col-span-1">
+            <div className="grid grid-cols-2 gap-2">
+              {imageUrls.slice(0, 4).map((imageUrl, index) => (
+                <div
+                  key={index}
+                  className={`relative aspect-square rounded-md overflow-hidden cursor-pointer ${
+                    activeImage === index ? "ring-2 ring-custom-red" : ""
+                  }`}
+                  onClick={() => handleImageClick(index)}
+                >
+                  <Image
+                    src={imageUrl}
+                    alt={`${property.title} - Thumbnail ${index + 1}`}
+                    fill
+                    className="object-cover"
+                    loading="lazy"
+                    sizes="(max-width: 768px) 50vw, 15vw"
+                  />
                 </div>
-
-                {/* Thumbnail gallery */}
-                {imageUrls.length > 1 && (
-                  <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
-                    {imageUrls.map((imageUrl, index) => (
-                      <div
-                        key={index}
-                        className={`relative h-20 rounded-md overflow-hidden cursor-pointer border-2 ${
-                          activeImage === index
-                            ? "border-custom-red"
-                            : "border-transparent"
-                        }`}
-                        onClick={() => handleImageClick(index)}
-                      >
-                        <Image
-                          src={imageUrl}
-                          alt={`${property.title} - Thumbnail ${index + 1}`}
-                          fill
-                          className="object-cover"
-                          loading="lazy"
-                          sizes="(max-width: 768px) 25vw, 10vw"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="bg-gray-200 h-80 sm:h-96 rounded-lg flex items-center justify-center text-gray-500">
-                No Images Available
-              </div>
-            )}
+              ))}
+            </div>
           </div>
+        </div>
 
-          <div className="px-6 pb-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main content */}
-            <div className="lg:col-span-2 space-y-8">
-              {/* Price and status */}
-              <div className="flex flex-wrap justify-between items-center bg-gray-50 rounded-lg p-6">
-                <div>
-                  <span className="text-3xl font-bold text-custom-red">
-                    {formatPrice(property.price)}
-                  </span>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center">
-                    <span className="font-semibold text-gray-700 mr-2">
-                      Status:
-                    </span>
-                    <span
-                      className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                        property.status === "available"
-                          ? "bg-green-100 text-green-800"
-                          : property.status === "pending"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
+        {/* Main property content grid */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          {/* Main content column - takes 8/12 on desktop */}
+          <div className="md:col-span-8">
+            {/* Status tag */}
+            <div className="mb-2">
+              <span className="inline-block bg-blue-500 text-white text-xs font-semibold px-3 py-1 rounded-md">
+                For sale
+              </span>
+            </div>
+
+            {/* Price and availability info */}
+            <div className="mb-4">
+              <h2 className="text-3xl font-bold text-gray-900">
+                {formatPrice(property.price)}
+              </h2>
+              <p className="text-gray-600">
+                Available from: {formatDate(property.available_from)}
+              </p>
+            </div>
+
+            {/* Property brief details */}
+            <div className="flex items-center mb-6">
+              <div className="flex items-center mr-6">
+                <svg
+                  className="w-5 h-5 text-gray-500 mr-2"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                </svg>
+                <span className="text-gray-700">{property.bedrooms} Bed</span>
+              </div>
+              <div className="flex items-center mr-6">
+                <svg
+                  className="w-5 h-5 text-gray-500 mr-2"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path d="M2 4a1 1 0 011-1h1a1 1 0 011 1v12a1 1 0 01-1 1H3a1 1 0 01-1-1V4zM8 4a1 1 0 011-1h1a1 1 0 011 1v12a1 1 0 01-1 1H9a1 1 0 01-1-1V4zM15 3a1 1 0 00-1 1v12a1 1 0 001 1h1a1 1 0 001-1V4a1 1 0 00-1-1h-1z" />
+                </svg>
+                <span className="text-gray-700">{property.bathrooms} Bath</span>
+              </div>
+              <div className="flex items-center">
+                <svg
+                  className="w-5 h-5 text-gray-500 mr-2"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span className="text-gray-700">
+                  {property.square_footage} sq ft
+                </span>
+              </div>
+            </div>
+
+            {/* Overview section */}
+            <div className="mb-6">
+              <h3 className="text-xl font-semibold text-gray-800 mb-3">
+                Overview
+              </h3>
+              <div className="text-gray-700">
+                <p>{property.description || "hhh"}</p>
+              </div>
+            </div>
+
+            {/* Highlights section */}
+            <div className="mb-6">
+              <h3 className="text-xl font-semibold text-gray-800 mb-3">
+                Highlights
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-y-5">
+                <div className="flex items-start">
+                  <div className="mr-3">
+                    <svg
+                      className="w-6 h-6 text-gray-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
-                      {property.status === "available"
-                        ? "Available"
-                        : property.status === "pending"
-                        ? "Pending"
-                        : property.status === "rented"
-                        ? "Rented"
-                        : property.status}
-                    </span>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                      />
+                    </svg>
                   </div>
                   <div>
-                    <span className="font-semibold text-gray-700 mr-2">
-                      Available From:
-                    </span>
-                    <span className="text-gray-600">
-                      {formatDate(property.available_from)}
-                    </span>
+                    <div className="text-sm text-gray-500">Type</div>
+                    <div className="text-gray-700">
+                      {property.property_type || "apartment"}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <div className="mr-3">
+                    <svg
+                      className="w-6 h-6 text-gray-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500">Building Year</div>
+                    <div className="text-gray-700">
+                      {property.year_built || "2020"}
+                    </div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Description */}
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-3">
-                  Property Description
-                </h2>
-                <div className="prose max-w-none text-gray-700">
-                  <p>{property.description}</p>
-                </div>
-              </div>
-
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-3">
-                  Property Address
-                </h2>
-                <div className="prose max-w-none text-gray-700">
-                  <p>{property.address}</p>
-                </div>
-              </div>
-
-              {/* Property details */}
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-3">
-                  Property Details
-                </h2>                
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4">
-                  <div>
-                    <span className="block text-sm text-gray-500">
-                      Property Type
-                    </span>
-                    <span className="block font-medium text-gray-900 capitalize">
-                      {property.property_type || "Not specified"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block text-sm text-gray-500">
-                      Bedrooms
-                    </span>
-                    <span className="block font-medium text-gray-900">
-                      {property.bedrooms}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block text-sm text-gray-500">
-                      Bathrooms
-                    </span>
-                    <span className="block font-medium text-gray-900">
-                      {property.bathrooms}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block text-sm text-gray-500">
-                      Square Footage
-                    </span>
-                    <span className="block font-medium text-gray-900">
-                      {property.square_footage} sq ft
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block text-sm text-gray-500">
-                      Year Built
-                    </span>
-                    <span className="block font-medium text-gray-900">
-                      {property.year_built || "Not specified"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Property features */}
-              {property.features && property.features.length > 0 && (
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-3">
-                    Property Features
-                  </h2>
-                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4">
-                    {property.features.map((feature, index) => (
-                      <li
-                        key={index}
-                        className="flex items-center text-gray-700"
-                      >
+            {/* Nearby Amenities section */}
+            {property.nearby_amenities &&
+              property.nearby_amenities.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-3">
+                    Nearby Amenities
+                  </h3>
+                  <div className="space-y-2">
+                    {property.nearby_amenities.map((amenity, index) => (
+                      <div key={index} className="flex items-center">
                         <svg
-                          className="w-5 h-5 text-custom-red mr-2"
+                          className="w-5 h-5 text-blue-500 mr-2"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -577,32 +646,39 @@ export default function PropertyDetails() {
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            strokeWidth="2"
+                            strokeWidth={2}
                             d="M5 13l4 4L19 7"
                           />
                         </svg>
-                        {feature}
-                      </li>
+                        <span className="text-gray-700">{amenity}</span>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               )}
+          </div>
 
-              {/* Nearby amenities */}
-              {property.nearby_amenities &&
-                property.nearby_amenities.length > 0 && (
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900 mb-3">
-                      Nearby Amenities
-                    </h2>
-                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4">
-                      {property.nearby_amenities.map((amenity, index) => (
-                        <li
-                          key={index}
-                          className="flex items-center text-gray-700"
-                        >
+          {/* Sidebar column - 4/12 width */}
+          <div className="md:col-span-4">
+            {/* Amenities section */}
+            {property.amenities && property.amenities.length > 0 && (
+              <div className="bg-white border border-gray-200 rounded-md p-4 mb-6">
+                <h3 className="text-xl font-semibold text-gray-800 mb-3">
+                  Amenities
+                </h3>
+                <div className="space-y-2">
+                  {property.amenities.map((amenity, index) => {
+                    // Function to get the appropriate icon for each amenity
+                    const getAmenityIcon = (amenityType) => {
+                      const amenityLower = amenityType.toLowerCase();
+
+                      if (
+                        amenityLower.includes("air conditioning") ||
+                        amenityLower.includes("cooling")
+                      ) {
+                        return (
                           <svg
-                            className="w-5 h-5 text-custom-red mr-2"
+                            className="w-5 h-5 text-red-500 mr-2"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -610,86 +686,296 @@ export default function PropertyDetails() {
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
-                              strokeWidth="2"
+                              strokeWidth={2}
+                              d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                            />
+                          </svg>
+                        );
+                      } else if (
+                        amenityLower.includes("heating") ||
+                        amenityLower.includes("heat")
+                      ) {
+                        return (
+                          <svg
+                            className="w-5 h-5 text-red-500 mr-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"
+                            />
+                          </svg>
+                        );
+                      } else if (
+                        amenityLower.includes("washer") ||
+                        amenityLower.includes("dryer") ||
+                        amenityLower.includes("laundry")
+                      ) {
+                        return (
+                          <svg
+                            className="w-5 h-5 text-red-500 mr-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+                            />
+                          </svg>
+                        );
+                      } else if (amenityLower.includes("dishwasher")) {
+                        return (
+                          <svg
+                            className="w-5 h-5 text-red-500 mr-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"
+                            />
+                          </svg>
+                        );
+                      } else if (
+                        amenityLower.includes("parking") ||
+                        amenityLower.includes("garage")
+                      ) {
+                        return (
+                          <svg
+                            className="w-5 h-5 text-red-500 mr-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M13 10V3L4 14h7v7l9-11h-7z"
+                            />
+                          </svg>
+                        );
+                      } else if (
+                        amenityLower.includes("gym") ||
+                        amenityLower.includes("fitness")
+                      ) {
+                        return (
+                          <svg
+                            className="w-5 h-5 text-red-500 mr-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                            />
+                          </svg>
+                        );
+                      } else if (
+                        amenityLower.includes("pool") ||
+                        amenityLower.includes("swimming")
+                      ) {
+                        return (
+                          <svg
+                            className="w-5 h-5 text-red-500 mr-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                            />
+                          </svg>
+                        );
+                      } else if (
+                        amenityLower.includes("pet") ||
+                        amenityLower.includes("dog") ||
+                        amenityLower.includes("cat")
+                      ) {
+                        return (
+                          <svg
+                            className="w-5 h-5 text-red-500 mr-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"
+                            />
+                          </svg>
+                        );
+                      } else if (
+                        amenityLower.includes("balcony") ||
+                        amenityLower.includes("patio") ||
+                        amenityLower.includes("terrace")
+                      ) {
+                        return (
+                          <svg
+                            className="w-5 h-5 text-red-500 mr-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                            />
+                          </svg>
+                        );
+                      } else if (
+                        amenityLower.includes("elevator") ||
+                        amenityLower.includes("lift")
+                      ) {
+                        return (
+                          <svg
+                            className="w-5 h-5 text-red-500 mr-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 11l3-3m0 0l3 3m-3-3v8m0-13a9 9 0 110 18 9 9 0 010-18z"
+                            />
+                          </svg>
+                        );
+                      } else if (
+                        amenityLower.includes("security") ||
+                        amenityLower.includes("alarm")
+                      ) {
+                        return (
+                          <svg
+                            className="w-5 h-5 text-red-500 mr-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                            />
+                          </svg>
+                        );
+                      } else if (
+                        amenityLower.includes("wifi") ||
+                        amenityLower.includes("internet")
+                      ) {
+                        return (
+                          <svg
+                            className="w-5 h-5 text-red-500 mr-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"
+                            />
+                          </svg>
+                        );
+                      } else if (amenityLower.includes("furnished")) {
+                        return (
+                          <svg
+                            className="w-5 h-5 text-red-500 mr-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"
+                            />
+                          </svg>
+                        );
+                      } else {
+                        // Default icon for other amenities
+                        return (
+                          <svg
+                            className="w-5 h-5 text-red-500 mr-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
                               d="M5 13l4 4L19 7"
                             />
                           </svg>
-                          {amenity}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-            </div>
+                        );
+                      }
+                    };
 
-            {/* Sidebar */}
-            <div className="space-y-6">
-              {/* Amenities */}
-              {property.amenities && property.amenities.length > 0 && (
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4">
-                    Amenities
-                  </h2>
-                  <ul className="space-y-3">
-                    {property.amenities.map((amenity, index) => (
-                      <li
-                        key={index}
-                        className="flex items-center text-gray-700"
-                      >
-                        <svg
-                          className="w-5 h-5 text-custom-red mr-2"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        {amenity}
-                      </li>
-                    ))}
-                  </ul>
+                    return (
+                      <div key={index} className="flex items-center">
+                        {getAmenityIcon(amenity)}
+                        <span className="text-gray-700">{amenity}</span>
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Contact section - Only show for non-owner users */}
-              {shouldShowActionButtons && (
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4">
-                    Interested in this property?
-                  </h2>
-                  <p className="text-gray-700 mb-4">
-                    Contact us to schedule a viewing or apply for this property.
-                  </p>
+            {/* Request a tour section */}
+            <div className="bg-white border border-gray-200 rounded-md p-4">
+              <h3 className="text-xl font-semibold text-gray-800 mb-3">
+                Request a tour
+              </h3>
+              <p className="text-gray-600 text-sm mb-4">
+                Get a tour of the house as per your time.
+              </p>
 
-                  <div className="space-y-3">
-                    <button
-                      onClick={openViewingModal}
-                      className="w-full bg-custom-red hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md transition-colors duration-300"
-                      disabled={property.status !== "available"}
-                    >
-                      Schedule a Viewing
-                    </button>
-                    <button
-                      onClick={openApplicationModal}
-                      className="w-full bg-white hover:bg-gray-100 text-gray-800 font-semibold py-3 px-4 border border-gray-300 rounded-md transition-colors duration-300"
-                    >
-                      Apply For Property
-                    </button>
-                  </div>
+              <button
+                onClick={openViewingModal}
+                className="w-full bg-custom-red hover:bg-custom-red text-white font-medium py-2 px-4 rounded-md transition-colors duration-300 mb-3"
+                disabled={property.status !== "available"}
+              >
+                Schedule a Tour
+              </button>
 
-                  {property.status !== "available" && (
-                    <p className="text-sm text-yellow-600 mt-2">
-                      Note: This property is currently {property.status}. You
-                      can still apply, but viewings may be limited.
-                    </p>
-                  )}
-                </div>
-              )}
+              <button
+                onClick={openApplicationModal}
+                className="w-full bg-white hover:bg-gray-100 text-gray-800 font-medium py-2 px-4 border border-gray-300 rounded-md transition-colors duration-300"
+              >
+                Request Info
+              </button>
             </div>
           </div>
         </div>

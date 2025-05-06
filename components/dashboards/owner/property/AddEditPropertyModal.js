@@ -30,7 +30,6 @@ export default function AddEditPropertyModal({
     available_from: "",
     description: "",
     amenities: [],
-    features: [],
     nearby_amenities: [],
     property_type: "apartment",
     status: "available",
@@ -71,7 +70,6 @@ export default function AddEditPropertyModal({
           available_from: formattedAvailableFrom,
           description: property.description || "",
           amenities: property.amenities || [],
-          features: property.features || [],
           nearby_amenities: property.nearby_amenities || [],
           property_type: property.property_type || "apartment",
           status: property.status || "available",
@@ -97,7 +95,6 @@ export default function AddEditPropertyModal({
           available_from: "",
           description: "",
           amenities: [],
-          features: [],
           nearby_amenities: [],
           property_type: "apartment",
           status: "available",
@@ -839,52 +836,6 @@ export default function AddEditPropertyModal({
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Features Section */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Property Features
-              </label>
-              <button
-                type="button"
-                onClick={() => handleAddArrayItem("features")}
-                className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-custom-red bg-red-50 hover:bg-red-100"
-              >
-                Add Feature
-              </button>
-            </div>
-            {formData.features.map((feature, index) => (
-              <div key={index} className="flex items-center mb-2">
-                <input
-                  type="text"
-                  value={feature}
-                  onChange={(e) => handleArrayItemChange(e, index, "features")}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
-                  placeholder="e.g., Private beach access"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleRemoveArrayItem(index, "features")}
-                  className="ml-2 text-red-600 hover:text-red-800"
-                >
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-            ))}
           </div>
 
           {/* Nearby Amenities Section */}

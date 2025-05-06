@@ -336,38 +336,6 @@ export default function PropertyDetails() {
                 </div>
               </div>
 
-              {/* Property features */}
-              {property.features && property.features.length > 0 && (
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-3">
-                    Property Features
-                  </h2>
-                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-4">
-                    {property.features.map((feature, index) => (
-                      <li
-                        key={index}
-                        className="flex items-center text-gray-700"
-                      >
-                        <svg
-                          className="w-5 h-5 text-custom-red mr-2"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
               {/* Nearby amenities */}
               {property.nearby_amenities &&
                 property.nearby_amenities.length > 0 && (

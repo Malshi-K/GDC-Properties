@@ -1,140 +1,92 @@
 {
-    "properties": [
-      {
-        "id": 1,
-        "title": "Luxurious Beach House",
-        "location": "malibu",
-        "address": "123 Ocean Drive, Malibu Beach, CA 90210",
-        "propertyType": "houses",
-        "price": 3500000,
-        "bedrooms": 4,
-        "bathrooms": 3,
-        "squareFeet": 3200,
-        "yearBuilt": 2015,
-        "image": "/images/property1.jpg",
-        "description": "Beautiful beachfront property with stunning ocean views",
-        "fullDescription": "This stunning beachfront property offers the ultimate luxury living experience. Enjoy breathtaking ocean views from almost every room in this meticulously designed modern home.\n\nThe spacious open floor plan features floor-to-ceiling windows, allowing natural light to flood the interior spaces. The gourmet kitchen is equipped with high-end appliances, custom cabinetry, and a large center island perfect for entertaining.\n\nThe master suite is a true retreat with a private balcony, walk-in closet, and a spa-like bathroom featuring a soaking tub and rainfall shower. Three additional bedrooms provide ample space for family and guests.\n\nOutside, the property boasts a private beach access, expansive deck, infinity pool, and outdoor kitchen - perfect for enjoying the spectacular sunset views and coastal lifestyle.",
-        "features": [
-          "Private beach access",
-          "Infinity pool",
-          "Outdoor kitchen",
-          "Home automation system",
-          "Wine cellar",
-          "Smart home features",
-          "Two-car garage",
-          "Central air conditioning",
-          "Solar panels",
-          "Security system"
-        ],
-        "nearbyAmenities": [
-          "Premium shopping centers (5 min drive)",
-          "Fine dining restaurants (10 min walk)",
-          "Malibu Pier (15 min walk)",
-          "Public parks (5 min walk)",
-          "Top-rated schools (10 min drive)"
-        ]
-      },
-      {
-        "id": 2,
-        "title": "Modern Downtown Apartment",
-        "location": "beverly",
-        "address": "456 Luxury Lane, Beverly Hills, CA 90210",
-        "propertyType": "apartments",
-        "price": 1200000,
-        "bedrooms": 2,
-        "bathrooms": 2,
-        "squareFeet": 1500,
-        "yearBuilt": 2018,
-        "image": "/images/property2.jpg",
-        "description": "Sleek, contemporary apartment in the heart of the city",
-        "fullDescription": "Experience the pinnacle of urban luxury living in this meticulously designed contemporary apartment in the heart of Beverly Hills.\n\nThis sleek, modern residence features an open-concept floor plan with designer finishes throughout. The gourmet kitchen boasts Italian cabinetry, quartz countertops, and premium stainless steel appliances.\n\nThe spacious primary suite includes a walk-in closet and an en-suite bathroom with a rainfall shower and double vanity. The second bedroom is perfect for guests or a home office space.\n\nBuilding amenities include 24-hour concierge service, a state-of-the-art fitness center, rooftop pool with panoramic city views, and a resident lounge perfect for entertaining.\n\nLocated within walking distance to high-end shopping, fine dining, and entertainment venues, this property offers the perfect blend of luxury and convenience.",
-        "features": [
-          "24-hour concierge",
-          "Rooftop pool",
-          "State-of-the-art fitness center",
-          "Resident lounge",
-          "Smart home technology",
-          "Private balcony",
-          "In-unit washer/dryer",
-          "Secure underground parking",
-          "Pet-friendly building",
-          "EV charging stations"
-        ],
-        "nearbyAmenities": [
-          "Rodeo Drive shopping (5 min walk)",
-          "Michelin-star restaurants (10 min walk)",
-          "Beverly Hills Park (3 min walk)",
-          "Cultural centers (15 min walk)",
-          "Premium grocery stores (2 min walk)"
-        ]
-      },
-      {
-        "id": 3,
-        "title": "Hillside Villa",
-        "location": "hollywood",
-        "address": "789 Mountain View Blvd, Hollywood Hills, CA 90068",
-        "propertyType": "houses",
-        "price": 4500000,
-        "bedrooms": 5,
-        "bathrooms": 4,
-        "squareFeet": 4800,
-        "yearBuilt": 2010,
-        "image": "/images/property3.jpg",
-        "description": "Spacious villa with panoramic city views",
-        "fullDescription": "Perched in the prestigious Hollywood Hills, this magnificent villa offers unparalleled luxury and breathtaking panoramic views of the city below.\n\nThis architectural masterpiece features soaring ceilings, walls of glass, and an open floor plan designed for both comfortable living and sophisticated entertaining. The chef's kitchen is equipped with custom cabinetry, premium appliances, and an oversized island.\n\nThe primary suite is a true sanctuary with a private terrace, fireplace, dual walk-in closets, and a spa-inspired bathroom with a soaking tub and steam shower. Four additional bedrooms, each with its own ensuite bathroom, provide ample space for family and guests.\n\nOutdoor amenities include an infinity-edge pool and spa, multiple terraces for dining and lounging, an outdoor kitchen, and a fire pit – all designed to maximize the stunning views and California indoor-outdoor lifestyle.\n\nAdditional features include a home theater, wine cellar, gym, smart home automation, and a three-car garage.",
-        "features": [
-          "Infinity-edge pool",
-          "Home theater",
-          "Wine cellar",
-          "Gym",
-          "Smart home automation",
-          "Multiple terraces",
-          "Outdoor kitchen",
-          "Three-car garage",
-          "Fireplace",
-          "Security system with cameras"
-        ],
-        "nearbyAmenities": [
-          "Hollywood Bowl (10 min drive)",
-          "Runyon Canyon Park (5 min drive)",
-          "Universal Studios (15 min drive)",
-          "Celebrity homes tour (3 min drive)",
-          "Upscale dining options (10 min drive)"
-        ]
-      },
-      {
-        "id": 4,
-        "title": "Cozy Beach Townhouse",
-        "location": "venice",
-        "address": "1010 Beachside Ave, Venice Beach, CA 90291",
-        "propertyType": "townhouses",
-        "price": 850000,
-        "bedrooms": 3,
-        "bathrooms": 2,
-        "squareFeet": 1800,
-        "yearBuilt": 2000,
-        "image": "/images/property4.jpg",
-        "description": "Charming townhouse just steps from the beach",
-        "fullDescription": "Experience the quintessential Venice Beach lifestyle in this charming townhouse just steps from the sand and surf.\n\nThis beautifully maintained residence offers a bright, open floor plan with abundant natural light. The main level features a spacious living room with a fireplace, dining area, and updated kitchen with stainless steel appliances and quartz countertops.\n\nUpstairs, you'll find a primary bedroom with a walk-in closet and ensuite bathroom, plus two additional bedrooms and a full bathroom. A private rooftop deck provides the perfect space for outdoor dining, sunbathing, and enjoying magnificent sunset views.\n\nAdditional features include a two-car garage, in-unit laundry, and recent upgrades to the plumbing and electrical systems.\n\nLocated in the heart of Venice, this townhouse is just a short walk from the vibrant boardwalk, trendy shops, acclaimed restaurants, and the famous Muscle Beach. Experience the unique blend of beach living and urban convenience that only Venice can offer.",
-        "features": [
-          "Private rooftop deck",
-          "Two-car garage",
-          "In-unit laundry",
-          "Fireplace",
-          "Updated kitchen",
-          "Hardwood floors",
-          "Updated plumbing and electrical",
-          "Central air conditioning",
-          "Secure entry system",
-          "Low HOA fees"
-        ],
-        "nearbyAmenities": [
-          "Venice Beach Boardwalk (2 min walk)",
-          "Abbot Kinney shopping (10 min walk)",
-          "Trendy cafes and restaurants (5 min walk)",
-          "Venice Canals (8 min walk)",
-          "Bike paths (1 min walk)"
-        ]
-      }
-    ]
-  }
+  "properties": [
+    {
+      "id": 1,
+      "title": "Luxurious Beach House",
+      "location": "malibu",
+      "address": "123 Ocean Drive, Malibu Beach, CA 90210",
+      "propertyType": "houses",
+      "price": 3500000,
+      "bedrooms": 4,
+      "bathrooms": 3,
+      "squareFeet": 3200,
+      "yearBuilt": 2015,
+      "image": "/images/property1.jpg",
+      "description": "Beautiful beachfront property with stunning ocean views",
+      "fullDescription": "This stunning beachfront property offers the ultimate luxury living experience. Enjoy breathtaking ocean views from almost every room in this meticulously designed modern home.\n\nThe spacious open floor plan features floor-to-ceiling windows, allowing natural light to flood the interior spaces. The gourmet kitchen is equipped with high-end appliances, custom cabinetry, and a large center island perfect for entertaining.\n\nThe master suite is a true retreat with a private balcony, walk-in closet, and a spa-like bathroom featuring a soaking tub and rainfall shower. Three additional bedrooms provide ample space for family and guests.\n\nOutside, the property boasts a private beach access, expansive deck, infinity pool, and outdoor kitchen - perfect for enjoying the spectacular sunset views and coastal lifestyle.",
+      "nearbyAmenities": [
+        "Premium shopping centers (5 min drive)",
+        "Fine dining restaurants (10 min walk)",
+        "Malibu Pier (15 min walk)",
+        "Public parks (5 min walk)",
+        "Top-rated schools (10 min drive)"
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Modern Downtown Apartment",
+      "location": "beverly",
+      "address": "456 Luxury Lane, Beverly Hills, CA 90210",
+      "propertyType": "apartments",
+      "price": 1200000,
+      "bedrooms": 2,
+      "bathrooms": 2,
+      "squareFeet": 1500,
+      "yearBuilt": 2018,
+      "image": "/images/property2.jpg",
+      "description": "Sleek, contemporary apartment in the heart of the city",
+      "fullDescription": "Experience the pinnacle of urban luxury living in this meticulously designed contemporary apartment in the heart of Beverly Hills.\n\nThis sleek, modern residence features an open-concept floor plan with designer finishes throughout. The gourmet kitchen boasts Italian cabinetry, quartz countertops, and premium stainless steel appliances.\n\nThe spacious primary suite includes a walk-in closet and an en-suite bathroom with a rainfall shower and double vanity. The second bedroom is perfect for guests or a home office space.\n\nBuilding amenities include 24-hour concierge service, a state-of-the-art fitness center, rooftop pool with panoramic city views, and a resident lounge perfect for entertaining.\n\nLocated within walking distance to high-end shopping, fine dining, and entertainment venues, this property offers the perfect blend of luxury and convenience.",
+      "nearbyAmenities": [
+        "Rodeo Drive shopping (5 min walk)",
+        "Michelin-star restaurants (10 min walk)",
+        "Beverly Hills Park (3 min walk)",
+        "Cultural centers (15 min walk)",
+        "Premium grocery stores (2 min walk)"
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Hillside Villa",
+      "location": "hollywood",
+      "address": "789 Mountain View Blvd, Hollywood Hills, CA 90068",
+      "propertyType": "houses",
+      "price": 4500000,
+      "bedrooms": 5,
+      "bathrooms": 4,
+      "squareFeet": 4800,
+      "yearBuilt": 2010,
+      "image": "/images/property3.jpg",
+      "description": "Spacious villa with panoramic city views",
+      "fullDescription": "Perched in the prestigious Hollywood Hills, this magnificent villa offers unparalleled luxury and breathtaking panoramic views of the city below.\n\nThis architectural masterpiece features soaring ceilings, walls of glass, and an open floor plan designed for both comfortable living and sophisticated entertaining. The chef's kitchen is equipped with custom cabinetry, premium appliances, and an oversized island.\n\nThe primary suite is a true sanctuary with a private terrace, fireplace, dual walk-in closets, and a spa-inspired bathroom with a soaking tub and steam shower. Four additional bedrooms, each with its own ensuite bathroom, provide ample space for family and guests.\n\nOutdoor amenities include an infinity-edge pool and spa, multiple terraces for dining and lounging, an outdoor kitchen, and a fire pit – all designed to maximize the stunning views and California indoor-outdoor lifestyle.\n\nAdditional features include a home theater, wine cellar, gym, smart home automation, and a three-car garage.",
+      "nearbyAmenities": [
+        "Hollywood Bowl (10 min drive)",
+        "Runyon Canyon Park (5 min drive)",
+        "Universal Studios (15 min drive)",
+        "Celebrity homes tour (3 min drive)",
+        "Upscale dining options (10 min drive)"
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Cozy Beach Townhouse",
+      "location": "venice",
+      "address": "1010 Beachside Ave, Venice Beach, CA 90291",
+      "propertyType": "townhouses",
+      "price": 850000,
+      "bedrooms": 3,
+      "bathrooms": 2,
+      "squareFeet": 1800,
+      "yearBuilt": 2000,
+      "image": "/images/property4.jpg",
+      "description": "Charming townhouse just steps from the beach",
+      "fullDescription": "Experience the quintessential Venice Beach lifestyle in this charming townhouse just steps from the sand and surf.\n\nThis beautifully maintained residence offers a bright, open floor plan with abundant natural light. The main level features a spacious living room with a fireplace, dining area, and updated kitchen with stainless steel appliances and quartz countertops.\n\nUpstairs, you'll find a primary bedroom with a walk-in closet and ensuite bathroom, plus two additional bedrooms and a full bathroom. A private rooftop deck provides the perfect space for outdoor dining, sunbathing, and enjoying magnificent sunset views.\n\nAdditional features include a two-car garage, in-unit laundry, and recent upgrades to the plumbing and electrical systems.\n\nLocated in the heart of Venice, this townhouse is just a short walk from the vibrant boardwalk, trendy shops, acclaimed restaurants, and the famous Muscle Beach. Experience the unique blend of beach living and urban convenience that only Venice can offer.",
+      "nearbyAmenities": [
+        "Venice Beach Boardwalk (2 min walk)",
+        "Abbot Kinney shopping (10 min walk)",
+        "Trendy cafes and restaurants (5 min walk)",
+        "Venice Canals (8 min walk)",
+        "Bike paths (1 min walk)"
+      ]
+    }
+  ]
+}
