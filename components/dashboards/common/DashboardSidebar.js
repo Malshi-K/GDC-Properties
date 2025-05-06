@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   FaUser,
   FaEdit,
@@ -9,52 +9,104 @@ import {
 } from "react-icons/fa";
 import { useAuth } from "@/contexts/AuthContext";
 import ProfileEditModal from "./ProfileEditModal";
-import { useImageLoader } from "@/lib/services/imageLoaderService";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 const DashboardSidebar = ({ activeTab, setActiveTab }) => {
   const [showEditModal, setShowEditModal] = useState(false);
+  const [profileImageUrl, setProfileImageUrl] = useState("");
   const [imageError, setImageError] = useState(false);
+  const [isLoadingImage, setIsLoadingImage] = useState(false);
   const router = useRouter();
 
   const { user, profile, userRole } = useAuth();
-  const { getProfileImage, profileImages, isProfileImageLoading } =
-    useImageLoader();
 
-  // Start loading profile image when component mounts or when profile changes
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadProfileImage = async () => {
-      // Reset error state when attempting to load
-      if (isMounted) setImageError(false);
-
-      // Only proceed if we have necessary data
-      if (!user?.id || !profile?.profile_image) return;
-
-      try {
-        await getProfileImage(user.id, profile.profile_image);
-        // Successfully loaded the image
-        if (isMounted) setImageError(false);
-      } catch (error) {
-        console.error("Error loading profile image:", error);
-        // Set error state only if component is still mounted
-        if (isMounted) setImageError(true);
+  // Create a memoized function to load the profile image
+  const loadProfileImage = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      setIsLoadingImage(true);
+      setImageError(false);
+      
+      // Try first approach: Use profile.profile_image if available
+      if (profile?.profile_image) {
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+          .from("profile-images")
+          .createSignedUrl(profile.profile_image, 3600); // 1 hour expiry
+          
+        if (!signedUrlError && signedUrlData?.signedUrl) {
+          setProfileImageUrl(signedUrlData.signedUrl);
+          setImageError(false);
+          setIsLoadingImage(false);
+          return;
+        }
       }
-    };
-
+      
+      // Second approach: List files and get the most recent one
+      const { data: files, error: listError } = await supabase.storage
+        .from("profile-images")
+        .list(user.id);
+        
+      if (listError || !files || files.length === 0) {
+        throw new Error("No profile images found");
+      }
+      
+      // Find the most recent file
+      const sortedFiles = [...files].sort((a, b) => {
+        if (!a.created_at || !b.created_at) return 0;
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+      
+      const latestFile = sortedFiles[0];
+      const filePath = `${user.id}/${latestFile.name}`;
+      
+      // Get a signed URL instead of downloading the file
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from("profile-images")
+        .createSignedUrl(filePath, 3600); // 1 hour expiry
+        
+      if (urlError) {
+        throw urlError;
+      }
+      
+      setProfileImageUrl(urlData.signedUrl);
+      setImageError(false);
+    } catch (error) {
+      console.error("Error loading profile image:", error);
+      setImageError(true);
+      setProfileImageUrl("");
+    } finally {
+      setIsLoadingImage(false);
+    }
+  }, [user?.id, profile?.profile_image]);
+  
+  // Load profile image when component mounts or when dependencies change
+  useEffect(() => {
     loadProfileImage();
-
-    // Cleanup function to prevent state updates if component unmounts
+    
+    // Set up a refresh interval (optional, for long sessions)
+    const refreshInterval = setInterval(() => {
+      loadProfileImage();
+    }, 30 * 60 * 1000); // Refresh every 30 minutes
+    
     return () => {
-      isMounted = false;
+      clearInterval(refreshInterval);
     };
-  }, [user?.id, profile?.profile_image, getProfileImage]);
-
-  // Get image URL from context
-  const profileImageUrl = user?.id ? profileImages[user.id] || "" : "";
-  const isLoading = user?.id ? isProfileImageLoading(user.id) : false;
+  }, [loadProfileImage, user?.id, profile?.profile_image]);
+  
+  // Add a focus event listener to refresh the image when tab gains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      loadProfileImage();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [loadProfileImage]);
 
   // Handle sign out
   const handleSignOut = async () => {
@@ -247,6 +299,22 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
     item.roles.includes(userRole)
   );
 
+  // Debugging function - uncomment if needed
+  // useEffect(() => {
+  //   console.log("Profile image debug info:");
+  //   console.log("User:", user?.id);
+  //   console.log("Profile image path:", profile?.profile_image);
+  //   console.log("Loaded image URL:", profileImageUrl);
+  //   console.log("Loading state:", isLoadingImage);
+  //   console.log("Error state:", imageError);
+  //   console.log("Active tab:", activeTab);
+  // }, [user?.id, profile?.profile_image, profileImageUrl, isLoadingImage, imageError, activeTab]);
+
+  // Reload profile image when active tab changes
+  useEffect(() => {
+    loadProfileImage();
+  }, [activeTab, loadProfileImage]);
+
   return (
     <div className="w-64 bg-custom-red text-white flex flex-col h-full relative">
       {/* Profile Section */}
@@ -258,8 +326,11 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
               src={profileImageUrl}
               alt={profile?.full_name || "User"}
               className="w-full h-full object-cover"
-              onError={() => setImageError(true)}
-              onLoad={() => setImageError(false)}
+              onError={() => {
+                console.error("Image failed to load");
+                setImageError(true);
+              }}
+              key={profileImageUrl} // Force re-render when URL changes
             />
           ) : (
             <div className="absolute inset-0 bg-white flex items-center justify-center">
@@ -268,7 +339,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
           )}
 
           {/* Loading spinner overlay - only shown when loading */}
-          {isLoading && (
+          {isLoadingImage && (
             <div className="absolute inset-0 bg-red-500 bg-opacity-50 flex items-center justify-center">
               <div className="w-6 h-6 border-3 border-white border-t-red-300 rounded-full animate-spin"></div>
             </div>
@@ -359,7 +430,11 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
       {/* Profile Edit Modal */}
       <ProfileEditModal
         isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
+        onClose={() => {
+          setShowEditModal(false);
+          // Force refresh the profile image when modal is closed
+          loadProfileImage();
+        }}
       />
     </div>
   );
