@@ -1,7 +1,6 @@
 "use client";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useCallback, useMemo } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Image from "next/image";

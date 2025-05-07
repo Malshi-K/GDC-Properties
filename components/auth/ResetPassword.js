@@ -14,38 +14,67 @@ export default function ResetPassword() {
   const [validToken, setValidToken] = useState(false);
   const [tokenChecked, setTokenChecked] = useState(false);
   const [redirectCountdown, setRedirectCountdown] = useState(null);
+  const [sessionInfo, setSessionInfo] = useState(null);
+  const [debug, setDebug] = useState(false);
 
+  // Toggle debug info
+  const toggleDebug = () => setDebug(!debug);
+
+  // This useEffect handles the Supabase auth URL processing and token verification
   useEffect(() => {
-    // Parse the hash fragment from the URL to get the access token
-    const checkTokenFromHash = async () => {
-      // Wait a bit for Supabase to process the hash
-      setTimeout(async () => {
-        try {
-          const { data, error } = await supabase.auth.getSession();
-
-          if (error || !data?.session) {
-            console.error("Session error:", error);
-            setError(
-              "Invalid or expired password reset link. Please request a new one."
-            );
-            setTokenChecked(true);
-            return;
-          }
-
-          // Valid session found
-          setValidToken(true);
-          setTokenChecked(true);
-        } catch (e) {
-          console.error("Error checking session:", e);
-          setError(
-            "An error occurred while verifying your reset link. Please try again."
-          );
-          setTokenChecked(true);
+    const checkTokenValidity = async () => {
+      try {
+        console.log("Checking session validity...");
+        
+        // Log the current URL for debugging
+        if (typeof window !== 'undefined') {
+          console.log("URL:", window.location.href);
         }
-      }, 500); // Short delay to ensure Supabase has processed the hash
+        
+        // Use getSession to check if the recovery token was recognized by Supabase
+        const { data, error } = await supabase.auth.getSession();
+        
+        // Store session data for debugging
+        setSessionInfo(data?.session ? {
+          userId: data.session.user.id,
+          email: data.session.user.email,
+          tokenExpires: new Date(data.session.expires_at * 1000).toLocaleString(),
+          tokenType: data.session.token_type,
+          // Don't store the actual token for security reasons
+          hasAccessToken: !!data.session.access_token,
+        } : null);
+        
+        if (error) {
+          console.error("Session error:", error);
+          setError("Invalid or expired password reset link. Please request a new one.");
+          setTokenChecked(true);
+          return;
+        }
+        
+        if (!data?.session) {
+          console.error("No session found");
+          setError("Invalid or expired password reset link. Please request a new one.");
+          setTokenChecked(true);
+          return;
+        }
+        
+        // Token is valid, user can proceed to reset password
+        console.log("Valid token confirmed");
+        setValidToken(true);
+        setTokenChecked(true);
+      } catch (e) {
+        console.error("Error checking session:", e);
+        setError("An error occurred while verifying your reset link. Please try again.");
+        setTokenChecked(true);
+      }
     };
 
-    checkTokenFromHash();
+    // Give Supabase a moment to process the URL parameters before checking
+    if (typeof window !== 'undefined') {
+      setTimeout(() => {
+        checkTokenValidity();
+      }, 2000); // Increased delay to ensure Supabase has time to process
+    }
   }, []);
 
   // Handle countdown and redirect
@@ -82,13 +111,39 @@ export default function ResetPassword() {
     setMessage(null);
 
     try {
-      // Update the user's password
-      const { error } = await supabase.auth.updateUser({
-        password: password,
+      console.log("Attempting to update password...");
+      
+      // Double-check session before updating password
+      const { data: sessionData } = await supabase.auth.getSession();
+      console.log("Session check before password update:", !!sessionData?.session);
+      
+      if (!sessionData?.session) {
+        throw new Error("No active session found. Please try the reset link again.");
+      }
+      
+      // Add an explicit log 
+      console.log("Starting password update with supabase.auth.updateUser...");
+      
+      // Update the user's password with detailed error checking
+      const updateResult = await supabase.auth.updateUser({
+        password: password
       });
+      
+      console.log("Password update result:", updateResult.error ? "Error occurred" : "Success");
+      
+      if (updateResult.error) {
+        console.error("Password update error details:", updateResult.error);
+        throw updateResult.error;
+      }
 
-      if (error) throw error;
+      // Check if the update was actually successful by checking the user data
+      if (!updateResult.data?.user) {
+        console.error("No user data returned after password update");
+        throw new Error("Password update failed. No user data returned.");
+      }
 
+      console.log("Password updated successfully");
+      
       // IMPORTANT: First set loading to false
       setLoading(false);
       
@@ -105,13 +160,65 @@ export default function ResetPassword() {
       
     } catch (error) {
       console.error("Password update error:", error);
-      setError(error.message);
+      
+      // Provide a more specific error message based on the error type
+      let errorMessage = "Failed to update password. Please try again.";
+      
+      if (error.message) {
+        if (error.message.includes("expired")) {
+          errorMessage = "Your password reset link has expired. Please request a new one.";
+        } else if (error.message.includes("invalid")) {
+          errorMessage = "Invalid reset link. Please request a new password reset.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setError(errorMessage);
       setLoading(false);
     }
   }
 
+  // Debug button for development only
+  const DebugButton = process.env.NODE_ENV === 'development' ? (
+    <button 
+      onClick={toggleDebug} 
+      className="absolute top-2 right-2 bg-gray-200 text-xs px-2 py-1 rounded"
+      type="button"
+    >
+      {debug ? 'Hide Debug' : 'Debug'}
+    </button>
+  ) : null;
+
+  // If still checking token, show loading spinner
+  if (!tokenChecked) {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#f3f4f6]">
+        {/* Minimal header with logo */}
+        <div className="py-4 px-6 bg-white shadow-sm mb-8 flex justify-center">
+          <Link href="/">
+            <Image
+              src="/images/logo.png"
+              alt="GDC Properties"
+              width={128}
+              height={80}
+              className="h-12 w-auto object-contain"
+            />
+          </Link>
+        </div>
+        
+        <div className="flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red mx-auto"></div>
+            <p className="mt-4 text-gray-600">Preparing secure password reset...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-[#f3f4f6]">
       {/* Minimal header with logo */}
       <div className="py-4 px-6 bg-white shadow-sm mb-8 flex justify-center">
         <Link href="/">
@@ -126,17 +233,12 @@ export default function ResetPassword() {
       </div>
 
       <div className="flex-grow flex items-center justify-center px-4">
-        <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-8">
-          <h2 className="text-2xl font-bold mb-6 text-center">
+        <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-8 relative">
+          {DebugButton}
+          
+          <h2 className="text-2xl font-bold mb-6 text-center text-custom-gray">
             Reset Your Password
           </h2>
-
-          {!tokenChecked && (
-            <div className="flex justify-center items-center py-8">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-custom-red"></div>
-              <span className="ml-3">Verifying your reset link...</span>
-            </div>
-          )}
 
           {error && (
             <div className="mb-6 p-4 bg-red-100 text-red-700 rounded flex items-center">
@@ -173,11 +275,22 @@ export default function ResetPassword() {
               <div className="flex-1">
                 {message} {redirectCountdown !== null ? `${redirectCountdown}...` : ""}
               </div>
-              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-green-500"></div>
+              {redirectCountdown !== null && (
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-green-500"></div>
+              )}
             </div>
           )}
 
-          {tokenChecked && validToken && redirectCountdown === null && (
+          {debug && sessionInfo && (
+            <div className="mb-6 p-3 bg-blue-50 text-blue-800 rounded text-xs">
+              <h4 className="font-bold mb-1">Session Debug Info:</h4>
+              <pre className="overflow-auto max-h-32">
+                {JSON.stringify(sessionInfo, null, 2)}
+              </pre>
+            </div>
+          )}
+
+          {validToken && redirectCountdown === null && (
             <>
               <p className="text-gray-600 mb-6 text-center">
                 Please create a new secure password for your account.
@@ -242,7 +355,7 @@ export default function ResetPassword() {
             </>
           )}
 
-          {tokenChecked && !validToken && (
+          {!validToken && (
             <div className="text-center mt-4">
               <p className="mb-4">
                 Your password reset link is invalid or has expired.
