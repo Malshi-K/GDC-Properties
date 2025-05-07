@@ -624,7 +624,7 @@ export default function Dashboard() {
         </div>
 
         {/* Main Content Area - With scrolling */}
-        <div className="flex-1 overflow-y-auto bg-gray-100 p-8">
+        <div className="flex-1 overflow-y-auto bg-gray-100 py-20 sm:py-10 px-10">
           {/* Main Content - Owner Dashboard */}
           {userRole === "owner" && (
             <div>

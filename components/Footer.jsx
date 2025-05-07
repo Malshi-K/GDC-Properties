@@ -4,30 +4,30 @@ import Link from "next/link";
 
 const Footer = () => {
   return (
-    <footer className="bg-white border-t border-gray-200 py-12">
-      <div className="container w-full max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+    <footer className="bg-white border-t border-gray-200 py-8 md:py-12">
+      <div className="container w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
           {/* Logo and Contact */}
-          <div className="flex flex-col space-y-4">
+          <div className="flex flex-col space-y-4 items-center sm:items-start">
             <div className="mb-2">
               <Image
                 src="/images/logo.png"
                 alt="JustRent Logo"
-                width={220}
-                height={80}
-                className="h-auto"
+                width={180}
+                height={60}
+                className="h-auto w-auto max-w-[180px]"
               />
             </div>
           </div>
 
           {/* Quick Link */}
-          <div>
-            <h3 className="font-medium text-custom-red mb-4">Quick Link</h3>
-            <ul className="space-y-2">
+          <div className="mt-4 sm:mt-0 flex flex-col items-center sm:items-start">
+            <h3 className="font-medium text-custom-red mb-4 text-lg">Quick Link</h3>
+            <ul className="space-y-2 text-center sm:text-left">
               <li>
                 <Link
                   href="/"
-                  className="text-gray-600 hover:text-custom-yellow"
+                  className="text-gray-600 hover:text-custom-yellow transition-colors duration-200"
                 >
                   Home
                 </Link>
@@ -36,7 +36,7 @@ const Footer = () => {
               <li>
                 <Link
                   href="/search"
-                  className="text-gray-600 hover:text-custom-yellow"
+                  className="text-gray-600 hover:text-custom-yellow transition-colors duration-200"
                 >
                   Search
                 </Link>
@@ -44,7 +44,7 @@ const Footer = () => {
               <li>
                 <Link
                   href="/browse"
-                  className="text-gray-600 hover:text-custom-yellow"
+                  className="text-gray-600 hover:text-custom-yellow transition-colors duration-200"
                 >
                   About
                 </Link>
@@ -53,39 +53,39 @@ const Footer = () => {
           </div>
 
           {/* Categories */}
-          <div>
-            <h3 className="font-medium text-custom-red mb-4">Propety Types</h3>
-            <ul className="space-y-2">
+          <div className="mt-4 sm:mt-0 flex flex-col items-center sm:items-start">
+            <h3 className="font-medium text-custom-red mb-4 text-lg">Property Types</h3>
+            <ul className="space-y-2 text-center sm:text-left">
               <li>
-                <p className="text-gray-600 hover:text-custom-yellow">
+                <p className="text-gray-600 hover:text-custom-yellow cursor-pointer transition-colors duration-200">
                   Apartments
                 </p>
               </li>
               <li>
-                <p className="text-gray-600 hover:text-custom-yellow">Houses</p>
+                <p className="text-gray-600 hover:text-custom-yellow cursor-pointer transition-colors duration-200">Houses</p>
               </li>
               <li>
-                <p className="text-gray-600 hover:text-custom-yellow">
+                <p className="text-gray-600 hover:text-custom-yellow cursor-pointer transition-colors duration-200">
                   Town Houses
                 </p>
               </li>
               <li>
-                <p className="text-gray-600 hover:text-custom-yellow">Unit</p>
+                <p className="text-gray-600 hover:text-custom-yellow cursor-pointer transition-colors duration-200">Unit</p>
               </li>
             </ul>
           </div>
 
           {/* Getting Started and Support */}
-          <div className="space-y-8">
-            <div>
-              <h3 className="font-medium text-custom-red mb-4">
+          <div className="space-y-6 mt-4 sm:mt-0 flex flex-col items-center sm:items-start">
+            <div className="flex flex-col items-center sm:items-start">
+              <h3 className="font-medium text-custom-red mb-4 text-lg">
                 Getting Started
               </h3>
-              <ul className="space-y-2">
+              <ul className="space-y-2 text-center sm:text-left">
                 <li>
                   <Link
                     href="/register"
-                    className="text-gray-600 hover:text-custom-yellow"
+                    className="text-gray-600 hover:text-custom-yellow transition-colors duration-200"
                   >
                     Sign-in
                   </Link>
@@ -93,12 +93,12 @@ const Footer = () => {
               </ul>
             </div>
 
-            <div>
-              <h3 className="font-medium text-custom-red mb-4">Get in touch</h3>
-              <ul className="space-y-2">
-                <li className="flex items-center">
+            <div className="flex flex-col items-center sm:items-start">
+              <h3 className="font-medium text-custom-red mb-4 text-lg">Get in touch</h3>
+              <ul className="space-y-3">
+                <li className="flex items-center justify-center sm:justify-start">
                   <svg
-                    className="w-4 h-4 mr-2 text-gray-500"
+                    className="w-4 h-4 mr-2 text-gray-500 flex-shrink-0"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                     xmlns="http://www.w3.org/2000/svg"
@@ -108,14 +108,14 @@ const Footer = () => {
                   </svg>
                   <a
                     href="mailto:info@gdcdigital.net"
-                    className="text-gray-600 hover:text-custom-yellow"
+                    className="text-gray-600 hover:text-custom-yellow transition-colors duration-200 break-all"
                   >
                     info@gdcdigital.net
                   </a>
                 </li>
-                <li className="flex items-center">
+                <li className="flex items-center justify-center sm:justify-start">
                   <svg
-                    className="w-4 h-4 mr-2 text-gray-500"
+                    className="w-4 h-4 mr-2 text-gray-500 flex-shrink-0"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                     xmlns="http://www.w3.org/2000/svg"
@@ -124,14 +124,14 @@ const Footer = () => {
                   </svg>
                   <a
                     href="tel:+6478380090"
-                    className="text-gray-600 hover:text-custom-yellow"
+                    className="text-gray-600 hover:text-custom-yellow transition-colors duration-200"
                   >
                     +64 7 838 0090
                   </a>
                 </li>
-                <li className="flex items-center">
+                <li className="flex items-start justify-center sm:justify-start">
                   <svg
-                    className="w-4 h-4 mr-2 text-gray-500"
+                    className="w-4 h-4 mr-2 text-gray-500 flex-shrink-0 mt-1"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                     xmlns="http://www.w3.org/2000/svg"
@@ -142,11 +142,7 @@ const Footer = () => {
                       clipRule="evenodd"
                     ></path>
                   </svg>
-                  <p
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-600 hover:text-custom-yellow"
-                  >
+                  <p className="text-gray-600 hover:text-custom-yellow transition-colors duration-200 break-words">
                     89 Church Road, Pukete, Hamilton 3200
                   </p>
                 </li>
@@ -154,17 +150,17 @@ const Footer = () => {
             </div>
 
             {/* Social Media */}
-            <div className="mt-4">
-              <div className="flex space-x-3">
+            <div className="mt-4 flex justify-center sm:justify-start w-full">
+              <div className="flex flex-wrap gap-3 justify-center sm:justify-start">
                 <a
                   href="https://facebook.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-white border border-gray-200 text-red-600 rounded-full p-2 w-10 h-10 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow duration-200"
+                  className="bg-white border border-gray-200 text-red-600 rounded-full p-2 w-10 h-10 flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105"
                 >
                   <span className="sr-only">Facebook</span>
                   <svg
-                    className="w-8 h-8"
+                    className="w-6 h-6"
                     fill="currentColor"
                     viewBox="0 0 24 24"
                     aria-hidden="true"
@@ -181,11 +177,11 @@ const Footer = () => {
                   href="https://instagram.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-white border border-gray-200 text-red-600 rounded-full p-2 w-10 h-10 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow duration-200"
+                  className="bg-white border border-gray-200 text-red-600 rounded-full p-2 w-10 h-10 flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105"
                 >
                   <span className="sr-only">Instagram</span>
                   <svg
-                    className="w-8 h-8"
+                    className="w-6 h-6"
                     fill="currentColor"
                     viewBox="0 0 24 24"
                     aria-hidden="true"
@@ -201,11 +197,11 @@ const Footer = () => {
                   href="https://linkedin.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-white border border-gray-200 text-red-600 rounded-full p-2 w-10 h-10 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow duration-200"
+                  className="bg-white border border-gray-200 text-red-600 rounded-full p-2 w-10 h-10 flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105"
                 >
                   <span className="sr-only">LinkedIn</span>
                   <svg
-                    className="w-8 h-8"
+                    className="w-6 h-6"
                     fill="currentColor"
                     viewBox="0 0 24 24"
                     aria-hidden="true"
@@ -219,11 +215,11 @@ const Footer = () => {
         </div>
 
         {/* Copyright */}
-        <div className="border-t border-gray-200 mt-12 pt-8 text-center text-sm text-gray-500">
+        <div className="border-t border-gray-200 mt-8 md:mt-12 pt-6 md:pt-8 text-center text-sm text-gray-500">
           © {new Date().getFullYear()}{" "}
           <Link
             href="https://www.gdcdigital.net/"
-            className="text-gray-600 hover:text-custom-yellow"
+            className="text-gray-600 hover:text-custom-yellow transition-colors duration-200"
           >
             GDC Digital Solutions.
           </Link>{" "}

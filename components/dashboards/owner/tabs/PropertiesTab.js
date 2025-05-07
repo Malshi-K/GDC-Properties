@@ -126,19 +126,20 @@ export default function PropertiesTab({
   
   // Render content based on loading state
   return (
-    <div className="max-w-6xl mx-auto px-4">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">My Properties</h2>
+    <div className="w-full max-w-6xl mx-auto px-4 sm:px-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">My Properties</h2>
         <button
           onClick={onAddNew}
-          className="bg-custom-red hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-300 flex items-center"
+          className="bg-custom-red hover:bg-red-700 text-white font-medium py-2 px-3 sm:px-4 rounded-md transition-colors duration-300 flex items-center text-sm sm:text-base whitespace-nowrap"
           disabled={isLoading}
         >
           <svg
-            className="h-5 w-5 mr-2"
+            className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path
               strokeLinecap="round"
@@ -147,36 +148,36 @@ export default function PropertiesTab({
               d="M12 6v6m0 0v6m0-6h6m-6 0H6"
             />
           </svg>
-          Add New Property
+          <span>Add New Property</span>
         </button>
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center my-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
+        <div className="flex justify-center my-8 sm:my-12">
+          <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-t-2 border-b-2 border-custom-red"></div>
         </div>
       ) : error || processingError ? (
-        <div className="bg-white shadow rounded-lg p-6 text-center">
-          <p className="text-red-500">Error: {error || processingError}</p>
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6 text-center">
+          <p className="text-red-500 text-sm sm:text-base">Error: {error || processingError}</p>
           <button
             onClick={onRefresh}
-            className="inline-block mt-4 text-custom-red hover:text-red-700"
+            className="inline-block mt-3 sm:mt-4 text-custom-red hover:text-red-700 text-sm sm:text-base"
           >
             Try Again
           </button>
         </div>
       ) : processedProperties.length === 0 ? (
-        <div className="bg-white shadow rounded-lg p-6 text-center">
-          <p className="text-gray-500">You haven't added any properties yet.</p>
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6 text-center">
+          <p className="text-gray-500 text-sm sm:text-base">You haven't added any properties yet.</p>
           <button
             onClick={onAddNew}
-            className="inline-block mt-4 text-custom-red hover:text-red-700"
+            className="inline-block mt-3 sm:mt-4 text-custom-red hover:text-red-700 text-sm sm:text-base"
           >
             Add Your First Property
           </button>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {processedProperties.map((property) => (
             <PropertyCard
               key={property?.id || `property-${Math.random()}`}

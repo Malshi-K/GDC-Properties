@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   FaUser,
   FaEdit,
   FaSignOutAlt,
   FaHome,
+  FaBars,
+  FaTimes
 } from "react-icons/fa";
 import { useAuth } from "@/contexts/AuthContext";
 import ProfileEditModal from "./ProfileEditModal";
@@ -17,9 +19,25 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
   const [profileImageUrl, setProfileImageUrl] = useState("");
   const [imageError, setImageError] = useState(false);
   const [isLoadingImage, setIsLoadingImage] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const sidebarRef = useRef(null);
   const router = useRouter();
 
   const { user, profile, userRole } = useAuth();
+
+  // Handle clicks outside the sidebar to close mobile menu
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target) && isMobileMenuOpen) {
+        setIsMobileMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isMobileMenuOpen]);
 
   // Create a memoized function to load the profile image
   const loadProfileImage = useCallback(async () => {
@@ -117,6 +135,12 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
   // Navigate to home
   const navigateToHome = () => {
     router.push("/");
+  };
+
+  // Handle tab selection and close mobile menu when a tab is selected
+  const handleTabSelect = (tabId) => {
+    setActiveTab(tabId);
+    setIsMobileMenuOpen(false);
   };
 
   // Define all navigation items with role access
@@ -305,116 +329,146 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
   }, [activeTab, loadProfileImage]);
 
   return (
-    <div className="w-64 bg-custom-red text-white flex flex-col h-full relative">
-      {/* Profile Section */}
-      <div className="p-6 flex flex-col items-center border-b border-red-600">
-        {/* Profile Image */}
-        <div className="w-24 h-24 relative rounded-full overflow-hidden mb-4 bg-red-500 border-2 border-white">
-          {profileImageUrl && !imageError ? (
-            <img
-              src={profileImageUrl}
-              alt={profile?.full_name || "User"}
-              className="w-full h-full object-cover"
-              onError={() => {
-                console.error("Image failed to load");
-                setImageError(true);
-              }}
-              key={profileImageUrl} // Force re-render when URL changes
-            />
-          ) : (
-            <div className="absolute inset-0 bg-white flex items-center justify-center">
-              <FaUser className="text-custom-red text-3xl" />
-            </div>
-          )}
-
-          {/* Loading spinner overlay - only shown when loading */}
-          {isLoadingImage && (
-            <div className="absolute inset-0 bg-red-500 bg-opacity-50 flex items-center justify-center">
-              <div className="w-6 h-6 border-3 border-white border-t-red-300 rounded-full animate-spin"></div>
-            </div>
-          )}
-        </div>
-
-        {/* User Name & Email */}
-        <h2 className="text-lg font-bold text-white mb-1">
-          {profile?.full_name?.toUpperCase() || "USER"}
-        </h2>
-        <p className="text-red-200 text-sm mb-4">{user?.email}</p>
-
-        {/* Edit Profile Button */}
+    <>
+      {/* Mobile Toggle Button - Shown only on mobile */}
+      <div className="lg:hidden fixed top-4 left-4 z-50">
         <button
-          onClick={() => setShowEditModal(true)}
-          className="w-full bg-red-600 hover:bg-red-800 text-white text-sm py-2 px-4 rounded-md transition-colors duration-300 flex items-center justify-center"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="bg-custom-red text-white p-2 rounded-full shadow-lg focus:outline-none"
+          aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
         >
-          <FaEdit className="mr-2" size={12} />
-          Edit Profile
+          {isMobileMenuOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
         </button>
       </div>
 
-      {/* Navigation Menu - with curved active tab */}
-      <nav className="flex-1 mt-6 relative z-10">
-        {filteredNavItems.map((item) => (
-          <div key={item.id} className="relative mb-2">
-            {/* Active tab curved background - only shown when active */}
-            {activeTab === item.id && (
-              <>
-                {/* Top curve */}
-                <div className="absolute right-0 -top-4 w-4 h-4 bg-[#f3f4f6]">
-                  <div className="absolute bottom-0 right-0 w-4 h-4 bg-custom-red rounded-br-full"></div>
-                </div>
-
-                {/* Button background */}
-                <div className="absolute right-0 top-0 bottom-0 w-[calc(100%-12px)] bg-[#f3f4f6] rounded-l-full"></div>
-
-                {/* Bottom curve */}
-                <div className="absolute right-0 -bottom-4 w-4 h-4 bg-[#f3f4f6]">
-                  <div className="absolute top-0 right-0 w-4 h-4 bg-custom-red rounded-tr-full"></div>
-                </div>
-              </>
+      {/* Sidebar Container */}
+      <div
+        ref={sidebarRef}
+        className={`bg-custom-red text-white flex flex-col h-full transition-all duration-300 z-40
+                    lg:relative lg:w-64 lg:translate-x-0 lg:opacity-100 lg:shadow-none
+                    fixed top-0 left-0 w-64 shadow-lg
+                    ${isMobileMenuOpen ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 lg:opacity-100"}`}
+      >
+        {/* Profile Section */}
+        <div className="p-6 flex flex-col items-center border-b border-red-600">
+          {/* Profile Image */}
+          <div className="w-16 h-16 md:w-24 md:h-24 relative rounded-full overflow-hidden mb-4 bg-red-500 border-2 border-white">
+            {profileImageUrl && !imageError ? (
+              <img
+                src={profileImageUrl}
+                alt={profile?.full_name || "User"}
+                className="w-full h-full object-cover"
+                onError={() => {
+                  console.error("Image failed to load");
+                  setImageError(true);
+                }}
+                key={profileImageUrl} // Force re-render when URL changes
+              />
+            ) : (
+              <div className="absolute inset-0 bg-white flex items-center justify-center">
+                <FaUser className="text-custom-red text-xl md:text-3xl" />
+              </div>
             )}
 
-            {/* Button content */}
-            <button
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full text-left px-6 py-3 flex items-center relative z-10 ${
-                activeTab === item.id
-                  ? "text-custom-red font-medium"
-                  : "text-white hover:bg-red-600"
-              }`}
-            >
-              <div
-                className={`mr-3 ${
-                  activeTab === item.id ? "text-custom-red" : "text-white"
-                }`}
-              >
-                {item.icon}
+            {/* Loading spinner overlay - only shown when loading */}
+            {isLoadingImage && (
+              <div className="absolute inset-0 bg-red-500 bg-opacity-50 flex items-center justify-center">
+                <div className="w-4 h-4 md:w-6 md:h-6 border-2 md:border-3 border-white border-t-red-300 rounded-full animate-spin"></div>
               </div>
-              <span className="text-sm">{item.label}</span>
-            </button>
+            )}
           </div>
-        ))}
-      </nav>
 
-      {/* Bottom Navigation with Icons */}
-      <div className="border-t border-red-600 p-4 z-10">
-        <div className="flex justify-around">
-          <button
-            onClick={navigateToHome}
-            className="text-white hover:text-red-200 rounded-full hover:bg-red-600 transition-colors duration-200"
-            title="Home"
-          >
-            <FaHome size={20} />
-          </button>
+          {/* User Name & Email */}
+          <h2 className="text-base lg:text-lg font-bold text-white mb-1 text-center">
+            {profile?.full_name?.toUpperCase() || "USER"}
+          </h2>
+          <p className="text-red-200 text-xs md:text-sm mb-4 text-center truncate max-w-full">
+            {user?.email}
+          </p>
 
+          {/* Edit Profile Button */}
           <button
-            onClick={handleSignOut}
-            className="text-white hover:text-red-200 rounded-full hover:bg-red-600 transition-colors duration-200"
-            title="Sign Out"
+            onClick={() => setShowEditModal(true)}
+            className="w-full bg-red-600 hover:bg-red-800 text-white text-xs md:text-sm py-2 px-4 rounded-md transition-colors duration-300 flex items-center justify-center"
           >
-            <FaSignOutAlt size={20} />
+            <FaEdit className="mr-2" size={12} />
+            Edit Profile
           </button>
         </div>
+
+        {/* Navigation Menu - with curved active tab */}
+        <nav className="flex-1 mt-4 md:mt-6 relative z-10 overflow-y-auto">
+          {filteredNavItems.map((item) => (
+            <div key={item.id} className="relative mb-1 md:mb-2">
+              {/* Active tab curved background - only shown when active */}
+              {activeTab === item.id && (
+                <>
+                  {/* Top curve */}
+                  <div className="absolute right-0 -top-4 w-4 h-4 bg-[#f3f4f6]">
+                    <div className="absolute bottom-0 right-0 w-4 h-4 bg-custom-red rounded-br-full"></div>
+                  </div>
+
+                  {/* Button background */}
+                  <div className="absolute right-0 top-0 bottom-0 w-[calc(100%-12px)] bg-[#f3f4f6] rounded-l-full"></div>
+
+                  {/* Bottom curve */}
+                  <div className="absolute right-0 -bottom-4 w-4 h-4 bg-[#f3f4f6]">
+                    <div className="absolute top-0 right-0 w-4 h-4 bg-custom-red rounded-tr-full"></div>
+                  </div>
+                </>
+              )}
+
+              {/* Button content */}
+              <button
+                onClick={() => handleTabSelect(item.id)}
+                className={`w-full text-left px-4 md:px-6 py-2 md:py-3 flex items-center relative z-10 ${
+                  activeTab === item.id
+                    ? "text-custom-red font-medium"
+                    : "text-white hover:bg-red-600"
+                }`}
+              >
+                <div
+                  className={`mr-2 md:mr-3 ${
+                    activeTab === item.id ? "text-custom-red" : "text-white"
+                  }`}
+                >
+                  {item.icon}
+                </div>
+                <span className="text-xs md:text-sm">{item.label}</span>
+              </button>
+            </div>
+          ))}
+        </nav>
+
+        {/* Bottom Navigation with Icons */}
+        <div className="border-t border-red-600 p-3 md:p-4 z-10">
+          <div className="flex justify-around">
+            <button
+              onClick={navigateToHome}
+              className="text-white hover:text-red-200 rounded-full hover:bg-red-600 transition-colors duration-200 p-2"
+              title="Home"
+            >
+              <FaHome size={16} className="md:text-xl" />
+            </button>
+
+            <button
+              onClick={handleSignOut}
+              className="text-white hover:text-red-200 rounded-full hover:bg-red-600 transition-colors duration-200 p-2"
+              title="Sign Out"
+            >
+              <FaSignOutAlt size={16} className="md:text-xl" />
+            </button>
+          </div>
+        </div>
       </div>
+
+      {/* Backdrop for mobile - only visible when mobile menu is open */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
 
       {/* Profile Edit Modal */}
       <ProfileEditModal
@@ -425,7 +479,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
           loadProfileImage();
         }}
       />
-    </div>
+    </>
   );
 };
 

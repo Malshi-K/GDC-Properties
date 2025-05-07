@@ -168,11 +168,13 @@ const Header = () => {
   };
 
   // Skip rendering header on auth pages or dashboard page
-  if (pathname.startsWith('/login') || 
-      pathname.startsWith('/signup') || 
-      pathname.startsWith('/forgot-password') || 
-      pathname.startsWith('/reset-password') ||
-      pathname.startsWith('/dashboard')) {
+  if (
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup") ||
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/reset-password") ||
+    pathname.startsWith("/dashboard")
+  ) {
     return null;
   }
 
@@ -289,7 +291,7 @@ const Header = () => {
                           className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         >
                           Dashboard
-                        </button>                        
+                        </button>
                         {shouldShowSavedProperties && (
                           <Link
                             href="/favorites"
@@ -401,24 +403,6 @@ const Header = () => {
                       >
                         Dashboard
                       </button>
-                      <button
-                        onClick={() => {
-                          router.push("/profile");
-                          setIsMenuOpen(false);
-                        }}
-                        className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                      >
-                        Profile
-                      </button>
-                      {shouldShowSavedProperties && (
-                        <Link
-                          href="/favorites"
-                          className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                          onClick={() => setIsMenuOpen(false)}
-                        >
-                          Saved Properties
-                        </Link>
-                      )}
                       <button
                         onClick={() => {
                           handleSignOut();
