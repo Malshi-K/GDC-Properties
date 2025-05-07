@@ -14,30 +14,46 @@ function LoginForm() {
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
   const router = useRouter();
-  
+
   // Import useSearchParams inside the client component
   const { useSearchParams } = require("next/navigation");
   const searchParams = useSearchParams();
   const resetSuccess = searchParams?.get("reset") === "success";
-  
+
   useEffect(() => {
     if (resetSuccess) {
-      setMessage("Your password has been successfully reset. Please log in with your new password.");
+      setMessage(
+        "Your password has been successfully reset. Please log in with your new password."
+      );
     }
   }, [resetSuccess]);
 
-  // Check if user is already logged in
+  // In LoginForm component, update the checkSession function
+
   useEffect(() => {
     const checkSession = async () => {
+      // If we've just come from password reset, force sign out first
+      const resetSuccess = searchParams?.get("reset") === "success";
+
+      if (resetSuccess) {
+        // Force sign out to ensure no lingering session
+        await supabase.auth.signOut();
+        setMessage(
+          "Your password has been successfully reset. Please log in with your new password."
+        );
+        return; // Skip the redirect check when coming from password reset
+      }
+
+      // Only check for session and redirect if not coming from password reset
       const { data } = await supabase.auth.getSession();
       if (data?.session) {
         // User is already logged in, redirect to unified dashboard
         router.push("/dashboard");
       }
     };
-    
+
     checkSession();
-  }, [router]);
+  }, [router, searchParams]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -53,7 +69,7 @@ function LoginForm() {
       if (error) throw error;
 
       // Get user role from profiles table
-      const { data: profileData, error: profileError } = await supabase
+      const { error: profileError } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", data.user.id)
@@ -68,7 +84,7 @@ function LoginForm() {
           full_name: data.user.user_metadata?.full_name || "",
         });
       }
-      
+
       // Redirect to unified dashboard regardless of role
       router.push("/dashboard");
     } catch (error) {
@@ -82,8 +98,17 @@ function LoginForm() {
     <>
       {message && (
         <div className="mb-6 p-4 bg-green-100 text-green-700 rounded flex items-center">
-          <svg className="h-5 w-5 text-green-500 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          <svg
+            className="h-5 w-5 text-green-500 mr-2"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+              clipRule="evenodd"
+            />
           </svg>
           <span>{message}</span>
         </div>
@@ -91,8 +116,17 @@ function LoginForm() {
 
       {error && (
         <div className="mb-6 p-4 bg-red-100 text-red-700 rounded flex items-center">
-          <svg className="h-5 w-5 text-red-500 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          <svg
+            className="h-5 w-5 text-red-500 mr-2"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+              clipRule="evenodd"
+            />
           </svg>
           <span>{error}</span>
         </div>
@@ -197,8 +231,10 @@ export default function LoginPage() {
 
       <div className="flex-grow flex items-center justify-center px-4">
         <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-8">
-          <h2 className="text-2xl font-bold text-custom-gray mb-6 text-center">Sign In</h2>
-          
+          <h2 className="text-2xl font-bold text-custom-gray mb-6 text-center">
+            Sign In
+          </h2>
+
           {/* Wrap the component using useSearchParams in Suspense */}
           <Suspense fallback={<LoginFormLoading />}>
             <LoginForm />
