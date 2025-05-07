@@ -8,19 +8,19 @@ export default function GlobalOffices() {
     {
       title: 'Contact Us',
       subtitle: 'Our friendly team is here to help.',
-      description: '99 Street SE, Big City, PNU 23456',
+      description: 'info@gdcdigital.net',
       icon: <FaEnvelope className="text-white text-3xl" />
     },
     {
       title: 'Office',
       subtitle: 'Come say hello at our office HQ.',
-      description: '99 Street SE, Big City, PNU 23456',
+      description: '89 Church Road, Pukete, Hamilton 3200',
       icon: <FaMapMarkerAlt className="text-white text-3xl" />
     },
     {
       title: 'Phone',
       subtitle: 'Mon-Fri from 8am to 5pm',
-      description: '123-456-7890',
+      description: '+64 7 838 0090',
       icon: <FaPhone className="text-white text-3xl" />
     },
   ];

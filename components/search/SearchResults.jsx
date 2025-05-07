@@ -637,9 +637,8 @@ export default function SearchResults() {
   const propertyTypes = [
     { value: "apartment", label: "Apartment" },
     { value: "house", label: "House" },
-    { value: "condo", label: "Condo" },
     { value: "townhouse", label: "Townhouse" },
-    { value: "villa", label: "Villa" },
+    { value: "units", label: "Units" },
   ];
 
   // Pagination component

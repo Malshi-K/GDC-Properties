@@ -1,5 +1,6 @@
-import React from 'react';
-import PropertySearchForm from '../property/PropertySearchForm';
+import React from "react";
+import PropertySearchForm from "../property/PropertySearchForm";
+import Link from "next/link";
 
 export default function HeroSection() {
   return (
@@ -9,12 +10,16 @@ export default function HeroSection() {
         {/* Left side - Text content */}
         <div className="w-full lg:w-1/2 text-white z-10 text-center lg:text-left">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-2 sm:mb-4">
-           Find Your Perfect Rental
+            Find Your Perfect Rental
           </h1>
-          <p className="text-lg sm:text-xl mb-6 sm:mb-8">Discover amazing propeties for your next stay</p>
-          <button className="bg-custom-red hover:bg-red-700 text-white font-bold py-2 sm:py-3 px-6 sm:px-8 rounded-md transition-colors duration-300">
-            Get in Touch
-          </button>
+          <p className="text-lg sm:text-xl mb-6 sm:mb-8">
+            Discover amazing propeties for your next stay
+          </p>
+          <Link href="/contact">
+            <button className="bg-custom-red hover:bg-red-700 text-white font-bold py-2 sm:py-3 px-6 sm:px-8 rounded-md transition-colors duration-300">
+              Get in Touch
+            </button>
+          </Link>
         </div>
 
         {/* Right side - Property Filter */}
