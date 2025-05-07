@@ -11,7 +11,7 @@ export default function ConsultServices() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
           <div className="order-2 md:order-1">
             <Image
-              src="/images/background.jpg"
+              src="/images/about.jpg"
               alt="Luxury Property"
               width={500}
               height={600}

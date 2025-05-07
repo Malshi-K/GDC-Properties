@@ -184,7 +184,9 @@ const Header = () => {
   return (
     <header
       className={`fixed top-0 z-50 transition-all duration-300 ${
-        isScrolled ? "bg-white shadow-md py-0 left-0 right-0" : "top-4 left-24 right-24"
+        isScrolled
+          ? "bg-white shadow-md py-0 left-0 right-0"
+          : "top-4 left-24 right-24"
       }`}
     >
       <div className={`${isScrolled ? "w-full" : "container mx-auto"}`}>
@@ -200,14 +202,16 @@ const Header = () => {
             <div className="flex items-center">
               <div className="w-20 sm:w-24 md:w-32 h-12 sm:h-16 md:h-20 flex items-center justify-center overflow-hidden">
                 {/* Using Next.js Image for better optimization */}
-                <Image
-                  src="/images/logo.png"
-                  alt="GDC Properties Logo"
-                  width={128}
-                  height={80}
-                  className="w-full h-full object-contain"
-                  priority
-                />
+                <Link href="/">
+                  <Image
+                    src="/images/logo.png"
+                    alt="GDC Properties Logo"
+                    width={128}
+                    height={80}
+                    className="w-full h-full object-contain"
+                    priority
+                  />
+                </Link>
               </div>
             </div>
 

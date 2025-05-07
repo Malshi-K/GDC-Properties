@@ -1,4 +1,3 @@
-// components/PageTitle.js
 "use client";
 import React from "react";
 import Image from "next/image";
@@ -12,49 +11,48 @@ export const PageTitle = () => {
   // Get the current path without leading slash
   const currentPath = pathname?.split("/")[1] || "";
 
-  // Configure titles and descriptions based on path
-  const pageTitles = {
+  // Configure titles, descriptions, and background images based on path
+  const pageConfig = {
     search: {
       title: "SEARCH",
       titleColored: " PROPERTIES",
       description:
         "Find your dream home or investment property using our advanced search tools and extensive listings database.",
+      backgroundImage: "/images/search.jpg",
+      altText: "Property search"
     },
     about: {
       title: "ABOUT",
       titleColored: " US",
       description:
         "Discover our experienced team of real estate professionals committed to helping you find the perfect property since 2010.",
+      backgroundImage: "/images/about.jpg",
+      altText: "Our real estate team"
     },
     contact: {
       title: "CONTACT",
       titleColored: " US",
       description:
         "Reach out to our property specialists for viewings, valuations, or to list your property with our trusted agency.",
-    },
-    // Default case for homepage or other pages
-    default: {
-      title: "FIND YOUR",
-      titleColored: " DREAM HOME",
-      description:
-        "Browse our extensive collection of properties and find your perfect home with our expert assistance.",
-    },
+      backgroundImage: "/images/contact.jpg",
+      altText: "Contact our agents"
+    },    
   };
 
-  // Get the appropriate title and description based on current path
-  const { title, titleColored, description } =
-    pageTitles[currentPath] || pageTitles["default"];
+  // Get the appropriate config based on current path
+  const { title, titleColored, description, backgroundImage, altText } =
+    pageConfig[currentPath] || pageConfig["default"];
 
   return (
     <div className="relative w-full h-[60vh] sm:h-[70vh] md:h-[80vh] lg:h-screen bg-gray-900 overflow-hidden">
       {/* Background overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-custom-gray to-transparent z-10"></div>
 
-      {/* Background image */}
+      {/* Background image - dynamically set based on the current page */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/images/BACKGROUND.jpg"
-          alt="Corporate meeting"
+          src={backgroundImage}
+          alt={altText}
           fill
           sizes="100vw"
           priority
