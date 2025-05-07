@@ -84,7 +84,7 @@ const Footer = () => {
               <ul className="space-y-2 text-center sm:text-left">
                 <li>
                   <Link
-                    href="/register"
+                    href="/signup"
                     className="text-gray-600 hover:text-custom-yellow transition-colors duration-200"
                   >
                     Sign-in
