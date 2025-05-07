@@ -183,8 +183,8 @@ const Header = () => {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? "bg-white shadow-md py-0" : "top-4"
+      className={`fixed top-0 z-50 transition-all duration-300 ${
+        isScrolled ? "bg-white shadow-md py-0 left-0 right-0" : "top-4 left-24 right-24"
       }`}
     >
       <div className={`${isScrolled ? "w-full" : "container mx-auto"}`}>
