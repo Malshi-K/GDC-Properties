@@ -15,8 +15,7 @@ export default function ViewingRequestsTab({
 }) {
   const [actionInProgress, setActionInProgress] = useState(null);
   const [propertyImages, setPropertyImages] = useState({});
-  const [imageLoading, setImageLoading] = useState(true);
-  const [processingComplete, setProcessingComplete] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false); // Start as false until we know we need to load
 
   // Get unique property IDs from viewing requests 
   const propertyIds = useMemo(() => {
@@ -29,28 +28,37 @@ export default function ViewingRequestsTab({
     return Array.from(ids);
   }, [viewingRequests]);
 
-  // Fetch property images in bulk
+  // Fetch property images in bulk - only if necessary
   useEffect(() => {
-    const fetchPropertyImages = async () => {
-      if (propertyIds.length === 0) {
-        setImageLoading(false);
-        setProcessingComplete(true);
-        return;
-      }
+    // Skip if the parent is still loading data
+    if (loading) return;
+    
+    // Skip if we have no properties to fetch
+    if (propertyIds.length === 0) {
+      return;
+    }
 
+    // Check which property IDs don't have images yet
+    const missingPropertyIds = propertyIds.filter(id => !propertyImages[id]);
+    
+    // If all properties already have images, do nothing
+    if (missingPropertyIds.length === 0) {
+      return;
+    }
+    
+    const fetchPropertyImages = async () => {
       try {
         setImageLoading(true);
         
-        // Get all property data in a single query
+        // Only fetch the missing property images
         const { data: propertiesData, error: propertiesError } = await supabase
           .from('properties')
           .select('id, images, owner_id')
-          .in('id', propertyIds);
+          .in('id', missingPropertyIds);
           
         if (propertiesError) {
           console.error('Error fetching properties data:', propertiesError);
           setImageLoading(false);
-          setProcessingComplete(true);
           return;
         }
         
@@ -58,6 +66,8 @@ export default function ViewingRequestsTab({
         const newPropertyImages = { ...propertyImages };
         const imagePromises = propertiesData.map(async (property) => {
           if (!property.images || property.images.length === 0) {
+            // Store a placeholder for properties without images to avoid refetching
+            newPropertyImages[property.id] = null;
             return;
           }
           
@@ -77,6 +87,7 @@ export default function ViewingRequestsTab({
               
             if (urlError) {
               console.error(`Error getting signed URL for property ${property.id}:`, urlError);
+              newPropertyImages[property.id] = null; // Store null to prevent refetching
               return;
             }
             
@@ -84,6 +95,7 @@ export default function ViewingRequestsTab({
             newPropertyImages[property.id] = urlData.signedUrl;
           } catch (error) {
             console.error(`Error processing image for property ${property.id}:`, error);
+            newPropertyImages[property.id] = null; // Store null to prevent refetching
           }
         });
         
@@ -96,35 +108,11 @@ export default function ViewingRequestsTab({
         console.error('Error in bulk image loading:', error);
       } finally {
         setImageLoading(false);
-        setProcessingComplete(true);
       }
     };
     
-    if (propertyIds.length > 0 && !processingComplete) {
-      fetchPropertyImages();
-    } else if (propertyIds.length === 0) {
-      setImageLoading(false);
-      setProcessingComplete(true);
-    }
-  }, [propertyIds, processingComplete]);
-  
-  // Reset processing state when viewing requests change
-  useEffect(() => {
-    setProcessingComplete(false);
-  }, [viewingRequests]);
-  
-  // Failsafe timer to ensure we don't get stuck in loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (imageLoading) {
-        console.log("Forcing end of image loading after timeout");
-        setImageLoading(false);
-        setProcessingComplete(true);
-      }
-    }, 5000); // 5 second max loading time
-    
-    return () => clearTimeout(timer);
-  }, [imageLoading]);
+    fetchPropertyImages();
+  }, [propertyIds, propertyImages, loading]);
 
   // Get the appropriate status color and text based on the status
   const getStatusBadge = (status) => {
@@ -176,8 +164,8 @@ export default function ViewingRequestsTab({
     }
   };
 
-  // Determine the actual loading state
-  const isLoading = loading || (!processingComplete && imageLoading);
+  // Simplified loading logic - only loading if parent data is loading or we're fetching images
+  const isLoading = loading || imageLoading;
 
   if (isLoading) {
     return (

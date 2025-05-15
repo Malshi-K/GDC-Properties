@@ -35,18 +35,18 @@ const TabSkeleton = () => (
       ))}
     </div>
   </div>
-)
+);
 
 export default function Dashboard() {
-  const { user, profile, userRole } = useAuth();
-  
+  const { user, profile, userRole, isLoading } = useAuth();
+
   // State to track if component is mounted (for local storage operations)
   const [mounted, setMounted] = useState(false);
-  
+
   // Define default active tabs based on role
   const defaultOwnerTab = "properties";
   const defaultUserTab = "viewingRequests";
-  
+
   // Initialize active tab state with appropriate default
   const [activeTab, setActiveTab] = useState(() => {
     // We'll set this properly after component mounts
@@ -56,12 +56,12 @@ export default function Dashboard() {
   // Handle localStorage for tab persistence after component mounts
   useEffect(() => {
     setMounted(true);
-    
+
     // Get saved tab from localStorage if it exists
     if (typeof window !== "undefined") {
       const storageKey = `dashboard_${userRole}_tab`;
       const savedTab = localStorage.getItem(storageKey);
-      
+
       if (savedTab) {
         setActiveTab(savedTab);
       } else {
@@ -103,43 +103,82 @@ export default function Dashboard() {
   const [userApplications, setUserApplications] = useState([]);
   const [userViewingRequests, setUserViewingRequests] = useState([]);
 
-  // Cache state with expiry timestamps
+  // ----- IMPROVED CACHE SYSTEM FOR ALL DATA -----
+  // Cache state with expiry timestamps for both owner and user data
   const [dataCache, setDataCache] = useState({
-    favorites: { data: null, timestamp: null },
-    applications: { data: null, timestamp: null },
+    // Owner data
+    properties: { data: null, timestamp: null },
     viewingRequests: { data: null, timestamp: null },
+    applications: { data: null, timestamp: null },
+    // User data
+    favorites: { data: null, timestamp: null },
+    userApplications: { data: null, timestamp: null },
+    userViewingRequests: { data: null, timestamp: null },
   });
 
   // Cache expiry - 5 minutes
   const CACHE_EXPIRY = 5 * 60 * 1000;
 
-  // Fetch data based on user role and active tab
-  useEffect(() => {
-    if (!user || !userRole) return;
-
-    // Load appropriate data based on user role
-    if (userRole === "owner") {
-      loadOwnerData();
-    } else if (userRole === "user") {
-      loadUserData(activeTab);
-    }
-  }, [user, userRole, activeTab]);
-
-  // ----- OWNER DATA LOADING FUNCTIONS -----
-  const loadOwnerData = () => {
-    if (activeTab === "properties") {
-      fetchProperties();
-      // Pre-fetch other data for owner dashboard
-      fetchViewingRequests();
-      fetchRentalApplications();
-    } else if (activeTab === "viewings") {
-      fetchViewingRequests();
-    } else if (activeTab === "applications") {
-      fetchRentalApplications();
-    }
+  // Function to determine if cached data is valid and exists
+  const isCacheValid = (key) => {
+    if (!dataCache[key]?.data || !dataCache[key]?.timestamp) return false;
+    return Date.now() - dataCache[key].timestamp < CACHE_EXPIRY;
   };
 
-  const fetchProperties = async () => {
+  // ----- IMPROVED DATA LOADING -----
+  // Unified fetch approach that uses cache
+  useEffect(() => {
+    // Don't attempt to load if user data isn't ready
+    if (!user || !userRole || !mounted) return;
+
+    // Load data based on user role
+    if (userRole === "owner") {
+      // Only fetch properties when they're needed and not already cached
+      if (activeTab === "properties" && !isCacheValid("properties")) {
+        fetchProperties(false); // false = don't force reload
+      }
+      // Only fetch viewing requests when needed and not already cached
+      if (
+        (activeTab === "viewings" || activeTab === "properties") &&
+        !isCacheValid("viewingRequests")
+      ) {
+        fetchViewingRequests(false);
+      }
+      // Only fetch applications when needed and not already cached
+      if (
+        (activeTab === "applications" || activeTab === "properties") &&
+        !isCacheValid("applications")
+      ) {
+        fetchRentalApplications(false);
+      }
+    } else if (userRole === "user") {
+      // Load data for the active tab if not cached
+      const tabDataMap = {
+        favorites: () =>
+          !isCacheValid("favorites") && fetchUserFavorites(false),
+        applications: () =>
+          !isCacheValid("userApplications") && fetchUserApplications(false),
+        viewingRequests: () =>
+          !isCacheValid("userViewingRequests") &&
+          fetchUserViewingRequests(false),
+      };
+
+      // Execute the appropriate fetch function if it exists for this tab
+      if (tabDataMap[activeTab]) {
+        tabDataMap[activeTab]();
+      }
+    }
+  }, [user, userRole, activeTab, mounted]);
+
+  // ----- OWNER DATA LOADING FUNCTIONS -----
+  const fetchProperties = async (forceReload = true) => {
+    // If we have valid cached data and we're not forcing a reload, use cache
+    if (isCacheValid("properties") && !forceReload) {
+      setProperties(dataCache.properties.data);
+      setLoading((prev) => ({ ...prev, properties: false }));
+      return;
+    }
+
     try {
       setLoading((prev) => ({ ...prev, properties: true }));
 
@@ -149,19 +188,44 @@ export default function Dashboard() {
 
       if (propertiesError) throw propertiesError;
 
-      // Fetch viewing requests and applications for these properties
-      const { data: viewingRequestsData, error: viewingError } =
-        await propertyService.getAllViewingRequests();
-      const { data: applicationsData, error: applicationsError } =
-        await propertyService.getAllApplications();
+      // Get viewing requests and applications data (prefer cached if available)
+      let viewingData = [];
+      let applicationsData = [];
 
-      if (viewingError) throw viewingError;
-      if (applicationsError) throw applicationsError;
+      if (isCacheValid("viewingRequests")) {
+        viewingData = dataCache.viewingRequests.data;
+      } else {
+        const { data, error } = await propertyService.getAllViewingRequests();
+        if (!error) {
+          viewingData = data || [];
+          // Update the cache
+          setDataCache((prev) => ({
+            ...prev,
+            viewingRequests: { data: viewingData, timestamp: Date.now() },
+          }));
+          setViewingRequests(viewingData);
+        }
+      }
+
+      if (isCacheValid("applications")) {
+        applicationsData = dataCache.applications.data;
+      } else {
+        const { data, error } = await propertyService.getAllApplications();
+        if (!error) {
+          applicationsData = data || [];
+          // Update the cache
+          setDataCache((prev) => ({
+            ...prev,
+            applications: { data: applicationsData, timestamp: Date.now() },
+          }));
+          setRentalApplications(applicationsData);
+        }
+      }
 
       // Combine the data
       const propertiesWithRelatedData = propertiesData.map((property) => ({
         ...property,
-        viewing_requests: viewingRequestsData.filter(
+        viewing_requests: viewingData.filter(
           (req) => req.property_id === property.id
         ),
         applications: applicationsData.filter(
@@ -169,7 +233,12 @@ export default function Dashboard() {
         ),
       }));
 
+      // Update states and cache
       setProperties(propertiesWithRelatedData || []);
+      setDataCache((prev) => ({
+        ...prev,
+        properties: { data: propertiesWithRelatedData, timestamp: Date.now() },
+      }));
       setError((prev) => ({ ...prev, properties: null }));
     } catch (err) {
       console.error("Error fetching properties:", err);
@@ -180,39 +249,63 @@ export default function Dashboard() {
     }
   };
 
-  const fetchViewingRequests = async () => {
+  const fetchViewingRequests = async (forceReload = true) => {
+    // If we have valid cached data and we're not forcing a reload, use cache
+    if (isCacheValid("viewingRequests") && !forceReload) {
+      setViewingRequests(dataCache.viewingRequests.data);
+      setLoading((prev) => ({ ...prev, viewings: false }));
+      return;
+    }
+
     try {
-      setLoading(prev => ({ ...prev, viewings: true }));
+      setLoading((prev) => ({ ...prev, viewings: true }));
       const { data, error } = await propertyService.getAllViewingRequests();
-      
+
       if (error) throw error;
-      
+
+      // Update state and cache
       setViewingRequests(data || []);
-      setError(prev => ({ ...prev, viewings: null }));
+      setDataCache((prev) => ({
+        ...prev,
+        viewingRequests: { data: data || [], timestamp: Date.now() },
+      }));
+      setError((prev) => ({ ...prev, viewings: null }));
     } catch (err) {
-      console.error('Error fetching viewing requests:', err);
-      setError(prev => ({ ...prev, viewings: err.message }));
-      toast.error('Failed to load viewing requests');
+      console.error("Error fetching viewing requests:", err);
+      setError((prev) => ({ ...prev, viewings: err.message }));
+      toast.error("Failed to load viewing requests");
     } finally {
-      setLoading(prev => ({ ...prev, viewings: false }));
+      setLoading((prev) => ({ ...prev, viewings: false }));
     }
   };
-  
-  const fetchRentalApplications = async () => {
+
+  const fetchRentalApplications = async (forceReload = true) => {
+    // If we have valid cached data and we're not forcing a reload, use cache
+    if (isCacheValid("applications") && !forceReload) {
+      setRentalApplications(dataCache.applications.data);
+      setLoading((prev) => ({ ...prev, applications: false }));
+      return;
+    }
+
     try {
-      setLoading(prev => ({ ...prev, applications: true }));
+      setLoading((prev) => ({ ...prev, applications: true }));
       const { data, error } = await propertyService.getAllApplications();
-      
+
       if (error) throw error;
-      
+
+      // Update state and cache
       setRentalApplications(data || []);
-      setError(prev => ({ ...prev, applications: null }));
+      setDataCache((prev) => ({
+        ...prev,
+        applications: { data: data || [], timestamp: Date.now() },
+      }));
+      setError((prev) => ({ ...prev, applications: null }));
     } catch (err) {
-      console.error('Error fetching applications:', err);
-      setError(prev => ({ ...prev, applications: err.message }));
-      toast.error('Failed to load rental applications');
+      console.error("Error fetching applications:", err);
+      setError((prev) => ({ ...prev, applications: err.message }));
+      toast.error("Failed to load rental applications");
     } finally {
-      setLoading(prev => ({ ...prev, applications: false }));
+      setLoading((prev) => ({ ...prev, applications: false }));
     }
   };
 
@@ -229,10 +322,20 @@ export default function Dashboard() {
 
         if (error) throw error;
 
-        // Update local state after successful deletion
-        setProperties(
-          properties.filter((property) => property.id !== propertyId)
+        // Update local state and cache after successful deletion
+        const updatedProperties = properties.filter(
+          (property) => property.id !== propertyId
         );
+
+        setProperties(updatedProperties);
+        setDataCache((prev) => ({
+          ...prev,
+          properties: {
+            data: updatedProperties,
+            timestamp: Date.now(),
+          },
+        }));
+
         toast.success("Property deleted successfully");
       } catch (error) {
         console.error("Error deleting property:", error);
@@ -254,12 +357,19 @@ export default function Dashboard() {
         if (error) throw error;
         result = data;
 
-        // Update local state
-        setProperties(
-          properties.map((property) =>
-            property.id === editPropertyId ? result : property
-          )
+        // Update local state and cache
+        const updatedProperties = properties.map((property) =>
+          property.id === editPropertyId ? result : property
         );
+
+        setProperties(updatedProperties);
+        setDataCache((prev) => ({
+          ...prev,
+          properties: {
+            data: updatedProperties,
+            timestamp: Date.now(),
+          },
+        }));
 
         toast.success("Property updated successfully");
       } else {
@@ -272,8 +382,18 @@ export default function Dashboard() {
         if (error) throw error;
         result = data;
 
-        // Update local state with newly created property
-        setProperties([result, ...properties]);
+        // Update local state and cache with newly created property
+        const updatedProperties = [result, ...properties];
+
+        setProperties(updatedProperties);
+        setDataCache((prev) => ({
+          ...prev,
+          properties: {
+            data: updatedProperties,
+            timestamp: Date.now(),
+          },
+        }));
+
         toast.success("Property added successfully");
       }
 
@@ -296,12 +416,19 @@ export default function Dashboard() {
 
       if (error) throw error;
 
-      // Update local state
-      setViewingRequests(
-        viewingRequests.map((request) =>
-          request.id === requestId ? { ...request, status } : request
-        )
+      // Update local state and cache
+      const updatedRequests = viewingRequests.map((request) =>
+        request.id === requestId ? { ...request, status } : request
       );
+
+      setViewingRequests(updatedRequests);
+      setDataCache((prev) => ({
+        ...prev,
+        viewingRequests: {
+          data: updatedRequests,
+          timestamp: Date.now(),
+        },
+      }));
 
       toast.success(`Viewing request ${status}`);
     } catch (error) {
@@ -320,14 +447,21 @@ export default function Dashboard() {
 
       if (error) throw error;
 
-      // Update local state
-      setRentalApplications(
-        rentalApplications.map((application) =>
-          application.id === applicationId
-            ? { ...application, status }
-            : application
-        )
+      // Update local state and cache
+      const updatedApplications = rentalApplications.map((application) =>
+        application.id === applicationId
+          ? { ...application, status }
+          : application
       );
+
+      setRentalApplications(updatedApplications);
+      setDataCache((prev) => ({
+        ...prev,
+        applications: {
+          data: updatedApplications,
+          timestamp: Date.now(),
+        },
+      }));
 
       toast.success(`Application ${status}`);
     } catch (error) {
@@ -337,47 +471,18 @@ export default function Dashboard() {
   };
 
   // ----- USER DATA LOADING FUNCTIONS -----
-  // Function to determine if cached data is valid
-  const isCacheValid = (tabName) => {
-    if (!dataCache[tabName]?.timestamp) return false;
-    return Date.now() - dataCache[tabName].timestamp < CACHE_EXPIRY;
-  };
+  // Fetch user's favorite properties with caching
+  const fetchUserFavorites = async (forceReload = true) => {
+    if (!user) return;
 
-  const loadUserData = (tabName) => {
-    // Check for valid cached data first
-    if (isCacheValid(tabName)) {
-      switch (tabName) {
-        case "favorites":
-          setFavorites(dataCache.favorites.data);
-          break;
-        case "applications":
-          setUserApplications(dataCache.applications.data);
-          break;
-        case "viewingRequests":
-          setUserViewingRequests(dataCache.viewingRequests.data);
-          break;
-      }
+    // Use cached data if available and not forcing reload
+    if (isCacheValid("favorites") && !forceReload) {
+      setFavorites(dataCache.favorites.data);
+      setLoading((prev) => ({ ...prev, favorites: false }));
       return;
     }
 
-    // Otherwise fetch fresh data
-    switch (tabName) {
-      case "favorites":
-        fetchUserFavorites();
-        break;
-      case "applications":
-        fetchUserApplications();
-        break;
-      case "viewingRequests":
-        fetchUserViewingRequests();
-        break;
-    }
-  };
-
-  // Fetch user's favorite properties
-  const fetchUserFavorites = async () => {
-    if (!user) return;
-    setLoading(prev => ({ ...prev, favorites: true }));
+    setLoading((prev) => ({ ...prev, favorites: true }));
 
     try {
       // Get favorites from Supabase
@@ -427,14 +532,22 @@ export default function Dashboard() {
       console.error("Error fetching favorites:", error);
       toast.error("Failed to load saved properties.");
     } finally {
-      setLoading(prev => ({ ...prev, favorites: false }));
+      setLoading((prev) => ({ ...prev, favorites: false }));
     }
   };
 
-  // Fetch rental applications for user
-  const fetchUserApplications = async () => {
+  // Fetch rental applications for user with improved caching
+  const fetchUserApplications = async (forceReload = true) => {
     if (!user) return;
-    setLoading(prev => ({ ...prev, applications: true }));
+
+    // Use cached data if available and not forcing reload
+    if (isCacheValid("userApplications") && !forceReload) {
+      setUserApplications(dataCache.userApplications.data);
+      setLoading((prev) => ({ ...prev, applications: false }));
+      return;
+    }
+
+    setLoading((prev) => ({ ...prev, applications: true }));
 
     try {
       // Get applications from Supabase
@@ -487,7 +600,7 @@ export default function Dashboard() {
       setUserApplications(formattedApplications);
       setDataCache((prev) => ({
         ...prev,
-        applications: {
+        userApplications: {
           data: formattedApplications,
           timestamp: Date.now(),
         },
@@ -496,14 +609,22 @@ export default function Dashboard() {
       console.error("Error fetching applications:", error);
       toast.error("Failed to load applications.");
     } finally {
-      setLoading(prev => ({ ...prev, applications: false }));
+      setLoading((prev) => ({ ...prev, applications: false }));
     }
   };
 
-  // Fetch viewing requests for user
-  const fetchUserViewingRequests = async () => {
+  // Fetch viewing requests for user with improved caching
+  const fetchUserViewingRequests = async (forceReload = true) => {
     if (!user) return;
-    setLoading(prev => ({ ...prev, viewings: true }));
+
+    // Use cached data if available and not forcing reload
+    if (isCacheValid("userViewingRequests") && !forceReload) {
+      setUserViewingRequests(dataCache.userViewingRequests.data);
+      setLoading((prev) => ({ ...prev, viewings: false }));
+      return;
+    }
+
+    setLoading((prev) => ({ ...prev, viewings: true }));
 
     try {
       // Get viewing requests from Supabase
@@ -555,7 +676,7 @@ export default function Dashboard() {
       setUserViewingRequests(formattedRequests);
       setDataCache((prev) => ({
         ...prev,
-        viewingRequests: {
+        userViewingRequests: {
           data: formattedRequests,
           timestamp: Date.now(),
         },
@@ -564,7 +685,7 @@ export default function Dashboard() {
       console.error("Error fetching viewing requests:", error);
       toast.error("Failed to load viewing requests.");
     } finally {
-      setLoading(prev => ({ ...prev, viewings: false }));
+      setLoading((prev) => ({ ...prev, viewings: false }));
     }
   };
 
@@ -578,14 +699,16 @@ export default function Dashboard() {
 
       if (error) throw error;
 
-      // Update local state
-      setFavorites(favorites.filter((favorite) => favorite.id !== favoriteId));
+      // Update local state and cache
+      const updatedFavorites = favorites.filter(
+        (favorite) => favorite.id !== favoriteId
+      );
 
-      // Update cache
+      setFavorites(updatedFavorites);
       setDataCache((prev) => ({
         ...prev,
         favorites: {
-          data: favorites.filter((favorite) => favorite.id !== favoriteId),
+          data: updatedFavorites,
           timestamp: Date.now(),
         },
       }));
@@ -619,8 +742,13 @@ export default function Dashboard() {
       {/* Remove the outer padding/margin and make dashboard full height and width */}
       <div className="flex h-screen w-screen overflow-hidden">
         {/* Sidebar - Fixed width with no margins/padding */}
-        <div className="h-full">              
-          <DashboardSidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} profile={profile} />
+        <div className="h-full">
+          <DashboardSidebar
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            user={user}
+            profile={profile}
+          />
         </div>
 
         {/* Main Content Area - With scrolling */}
@@ -644,7 +772,7 @@ export default function Dashboard() {
                   }}
                   onViewAllRequests={() => setActiveTab("viewings")}
                   onViewAllApplications={() => setActiveTab("applications")}
-                  onRefresh={fetchProperties}
+                  onRefresh={() => fetchProperties(true)} // Force reload
                 />
               )}
 
@@ -655,7 +783,7 @@ export default function Dashboard() {
                   loading={loading.viewings}
                   error={error.viewings}
                   onStatusUpdate={handleViewingRequestStatusUpdate}
-                  onRefresh={fetchViewingRequests}
+                  onRefresh={() => fetchViewingRequests(true)} // Force reload
                 />
               )}
 
@@ -666,7 +794,7 @@ export default function Dashboard() {
                   loading={loading.applications}
                   error={error.applications}
                   onStatusUpdate={handleApplicationStatusUpdate}
-                  onRefresh={fetchRentalApplications}
+                  onRefresh={() => fetchRentalApplications(true)} // Force reload
                 />
               )}
 
@@ -674,7 +802,9 @@ export default function Dashboard() {
               {activeTab === "analytics" && <AnalyticsTab />}
 
               {/* Settings Tab */}
-              {activeTab === "settings" && <SettingsTab user={user} profile={profile} />}
+              {activeTab === "settings" && (
+                <SettingsTab user={user} profile={profile} />
+              )}
             </div>
           )}
 
@@ -683,7 +813,7 @@ export default function Dashboard() {
             <div>
               {activeTab === "viewingRequests" && (
                 <div>
-                  {loading.viewings && !dataCache.viewingRequests.data ? (
+                  {loading.viewings && !dataCache.userViewingRequests.data ? (
                     <TabSkeleton />
                   ) : (
                     <UserViewingRequestsTab
@@ -698,7 +828,7 @@ export default function Dashboard() {
 
               {activeTab === "applications" && (
                 <div>
-                  {loading.applications && !dataCache.applications.data ? (
+                  {loading.applications && !dataCache.userApplications.data ? (
                     <TabSkeleton />
                   ) : (
                     <PropertyApplications

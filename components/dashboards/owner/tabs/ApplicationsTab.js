@@ -15,8 +15,7 @@ export default function ApplicationsTab({
 }) {
   const [actionInProgress, setActionInProgress] = useState(null);
   const [propertyImages, setPropertyImages] = useState({});
-  const [imageLoading, setImageLoading] = useState(true);
-  const [processingComplete, setProcessingComplete] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false); // Start as false until we know we need to load
 
   // Get unique property IDs from applications
   const propertyIds = useMemo(() => {
@@ -29,108 +28,91 @@ export default function ApplicationsTab({
     return Array.from(ids);
   }, [applications]);
 
-  // Fetch property images in bulk
+  // Fetch property images in bulk - only if necessary
   useEffect(() => {
-    const fetchPropertyImages = async () => {
-      if (propertyIds.length === 0) {
-        setImageLoading(false);
-        setProcessingComplete(true);
-        return;
-      }
+    // Skip if the parent is still loading data
+    if (loading) return;
+    
+    // Skip if we have no properties to fetch
+    if (propertyIds.length === 0) {
+      return;
+    }
 
+    // Check which property IDs don't have images yet
+    const missingPropertyIds = propertyIds.filter(id => !propertyImages[id]);
+    
+    // If all properties already have images, do nothing
+    if (missingPropertyIds.length === 0) {
+      return;
+    }
+    
+    const fetchPropertyImages = async () => {
       try {
         setImageLoading(true);
-
-        // Get all property data in a single query
+        
+        // Only fetch the missing property images
         const { data: propertiesData, error: propertiesError } = await supabase
-          .from("properties")
-          .select("id, images, owner_id")
-          .in("id", propertyIds);
-
+          .from('properties')
+          .select('id, images, owner_id')
+          .in('id', missingPropertyIds);
+          
         if (propertiesError) {
-          console.error("Error fetching properties data:", propertiesError);
+          console.error('Error fetching properties data:', propertiesError);
           setImageLoading(false);
-          setProcessingComplete(true);
           return;
         }
-
+        
         // Process all properties in parallel
         const newPropertyImages = { ...propertyImages };
         const imagePromises = propertiesData.map(async (property) => {
           if (!property.images || property.images.length === 0) {
+            // Store a placeholder for properties without images to avoid refetching
+            newPropertyImages[property.id] = null;
             return;
           }
-
+          
           try {
             // Get the first image from the property
             const firstImage = property.images[0];
-
+            
             // Normalize the path
             const normalizedPath = firstImage.includes("/")
               ? firstImage
               : `${property.owner_id}/${firstImage}`;
-
+              
             // Get signed URL for the image - with short expiry to avoid caching issues
             const { data: urlData, error: urlError } = await supabase.storage
               .from("property-images")
               .createSignedUrl(normalizedPath, 60 * 60); // 1 hour expiry
-
+              
             if (urlError) {
-              console.error(
-                `Error getting signed URL for property ${property.id}:`,
-                urlError
-              );
+              console.error(`Error getting signed URL for property ${property.id}:`, urlError);
+              newPropertyImages[property.id] = null; // Store null to prevent refetching
               return;
             }
-
+            
             // Store the URL
             newPropertyImages[property.id] = urlData.signedUrl;
           } catch (error) {
-            console.error(
-              `Error processing image for property ${property.id}:`,
-              error
-            );
+            console.error(`Error processing image for property ${property.id}:`, error);
+            newPropertyImages[property.id] = null; // Store null to prevent refetching
           }
         });
-
+        
         // Wait for all image promises to complete
         await Promise.allSettled(imagePromises);
-
+        
         // Update state with all images at once
         setPropertyImages(newPropertyImages);
       } catch (error) {
-        console.error("Error in bulk image loading:", error);
+        console.error('Error in bulk image loading:', error);
       } finally {
         setImageLoading(false);
-        setProcessingComplete(true);
       }
     };
-
-    if (propertyIds.length > 0 && !processingComplete) {
-      fetchPropertyImages();
-    } else if (propertyIds.length === 0) {
-      setImageLoading(false);
-      setProcessingComplete(true);
-    }
-  }, [propertyIds, processingComplete, propertyImages]);
-
-  // Reset processing state when applications change
-  useEffect(() => {
-    setProcessingComplete(false);
-  }, [applications]);
-
-  // Failsafe timer to ensure we don't get stuck in loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (imageLoading) {
-        console.log("Forcing end of image loading after timeout");
-        setImageLoading(false);
-        setProcessingComplete(true);
-      }
-    }, 5000); // 5 second max loading time
-
-    return () => clearTimeout(timer);
-  }, [imageLoading]);
+    
+    fetchPropertyImages();
+  }, [propertyIds, propertyImages, loading]);
 
   // Get the appropriate status badge based on the status
   const getStatusBadge = (status) => {
@@ -183,8 +165,8 @@ export default function ApplicationsTab({
     toast.info("Feature coming soon: Request More Information");
   };
 
-  // Determine the actual loading state
-  const isLoading = loading || (!processingComplete && imageLoading);
+  // Simplified loading logic - only loading if parent data is loading or we're fetching images
+  const isLoading = loading || imageLoading;
 
   if (isLoading) {
     return (

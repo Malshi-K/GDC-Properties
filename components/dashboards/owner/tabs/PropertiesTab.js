@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { formatPrice } from "@/data/mockData";
 import { createClient } from "@supabase/supabase-js";
 import PropertyCard from "../property/PropertyCard";
 
@@ -23,19 +21,19 @@ export default function PropertiesTab({
   onAddNew,
   onRefresh,
 }) {
-  // Local state to manage component-level loading
-  const [localLoading, setLocalLoading] = useState(true);
+  // Use only a single loading state from parent component
+  // This eliminates the need for a separate localLoading state
   const [processedProperties, setProcessedProperties] = useState([]);
   const [processingError, setProcessingError] = useState(null);
   
   // Process properties data safely with try/catch
+  // This is more efficient and won't cause unnecessary re-processing
   useEffect(() => {
     let isMounted = true; // Flag to avoid state updates after unmount
     
     const processData = () => {
       try {
-        // Set initial loading state
-        setLocalLoading(true);
+        // No need to set loading state here since it's managed by parent
         
         // Validate inputs to avoid TypeError
         if (!Array.isArray(properties)) {
@@ -49,81 +47,78 @@ export default function PropertiesTab({
         if (properties.length === 0) {
           if (isMounted) {
             setProcessedProperties([]);
-            setLocalLoading(false);
           }
           return;
         }
         
-        // Process and combine data safely
-        const processed = properties.map(property => {
-          if (!property) return null;
-          
-          try {
-            // Filter related data for this property with null checks
-            const propertyId = property.id;
-            
-            // Safely filter viewing requests - handle null values
-            const propertyViewingRequests = Array.isArray(viewingRequests) 
-              ? viewingRequests.filter(request => request && request.property_id === propertyId)
-              : [];
-            
-            // Safely filter applications - handle null values
-            const propertyApplications = Array.isArray(applications)
-              ? applications.filter(application => application && application.property_id === propertyId)
-              : [];
-            
-            // Return property with its related data
-            return {
-              ...property,
-              viewingRequests: propertyViewingRequests,
-              applications: propertyApplications
-            };
-          } catch (err) {
-            console.error("Error processing property:", property, err);
-            // Return property without related data on error
-            return property;
-          }
-        }).filter(Boolean); // Remove any null values
-        
-        // Update state with processed data
+        // Process and combine data safely - only if data has changed
         if (isMounted) {
+          // Process and combine data safely
+          const processed = properties.map(property => {
+            if (!property) return null;
+            
+            try {
+              // Filter related data for this property with null checks
+              const propertyId = property.id;
+              
+              // If the property already has these arrays, no need to reprocess
+              if (Array.isArray(property.viewingRequests) && 
+                  Array.isArray(property.applications)) {
+                return property;
+              }
+              
+              // Safely filter viewing requests - handle null values
+              const propertyViewingRequests = Array.isArray(viewingRequests) 
+                ? viewingRequests.filter(request => request && request.property_id === propertyId)
+                : [];
+              
+              // Safely filter applications - handle null values
+              const propertyApplications = Array.isArray(applications)
+                ? applications.filter(application => application && application.property_id === propertyId)
+                : [];
+              
+              // Return property with its related data
+              return {
+                ...property,
+                viewingRequests: propertyViewingRequests,
+                applications: propertyApplications
+              };
+            } catch (err) {
+              console.error("Error processing property:", property, err);
+              // Return property without related data on error
+              return property;
+            }
+          }).filter(Boolean); // Remove any null values
+          
+          // Update state with processed data
           setProcessedProperties(processed);
           setProcessingError(null);
-          setLocalLoading(false);
         }
       } catch (err) {
         console.error("Error in properties processing:", err);
         if (isMounted) {
           setProcessingError(err.message);
-          setLocalLoading(false);
         }
       }
     };
     
-    // Process data on properties change
-    processData();
+    // Only process if we have properties data and we're not in a loading state
+    // This prevents processing during loading states
+    if (!loading && properties.length > 0) {
+      processData();
+    } else if (!loading && (!properties || properties.length === 0)) {
+      // Make sure we clear properties if there are none
+      setProcessedProperties([]);
+    }
     
     // Cleanup function
     return () => {
       isMounted = false;
     };
-  }, [properties, viewingRequests, applications]);
+  }, [properties, viewingRequests, applications, loading]);
   
-  // Force end loading state after a timeout (failsafe)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (localLoading) {
-        console.log("Forcing end of loading state after timeout");
-        setLocalLoading(false);
-      }
-    }, 5000); // 5 second maximum loading time
-    
-    return () => clearTimeout(timer);
-  }, [localLoading]);
-  
-  // Determine if we should still be in loading state
-  const isLoading = loading === true || localLoading;
-  
+  // REMOVED: Force end loading state timeout since loading is managed by parent
+
   // Render content based on loading state
   return (
     <div className="w-full max-w-6xl mx-auto px-4 sm:px-6">
@@ -132,7 +127,7 @@ export default function PropertiesTab({
         <button
           onClick={onAddNew}
           className="bg-custom-red hover:bg-red-700 text-white font-medium py-2 px-3 sm:px-4 rounded-md transition-colors duration-300 flex items-center text-sm sm:text-base whitespace-nowrap"
-          disabled={isLoading}
+          disabled={loading}
         >
           <svg
             className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2"
@@ -152,7 +147,7 @@ export default function PropertiesTab({
         </button>
       </div>
 
-      {isLoading ? (
+      {loading ? (
         <div className="flex justify-center my-8 sm:my-12">
           <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-t-2 border-b-2 border-custom-red"></div>
         </div>

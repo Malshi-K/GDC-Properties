@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { formatPrice } from "@/data/mockData";
 import { createClient } from "@supabase/supabase-js";
+import Image from "next/image";
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -11,44 +12,125 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
+// Image cache to persist across renders
+const imageCache = new Map();
+// The cache expiry time in milliseconds (1 hour)
+const CACHE_EXPIRY = 60 * 60 * 1000;
+
 export default function PropertyCard({ property, viewingRequests = [], applications = [], onEdit, onDelete }) {
   const router = useRouter();
   const [propertyImage, setPropertyImage] = useState(null);
+  const [imageError, setImageError] = useState(false);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
+  
+  // Check if an image URL is in cache and still valid
+  const getFromCache = (cacheKey) => {
+    if (imageCache.has(cacheKey)) {
+      const { url, timestamp } = imageCache.get(cacheKey);
+      // Check if the cache entry is still valid (less than CACHE_EXPIRY old)
+      if (Date.now() - timestamp < CACHE_EXPIRY) {
+        return url;
+      }
+    }
+    return null;
+  };
+
+  // Add an image URL to the cache
+  const addToCache = (cacheKey, url) => {
+    imageCache.set(cacheKey, {
+      url,
+      timestamp: Date.now(),
+    });
+  };
 
   useEffect(() => {
+    // Set up the ref
+    mountedRef.current = true;
+    
     const fetchImageUrl = async () => {
-      if (property.images && property.images.length > 0) {
+      if (!property || !property.id) {
+        setLoading(false);
+        return;
+      }
+      
+      if (!property.images || !Array.isArray(property.images) || property.images.length === 0) {
+        setLoading(false);
+        return;
+      }
+      
+      // Create a cache key based on property ID and first image
+      const cacheKey = `${property.id}-${property.images[0]}`;
+      
+      // Check cache first
+      const cachedUrl = getFromCache(cacheKey);
+      if (cachedUrl) {
+        setPropertyImage(cachedUrl);
+        setLoading(false);
+        return;
+      }
+      
+      // If not in cache, proceed with fetch
+      try {
         setLoading(true);
+        setImageError(false);
+        
         const imagePath = property.images[0];
 
-        // Normalize the path
-        const normalizedPath = imagePath.includes("/")
-          ? imagePath
-          : `${property.owner_id}/${imagePath}`;
-
-        try {
-          const { data, error } = await supabase.storage
-            .from("property-images")
-            .createSignedUrl(normalizedPath, 60 * 60); // 1 hour expiry
-
-          if (error) {
-            console.error("Error getting signed URL:", error);
-          } else {
-            setPropertyImage(data.signedUrl);
-          }
-        } catch (error) {
-          console.error("Error:", error);
-        } finally {
-          setLoading(false);
+        // Normalize the path - handling different image path formats
+        let normalizedPath;
+        if (imagePath.includes("/")) {
+          normalizedPath = imagePath;
+        } else if (property.owner_id) {
+          normalizedPath = `${property.owner_id}/${imagePath}`;
+        } else {
+          // If no owner_id is available, try to construct a path with property id as fallback
+          normalizedPath = `properties/${property.id}/${imagePath}`;
         }
-      } else {
-        setLoading(false);
+
+        // Get a signed URL with longer expiry to reduce refresh needs
+        const { data, error } = await supabase.storage
+          .from("property-images")
+          .createSignedUrl(normalizedPath, 3600); // 1 hour expiry
+
+        if (error) {
+          console.error("Error getting signed URL for property " + property.id + ":", error);
+          setImageError(true);
+          
+          // Try alternate approach - get public URL instead
+          const publicUrl = supabase.storage
+            .from("property-images")
+            .getPublicUrl(normalizedPath);
+            
+          if (publicUrl?.data?.publicUrl) {
+            // Add cache buster to avoid browser caching
+            const urlWithCacheBuster = `${publicUrl.data.publicUrl}?t=${Date.now()}`;
+            
+            if (mountedRef.current) {
+              setPropertyImage(urlWithCacheBuster);
+              addToCache(cacheKey, urlWithCacheBuster);
+              setImageError(false);
+            }
+          }
+        } else if (data?.signedUrl && mountedRef.current) {
+          setPropertyImage(data.signedUrl);
+          addToCache(cacheKey, data.signedUrl);
+        }
+      } catch (error) {
+        console.error("Error loading image for property " + property.id + ":", error);
+        if (mountedRef.current) setImageError(true);
+      } finally {
+        if (mountedRef.current) setLoading(false);
       }
     };
 
     fetchImageUrl();
-  }, [property.images, property.owner_id]);
+    
+    // Cleanup function
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [property?.id, property?.images, property?.owner_id]);
 
   const pendingViewings = viewingRequests.filter(
     (request) => request.status === "pending"
@@ -62,13 +144,15 @@ export default function PropertyCard({ property, viewingRequests = [], applicati
     router.push(`/property/${property.id}`);
   };
 
-  const handleEdit = () => {
+  const handleEdit = (e) => {
+    e.stopPropagation();
     if (typeof onEdit === 'function') {
       onEdit(property.id);
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = (e) => {
+    e.stopPropagation();
     if (typeof onDelete === 'function') {
       onDelete(property.id);
     }
@@ -87,18 +171,24 @@ export default function PropertyCard({ property, viewingRequests = [], applicati
   return (
     <div className="bg-white shadow rounded-lg overflow-hidden text-gray-600">
       <div className="md:flex">
-        {/* Property Image Section */}
+        {/* Property Image Section - Using nextjs Image component for better performance */}
         <div className="md:w-1/3 h-64 md:h-auto bg-gray-100 relative">
           {loading ? (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-custom-red"></div>
             </div>
-          ) : propertyImage ? (
-            <img
-              src={propertyImage}
-              alt={property.title || "Property"}
-              className="w-full h-full object-cover"
-            />
+          ) : propertyImage && !imageError ? (
+            <div className="relative w-full h-full min-h-[16rem]">
+              <Image
+                src={propertyImage}
+                alt={property.title || "Property"}
+                fill
+                sizes="(max-width: 768px) 100vw, 33vw"
+                className="object-cover"
+                onError={() => setImageError(true)}
+                priority={true}
+              />
+            </div>
           ) : (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-200">
               <svg className="h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

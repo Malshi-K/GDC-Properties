@@ -1,7 +1,7 @@
 // components/dashboards/user/ViewingRequestsTab.js
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { formatDate } from '@/utils/formatters';
 import { supabase } from '@/lib/supabase';
 import { createClient } from "@supabase/supabase-js";
@@ -17,63 +17,104 @@ const supabaseClient = createClient(
  * ViewingRequestsTab component for user dashboard
  * This component shows viewing requests submitted by the user
  */
-const ViewingRequestsTab = ({ viewingRequests = [], setViewingRequests, isOwner = false }) => {
+const ViewingRequestsTab = ({ viewingRequests = [], setViewingRequests, isOwner = false, loading = false }) => {
   const [cancelingId, setCancelingId] = useState(null);
   const [propertyImages, setPropertyImages] = useState({});
   const [expandedRequest, setExpandedRequest] = useState(null);
+  const [imageLoading, setImageLoading] = useState(false);
   
-  // Fetch property images for all requests
-  useEffect(() => {
-    const fetchPropertyImages = async () => {
-      const newPropertyImages = { ...propertyImages };
-      
-      for (const request of viewingRequests) {
-        if (!request.property_id || newPropertyImages[request.property_id]) continue;
-        
-        try {
-          // First, get the property data to access the images array
-          const { data: propertyData, error: propertyError } = await supabase
-            .from('properties')
-            .select('images, owner_id')
-            .eq('id', request.property_id)
-            .single();
-            
-          if (propertyError || !propertyData || !propertyData.images || propertyData.images.length === 0) {
-            console.error('Error fetching property images or no images available:', propertyError);
-            continue;
-          }
-          
-          // Get the first image from the property
-          const firstImage = propertyData.images[0];
-          
-          // Normalize the path
-          const normalizedPath = firstImage.includes("/")
-            ? firstImage
-            : `${propertyData.owner_id}/${firstImage}`;
-            
-          // Get signed URL for the image
-          const { data: urlData, error: urlError } = await supabaseClient.storage
-            .from("property-images")
-            .createSignedUrl(normalizedPath, 60 * 60); // 1 hour expiry
-            
-          if (urlError) {
-            console.error("Error getting signed URL:", urlError);
-            continue;
-          }
-          
-          newPropertyImages[request.property_id] = urlData.signedUrl;
-        } catch (error) {
-          console.error('Error fetching property image:', error);
+  // Get unique property IDs from requests - memoized for performance
+  const propertyIds = useMemo(() => {
+    const ids = new Set();
+    if (Array.isArray(viewingRequests)) {
+      viewingRequests.forEach(request => {
+        if (request.property_id) {
+          ids.add(request.property_id);
         }
+      });
+    }
+    return Array.from(ids);
+  }, [viewingRequests]);
+  
+  // Fetch property images only if needed (when properties exist and don't have images yet)
+  useEffect(() => {
+    // Skip if the parent is still loading data or no properties to fetch
+    if (loading || propertyIds.length === 0) return;
+    
+    // Check which property IDs don't have images yet
+    const missingPropertyIds = propertyIds.filter(id => !propertyImages[id]);
+    
+    // If all properties already have images, do nothing
+    if (missingPropertyIds.length === 0) return;
+    
+    const fetchPropertyImages = async () => {
+      try {
+        setImageLoading(true);
+        const newPropertyImages = { ...propertyImages };
+        
+        // Get all missing properties data in a single query
+        const { data: propertiesData, error: propertiesError } = await supabase
+          .from('properties')
+          .select('id, images, owner_id')
+          .in('id', missingPropertyIds);
+        
+        if (propertiesError) {
+          console.error('Error fetching properties data:', propertiesError);
+          setImageLoading(false);
+          return;
+        }
+        
+        // Process all properties in parallel with Promise.all
+        const imagePromises = propertiesData.map(async (property) => {
+          if (!property.images || property.images.length === 0) {
+            // Store null to avoid repeated fetching for properties without images
+            return [property.id, null];
+          }
+          
+          try {
+            // Get the first image from the property
+            const firstImage = property.images[0];
+            
+            // Normalize the path
+            const normalizedPath = firstImage.includes("/")
+              ? firstImage
+              : `${property.owner_id}/${firstImage}`;
+              
+            // Get signed URL for the image
+            const { data: urlData, error: urlError } = await supabaseClient.storage
+              .from("property-images")
+              .createSignedUrl(normalizedPath, 60 * 60); // 1 hour expiry
+              
+            if (urlError) {
+              console.error(`Error getting signed URL for property ${property.id}:`, urlError);
+              return [property.id, null];
+            }
+            
+            return [property.id, urlData.signedUrl];
+          } catch (error) {
+            console.error(`Error processing image for property ${property.id}:`, error);
+            return [property.id, null];
+          }
+        });
+        
+        // Wait for all image promises to complete
+        const results = await Promise.all(imagePromises);
+        
+        // Update the property images state with all results at once
+        results.forEach(([propertyId, url]) => {
+          newPropertyImages[propertyId] = url;
+        });
+        
+        setPropertyImages(newPropertyImages);
+      } catch (error) {
+        console.error('Error in bulk image loading:', error);
+      } finally {
+        setImageLoading(false);
       }
-      
-      setPropertyImages(newPropertyImages);
     };
     
-    if (viewingRequests.length > 0) {
-      fetchPropertyImages();
-    }
-  }, [viewingRequests]);
+    fetchPropertyImages();
+  }, [propertyIds, propertyImages, loading]);
 
   // Get the appropriate status badge based on the status
   const getStatusBadge = (status) => {
@@ -190,6 +231,22 @@ const ViewingRequestsTab = ({ viewingRequests = [], setViewingRequests, isOwner 
     // For now we'll just show a toast
     toast.info('Feature coming soon: Suggest a new time');
   };
+
+  // Simplified loading state - combines parent loading and image loading
+  const isLoading = loading || imageLoading;
+  
+  if (isLoading) {
+    return (
+      <div className="max-w-6xl mx-auto text-gray-600">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">
+          {isOwner ? 'Property Viewing Requests' : 'My Viewing Requests'}
+        </h2>
+        <div className="flex justify-center my-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto text-gray-600">

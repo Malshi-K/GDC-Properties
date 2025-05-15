@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { supabase } from "@/lib/supabase";
 import Image from 'next/image';
@@ -9,25 +9,49 @@ import Image from 'next/image';
  */
 const SavedProperties = ({ favorites, loadingFavorites, onRemoveFavorite }) => {
   const [propertyImages, setPropertyImages] = useState({});
-  const [loadingImages, setLoadingImages] = useState(true);
+  const [imageLoading, setImageLoading] = useState(false);
   const [view, setView] = useState('grid'); // 'grid' or 'list'
   const [sortBy, setSortBy] = useState('default');
 
-  // Fetch property images in parallel
+  // Get unique property IDs from favorites - memoized for performance
+  const propertyIds = useMemo(() => {
+    const ids = new Set();
+    if (Array.isArray(favorites)) {
+      favorites.forEach(property => {
+        if (property.id) {
+          ids.add(property.id);
+        }
+      });
+    }
+    return Array.from(ids);
+  }, [favorites]);
+
+  // Fetch property images in parallel - only fetching missing images
   useEffect(() => {
+    // Skip if parent is still loading or no properties to fetch
+    if (loadingFavorites || !propertyIds.length) return;
+    
+    // Check which property IDs don't have images yet
+    const missingPropertyIds = propertyIds.filter(id => !propertyImages[id]);
+    
+    // If all properties already have images, do nothing
+    if (missingPropertyIds.length === 0) return;
+    
     async function fetchPropertyImages() {
-      // Check if favorites exists and has items
-      if (!favorites || !Array.isArray(favorites) || favorites.length === 0) {
-        setLoadingImages(false);
-        return;
-      }
-      
-      setLoadingImages(true);
+      setImageLoading(true);
       
       try {
-        // Create array of promises for parallel fetching
+        const newPropertyImages = { ...propertyImages };
+        
+        // Create array of promises for parallel fetching - only for missing IDs
         const imagePromises = favorites
-          .filter(property => property.images && Array.isArray(property.images) && property.images.length > 0)
+          .filter(property => 
+            property.id && 
+            missingPropertyIds.includes(property.id) && 
+            property.images && 
+            Array.isArray(property.images) && 
+            property.images.length > 0
+          )
           .map(async (property) => {
             const imagePath = property.images[0];
             
@@ -56,22 +80,21 @@ const SavedProperties = ({ favorites, loadingFavorites, onRemoveFavorite }) => {
         // Wait for all promises to resolve
         const results = await Promise.all(imagePromises);
         
-        // Convert results to an object
-        const images = {};
+        // Convert results to an object and update only the ones that returned URLs
         results.forEach(([propertyId, url]) => {
-          if (url) images[propertyId] = url;
+          if (propertyId && url) newPropertyImages[propertyId] = url;
         });
         
-        setPropertyImages(images);
+        setPropertyImages(newPropertyImages);
       } catch (error) {
         console.error("Error in fetchPropertyImages:", error);
       } finally {
-        setLoadingImages(false);
+        setImageLoading(false);
       }
     }
     
     fetchPropertyImages();
-  }, [favorites]);
+  }, [favorites, propertyIds, propertyImages, loadingFavorites]);
 
   // Handle sort changes
   const handleSortChange = (e) => {
@@ -83,8 +106,8 @@ const SavedProperties = ({ favorites, loadingFavorites, onRemoveFavorite }) => {
     setView(newView);
   };
 
-  // Get sorted properties
-  const getSortedProperties = () => {
+  // Get sorted properties - memoized to prevent recalculation on re-render
+  const sortedProperties = useMemo(() => {
     if (!favorites || !Array.isArray(favorites)) return [];
     
     const propertiesCopy = [...favorites];
@@ -103,10 +126,13 @@ const SavedProperties = ({ favorites, loadingFavorites, onRemoveFavorite }) => {
       default:
         return propertiesCopy;
     }
-  };
+  }, [favorites, sortBy]);
+
+  // Combined loading state
+  const isLoading = loadingFavorites || imageLoading;
 
   // Loading state
-  if (loadingFavorites) {
+  if (isLoading) {
     return (
       <div className="max-w-6xl mx-auto">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Saved Properties</h2>
@@ -157,13 +183,7 @@ const SavedProperties = ({ favorites, loadingFavorites, onRemoveFavorite }) => {
     <div className="max-w-6xl mx-auto">
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Saved Properties</h2>
       
-      {loadingImages ? (
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex justify-center my-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
-          </div>
-        </div>
-      ) : favorites.length === 0 ? (
+      {favorites.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-center py-10">
             <div className="mb-4">
@@ -195,7 +215,7 @@ const SavedProperties = ({ favorites, loadingFavorites, onRemoveFavorite }) => {
             <p className="text-gray-500">You have {favorites.length} saved {favorites.length === 1 ? 'property' : 'properties'}</p>
             
             <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
-              
+              {/* Sort dropdown - can be added if needed */}
               
               {/* View toggle */}
               <div className="flex rounded-md shadow-sm">
@@ -234,7 +254,7 @@ const SavedProperties = ({ favorites, loadingFavorites, onRemoveFavorite }) => {
           {view === 'grid' ? (
             // Grid View
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getSortedProperties().map(property => (
+              {sortedProperties.map(property => (
                 <div key={property.id} className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden transition-shadow hover:shadow-md">
                   <div className="relative">
                     {/* Property Image */}
@@ -313,7 +333,7 @@ const SavedProperties = ({ favorites, loadingFavorites, onRemoveFavorite }) => {
           ) : (
             // List View
             <div className="space-y-4">
-              {getSortedProperties().map(property => (
+              {sortedProperties.map(property => (
                 <div key={property.id} className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden transition-shadow hover:shadow-md">
                   <div className="flex flex-col sm:flex-row">
                     {/* Property Image */}
