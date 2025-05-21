@@ -7,6 +7,8 @@ import Footer from "@/components/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ImageLoadingProvider } from "@/lib/services/imageLoaderService";
 import { usePathname } from "next/navigation";
+import GlobalLoadingIndicator from "@/components/GlobalLoadingIndicator";
+import { GlobalDataProvider } from "@/contexts/GlobalDataContext";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -22,18 +24,16 @@ const geistMono = localFont({
 // Client component to conditionally render footer
 function ConditionalFooter() {
   const pathname = usePathname();
-  
+
   // Skip rendering footer on dashboard page
-  if (pathname?.startsWith('/dashboard')) {
+  if (pathname?.startsWith("/dashboard")) {
     return null;
   }
-  
+
   return <Footer />;
 }
 
 export default function RootLayout({ children }) {
-  const pathname = usePathname();
-  
   // Create metadata (since this is now a client component, we can't export const metadata)
   const metadata = {
     title: "GDC Properties",
@@ -50,9 +50,14 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <Header />
-          <ImageLoadingProvider>{children}</ImageLoadingProvider>
-          <ConditionalFooter />
+          <GlobalDataProvider>
+            <ImageLoadingProvider>
+              <GlobalLoadingIndicator />
+              <Header />
+              {children}
+              <ConditionalFooter />
+            </ImageLoadingProvider>
+          </GlobalDataProvider>
         </AuthProvider>
       </body>
     </html>

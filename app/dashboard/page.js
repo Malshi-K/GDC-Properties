@@ -727,11 +727,35 @@ export default function Dashboard() {
 
   if (!userRole) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md">
-          <h2 className="text-2xl font-bold mb-4">Loading dashboard...</h2>
-          <div className="animate-pulse h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-          <div className="animate-pulse h-4 bg-gray-200 rounded w-1/2"></div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <div className="relative h-24 w-24 mb-4">
+            {/* Circular loading indicator */}
+            <div className="absolute inset-0 border-4 border-custom-red border-opacity-20 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-transparent border-t-custom-red rounded-full animate-spin"></div>
+
+            {/* Segmented loading indicator that matches the image better */}
+            <div className="absolute inset-0">
+              {[...Array(24)].map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute w-1.5 h-5 bg-custom-red opacity-0"
+                  style={{
+                    left: "calc(50% - 0.75px)",
+                    top: "0",
+                    transformOrigin: "center 12px",
+                    transform: `rotate(${i * 15}deg) translateY(8px)`,
+                    animation: `fadeInOut 1.5s infinite ${i * (1.5 / 24)}s`,
+                  }}
+                ></div>
+              ))}
+            </div>
+
+            {/* Loading text in center */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-custom-red text-sm font-medium">Loading...</span>
+            </div>
+          </div>
         </div>
       </div>
     );

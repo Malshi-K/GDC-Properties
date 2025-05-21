@@ -3,134 +3,61 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { formatPrice } from "@/data/mockData";
-import { createClient } from "@supabase/supabase-js";
 import Image from "next/image";
-
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
-
-// Image cache to persist across renders
-const imageCache = new Map();
-// The cache expiry time in milliseconds (1 hour)
-const CACHE_EXPIRY = 60 * 60 * 1000;
+import { useImageLoader } from "@/lib/services/imageLoaderService";
 
 export default function PropertyCard({ property, viewingRequests = [], applications = [], onEdit, onDelete }) {
   const router = useRouter();
-  const [propertyImage, setPropertyImage] = useState(null);
+  const { loadPropertyImage, propertyImages, isPropertyImageLoading } = useImageLoader();
   const [imageError, setImageError] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const mountedRef = useRef(true);
+  const cardRef = useRef(null);
   
-  // Check if an image URL is in cache and still valid
-  const getFromCache = (cacheKey) => {
-    if (imageCache.has(cacheKey)) {
-      const { url, timestamp } = imageCache.get(cacheKey);
-      // Check if the cache entry is still valid (less than CACHE_EXPIRY old)
-      if (Date.now() - timestamp < CACHE_EXPIRY) {
-        return url;
-      }
-    }
-    return null;
-  };
-
-  // Add an image URL to the cache
-  const addToCache = (cacheKey, url) => {
-    imageCache.set(cacheKey, {
-      url,
-      timestamp: Date.now(),
-    });
-  };
-
+  // Load property image
   useEffect(() => {
-    // Set up the ref
-    mountedRef.current = true;
+    if (property?.id && property?.images?.length > 0 && !propertyImages[property.id]) {
+      loadPropertyImage(property.id, property.owner_id, property.images[0]);
+    }
+  }, [property?.id, property?.images, property?.owner_id, loadPropertyImage, propertyImages]);
+  
+  // Get the property image URL from the context
+  const propertyImage = propertyImages[property.id];
+  
+  // Get loading state from the context
+  const loading = isPropertyImageLoading(property.id);
+
+  // Reset image error when property changes
+  useEffect(() => {
+    setImageError(false);
+  }, [property?.id]);
+
+  // Add intersection observer to check if card is visible
+  useEffect(() => {
+    if (!cardRef.current) return;
     
-    const fetchImageUrl = async () => {
-      if (!property || !property.id) {
-        setLoading(false);
-        return;
-      }
-      
-      if (!property.images || !Array.isArray(property.images) || property.images.length === 0) {
-        setLoading(false);
-        return;
-      }
-      
-      // Create a cache key based on property ID and first image
-      const cacheKey = `${property.id}-${property.images[0]}`;
-      
-      // Check cache first
-      const cachedUrl = getFromCache(cacheKey);
-      if (cachedUrl) {
-        setPropertyImage(cachedUrl);
-        setLoading(false);
-        return;
-      }
-      
-      // If not in cache, proceed with fetch
-      try {
-        setLoading(true);
-        setImageError(false);
-        
-        const imagePath = property.images[0];
-
-        // Normalize the path - handling different image path formats
-        let normalizedPath;
-        if (imagePath.includes("/")) {
-          normalizedPath = imagePath;
-        } else if (property.owner_id) {
-          normalizedPath = `${property.owner_id}/${imagePath}`;
-        } else {
-          // If no owner_id is available, try to construct a path with property id as fallback
-          normalizedPath = `properties/${property.id}/${imagePath}`;
-        }
-
-        // Get a signed URL with longer expiry to reduce refresh needs
-        const { data, error } = await supabase.storage
-          .from("property-images")
-          .createSignedUrl(normalizedPath, 3600); // 1 hour expiry
-
-        if (error) {
-          console.error("Error getting signed URL for property " + property.id + ":", error);
-          setImageError(true);
-          
-          // Try alternate approach - get public URL instead
-          const publicUrl = supabase.storage
-            .from("property-images")
-            .getPublicUrl(normalizedPath);
-            
-          if (publicUrl?.data?.publicUrl) {
-            // Add cache buster to avoid browser caching
-            const urlWithCacheBuster = `${publicUrl.data.publicUrl}?t=${Date.now()}`;
-            
-            if (mountedRef.current) {
-              setPropertyImage(urlWithCacheBuster);
-              addToCache(cacheKey, urlWithCacheBuster);
-              setImageError(false);
-            }
+    // Create an intersection observer to load images only when they're visible
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && property?.id && property?.images?.length > 0 && !propertyImages[property.id]) {
+            // Load image when card becomes visible
+            loadPropertyImage(property.id, property.owner_id, property.images[0]);
           }
-        } else if (data?.signedUrl && mountedRef.current) {
-          setPropertyImage(data.signedUrl);
-          addToCache(cacheKey, data.signedUrl);
-        }
-      } catch (error) {
-        console.error("Error loading image for property " + property.id + ":", error);
-        if (mountedRef.current) setImageError(true);
-      } finally {
-        if (mountedRef.current) setLoading(false);
+        });
+      },
+      {
+        rootMargin: '200px', // Start loading a bit before the element becomes visible
+        threshold: 0.1
+      }
+    );
+    
+    observer.observe(cardRef.current);
+    
+    return () => {
+      if (cardRef.current) {
+        observer.unobserve(cardRef.current);
       }
     };
-
-    fetchImageUrl();
-    
-    // Cleanup function
-    return () => {
-      mountedRef.current = false;
-    };
-  }, [property?.id, property?.images, property?.owner_id]);
+  }, [property?.id, property?.images, property?.owner_id, loadPropertyImage, propertyImages]);
 
   const pendingViewings = viewingRequests.filter(
     (request) => request.status === "pending"
@@ -169,9 +96,9 @@ export default function PropertyCard({ property, viewingRequests = [], applicati
   };
 
   return (
-    <div className="bg-white shadow rounded-lg overflow-hidden text-gray-600">
+    <div ref={cardRef} className="bg-white shadow rounded-lg overflow-hidden text-gray-600">
       <div className="md:flex">
-        {/* Property Image Section - Using nextjs Image component for better performance */}
+        {/* Property Image Section - Using Next.js Image component for better performance */}
         <div className="md:w-1/3 h-64 md:h-auto bg-gray-100 relative">
           {loading ? (
             <div className="absolute inset-0 flex items-center justify-center">
@@ -186,7 +113,8 @@ export default function PropertyCard({ property, viewingRequests = [], applicati
                 sizes="(max-width: 768px) 100vw, 33vw"
                 className="object-cover"
                 onError={() => setImageError(true)}
-                priority={true}
+                priority={false} // Only set priority for above-the-fold images
+                loading="lazy"
               />
             </div>
           ) : (

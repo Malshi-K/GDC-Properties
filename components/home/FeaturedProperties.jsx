@@ -3,145 +3,202 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { supabase } from "@/lib/supabase"; // Import from shared config
+import { supabase } from "@/lib/supabase";
+import { useGlobalData } from '@/contexts/GlobalDataContext'; // Import the global data context
+import { useImageLoader } from '@/lib/services/imageLoaderService'; // Import the image loader service
+
+const CACHE_KEY = 'featured_properties';
+const BATCH_SIZE = 8;
 
 const FeaturedProperties = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [properties, setProperties] = useState([]);
-  const [propertyImages, setPropertyImages] = useState({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const scrollRef = useRef(null);
   const router = useRouter();
+  const isInitialMount = useRef(true);
+  const fetchAbortController = useRef(null);
   
-  // Cache state
-  const [cachedProperties, setCachedProperties] = useState(null);
-  const cacheExpiry = 10 * 60 * 1000; // 10 minutes cache
+  // Get global context functions
+  const { 
+    getFromCache, 
+    addToCache, 
+    startLoading, 
+    stopLoading 
+  } = useGlobalData();
   
-  // Fetch properties using a more optimized approach
-  useEffect(() => {
-    const fetchProperties = async () => {
-      // Check for cached properties first
-      const cached = localStorage.getItem('featuredProperties');
-      if (cached) {
-        try {
-          const { data, timestamp } = JSON.parse(cached);
+  // Get image loader functions
+  const { 
+    propertyImages,
+    preloadPropertiesImages 
+  } = useImageLoader();
+
+  // Function to fetch properties with proper error handling and cancellation
+  const fetchProperties = async (forceRefresh = false) => {
+    // Cancel any in-progress fetches
+    if (fetchAbortController.current) {
+      fetchAbortController.current.abort();
+    }
+    
+    // Create a new abort controller for this fetch
+    fetchAbortController.current = new AbortController();
+    const signal = fetchAbortController.current.signal;
+    
+    try {
+      // Start loading states
+      setLoading(true);
+      startLoading();
+      
+      // Check cache first if not forcing refresh
+      if (!forceRefresh) {
+        const cachedData = getFromCache(CACHE_KEY);
+        if (cachedData) {
+          setProperties(cachedData);
+          setLoading(false);
           
-          // Check if cache is still valid
-          if (timestamp && Date.now() - timestamp < cacheExpiry) {
-            setProperties(data);
-            setCachedProperties(data);
-            setLoading(false);
-            
-            // Prefetch images in the background to improve UX
-            fetchPropertyImages(data);
-            return;
+          // Preload property images in the background
+          if (Array.isArray(cachedData) && cachedData.length > 0) {
+            preloadPropertiesImages(cachedData);
           }
-        } catch (error) {
-          console.error('Error parsing cached properties:', error);
-          // Continue with fetching fresh data
+          
+          return;
         }
       }
       
-      try {
-        setLoading(true);
-        
-        // Use a batch size for pagination if needed in the future
-        const BATCH_SIZE = 8;
-        
-        // Query properties table
-        const { data, error } = await supabase
-          .from('properties')
-          .select('id, title, price, location, bedrooms, bathrooms, square_footage, owner_id, images, created_at')
-          .order('created_at', { ascending: false })
-          .limit(BATCH_SIZE);
-        
-        if (error) {
-          console.error('Error fetching properties:', error);
-          return;
+      // Fetch new data with timeout
+      const timeoutId = setTimeout(() => {
+        if (fetchAbortController.current) {
+          fetchAbortController.current.abort('Timeout');
         }
+      }, 15000); // 15 second timeout
+      
+      const { data, error } = await supabase
+        .from('properties')
+        .select('id, title, price, location, bedrooms, bathrooms, square_footage, owner_id, images, created_at')
+        .order('created_at', { ascending: false })
+        .limit(BATCH_SIZE);
+      
+      // Clear timeout
+      clearTimeout(timeoutId);
+      
+      // Check if fetch was aborted
+      if (signal.aborted) {
+        return;
+      }
+      
+      if (error) {
+        console.error('Error fetching properties:', error);
+        setError(error.message || 'Failed to load properties');
+        return;
+      }
+      
+      // Update state with fetched data
+      if (Array.isArray(data)) {
+        setProperties(data);
         
-        // Set properties immediately so UI can render
-        setProperties(data || []);
+        // Cache the data using the global context
+        addToCache(CACHE_KEY, data, {
+          // Cache for 1 hour
+          expiry: 60 * 60 * 1000,
+          persist: true
+        });
         
-        // Cache the properties
-        localStorage.setItem('featuredProperties', JSON.stringify({
-          data,
-          timestamp: Date.now()
-        }));
-        setCachedProperties(data);
-        
-        // Then fetch images separately
-        fetchPropertyImages(data);
-      } catch (error) {
-        console.error('Error:', error);
-      } finally {
+        // Preload property images
+        preloadPropertiesImages(data);
+      } else {
+        setProperties([]);
+      }
+      
+      setError(null);
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        console.log('Fetch aborted:', err.message);
+      } else {
+        console.error('Error fetching properties:', err);
+        setError(err.message || 'An unexpected error occurred');
+      }
+    } finally {
+      if (!signal.aborted) {
         setLoading(false);
+        stopLoading();
+      }
+    }
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    fetchProperties();
+    
+    // Cleanup function
+    return () => {
+      if (fetchAbortController.current) {
+        fetchAbortController.current.abort();
+      }
+    };
+  }, []);
+
+  // Add visibility change handler to refresh stale data
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !isInitialMount.current) {
+        // Only refresh if the data is stale (over 10 minutes old)
+        const cachedData = getFromCache(CACHE_KEY);
+        const cachedTimestamp = cachedData?._timestamp;
+        
+        if (!cachedTimestamp || (Date.now() - cachedTimestamp > 10 * 60 * 1000)) {
+          fetchProperties();
+        }
       }
     };
     
-    fetchProperties();
+    // Mark initial mount complete after first render
+    isInitialMount.current = false;
+    
+    // Add event listener
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Cleanup
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
-  // Optimized image fetching with batching
-  const fetchPropertyImages = async (propertiesData) => {
-    if (!propertiesData?.length) return;
-    
-    try {
-      // Create batch requests (fetch images in groups of 4)
-      const batchSize = 4;
-      const batches = [];
-      
-      for (let i = 0; i < propertiesData.length; i += batchSize) {
-        const batch = propertiesData.slice(i, i + batchSize);
-        
-        // Process each batch in parallel
-        batches.push(
-          Promise.all(
-            batch
-              .filter((property) => property.images && property.images.length > 0)
-              .map(async (property) => {
-                const imagePath = property.images[0];
-                const normalizedPath = imagePath.includes('/')
-                  ? imagePath
-                  : `${property.owner_id}/${imagePath}`;
-                  
-                try {
-                  const { data: signedUrlData, error: signedUrlError } = await supabase
-                    .storage
-                    .from('property-images')
-                    .createSignedUrl(normalizedPath, 60 * 60); // 1 hour expiry
-                    
-                  return [property.id, signedUrlError ? null : signedUrlData.signedUrl];
-                } catch (error) {
-                  console.error('Error fetching image:', error);
-                  return [property.id, null];
-                }
-              })
-          )
-        );
-      }
-      
-      // Process all batches
-      const results = await Promise.all(batches);
-      const allResults = results.flat();
-      
-      // Convert results to an object
-      const imageUrls = {};
-      allResults.forEach(([propertyId, url]) => {
-        if (url) imageUrls[propertyId] = url;
-      });
-      
-      setPropertyImages(imageUrls);
-    } catch (error) {
-      console.error('Error fetching property images:', error);
-    }
+  // Responsive item calculation
+  const getVisibleItemCount = () => {
+    if (typeof window === 'undefined') return 3;
+    if (window.innerWidth < 640) return 1;
+    if (window.innerWidth < 1024) return 2;
+    return 3;
   };
+  
+  // Keep track of visible items count
+  const [visibleItems, setVisibleItems] = useState(3); // Default to 3
+  
+  // Update visible items on resize
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const handleResize = () => {
+      setVisibleItems(getVisibleItemCount());
+    };
+    
+    // Set initial count
+    handleResize();
+    
+    // Add resize listener
+    window.addEventListener('resize', handleResize);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   // Scroll to the next set of items
   const scrollNext = () => {
     if (scrollRef.current) {
       setCurrentIndex(prev => {
-        const visibleItems = getVisibleItemCount();
         const newIndex = Math.min(prev + 1, properties.length - visibleItems);
         scrollRef.current.scrollTo({
           left: newIndex * (scrollRef.current.offsetWidth / visibleItems),
@@ -156,7 +213,6 @@ const FeaturedProperties = () => {
   const scrollPrev = () => {
     if (scrollRef.current) {
       setCurrentIndex(prev => {
-        const visibleItems = getVisibleItemCount();
         const newIndex = Math.max(prev - 1, 0);
         scrollRef.current.scrollTo({
           left: newIndex * (scrollRef.current.offsetWidth / visibleItems),
@@ -166,93 +222,86 @@ const FeaturedProperties = () => {
       });
     }
   };
-  
-  // Memoize the visible items calculation to avoid unnecessary recalculations
-  const getVisibleItemCount = useMemo(() => {
-    if (typeof window !== 'undefined') {
-      const handleResize = () => {
-        if (window.innerWidth < 640) return 1;
-        if (window.innerWidth < 1024) return 2;
-        return 3;
-      };
-      
-      // Add resize listener
-      window.addEventListener('resize', handleResize);
-      
-      // Return the function and cleanup
-      return () => {
-        window.removeEventListener('resize', handleResize);
-        if (window.innerWidth < 640) return 1;
-        if (window.innerWidth < 1024) return 2;
-        return 3;
-      };
-    }
-    return () => 3; // Default to 3 on server
-  }, []);
-  
-  const visibleItems = typeof getVisibleItemCount === 'function' ? getVisibleItemCount() : 3;
 
-  // Format price using Intl API for better performance
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-US', {
+  // Memoized price formatter
+  const formatPrice = useMemo(() => {
+    const formatter = new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       maximumFractionDigits: 0,
-    }).format(price);
-  };
+    });
+    
+    return (price) => formatter.format(price);
+  }, []);
 
   // Handle property click to navigate to details page
   const handlePropertyClick = (propertyId) => {
     router.push(`/property/${propertyId}`);
   };
 
-  // PropertyCard component for better code organization
-  const PropertyCard = ({ property }) => (
-    <div 
-      key={property.id} 
-      className="min-w-[calc(33.333%-16px)] sm:min-w-[calc(50%-12px)] md:min-w-[calc(33.333%-16px)] flex-shrink-0 bg-custom-red rounded-lg overflow-hidden cursor-pointer"
-      onClick={() => handlePropertyClick(property.id)}
-    >
-      <div className="relative h-60 w-full">
-        {propertyImages[property.id] ? (
-          <Image 
-            src={propertyImages[property.id]} 
-            alt={property.title}
-            fill
-            loading="lazy"
-            className="object-cover"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            placeholder="blur"
-            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-700">
-            <span>No Image Available</span>
-          </div>
-        )}
-      </div>
-      <div className="p-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-xl font-semibold truncate">{property.title}</h3>
-          <p className="text-right font-bold whitespace-nowrap">
-            {formatPrice(property.price)}
-          </p>
-        </div>
-        <p className="text-sm text-gray-200 mt-1 truncate">{property.location}</p>
-        <div className="flex space-x-4 mt-2 text-sm">
-          <span>{property.bedrooms} Beds</span>
-          <span>{property.bathrooms} Baths</span>
-          {property.square_footage && (
-            <span>{property.square_footage} sq ft</span>
+  // PropertyCard component with error handling for images
+  const PropertyCard = ({ property }) => {
+    const [imageError, setImageError] = useState(false);
+    
+    return (
+      <div 
+        key={property.id} 
+        className="min-w-[calc(33.333%-16px)] sm:min-w-[calc(50%-12px)] md:min-w-[calc(33.333%-16px)] flex-shrink-0 bg-custom-red rounded-lg overflow-hidden cursor-pointer shadow-lg transition-transform duration-300 hover:transform hover:scale-[1.02]"
+        onClick={() => handlePropertyClick(property.id)}
+      >
+        <div className="relative h-60 w-full">
+          {propertyImages[property.id] && !imageError ? (
+            <Image 
+              src={propertyImages[property.id]} 
+              alt={property.title || 'Property image'}
+              fill
+              loading="lazy"
+              className="object-cover"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              placeholder="blur"
+              blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-700 text-white text-center p-4">
+              <span>
+                {imageError 
+                  ? "Image failed to load" 
+                  : property.images?.length 
+                    ? "Loading image..." 
+                    : "No image available"
+                }
+              </span>
+            </div>
           )}
         </div>
+        <div className="p-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-xl font-semibold truncate">
+              {property.title || 'Untitled Property'}
+            </h3>
+            <p className="text-right font-bold whitespace-nowrap">
+              {formatPrice(property.price || 0)}
+            </p>
+          </div>
+          <p className="text-sm text-gray-200 mt-1 truncate">
+            {property.location || 'Location unavailable'}
+          </p>
+          <div className="flex space-x-4 mt-2 text-sm">
+            <span>{property.bedrooms || 0} Beds</span>
+            <span>{property.bathrooms || 0} Baths</span>
+            {property.square_footage && (
+              <span>{property.square_footage} sq ft</span>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // PropertySkeleton for loading state
   const PropertySkeleton = () => (
-    <div className="min-w-[calc(33.333%-16px)] sm:min-w-[calc(50%-12px)] md:min-w-[calc(33.333%-16px)] flex-shrink-0 bg-gray-700 rounded-lg overflow-hidden animate-pulse">
+    <div className="min-w-[calc(33.333%-16px)] sm:min-w-[calc(50%-12px)] md:min-w-[calc(33.333%-16px)] flex-shrink-0 bg-gray-700 rounded-lg overflow-hidden animate-pulse shadow-lg">
       <div className="h-60 w-full bg-gray-600"></div>
       <div className="p-4">
         <div className="h-6 bg-gray-600 rounded mb-2"></div>
@@ -263,6 +312,19 @@ const FeaturedProperties = () => {
           <div className="h-4 bg-gray-600 rounded w-16"></div>
         </div>
       </div>
+    </div>
+  );
+
+  // Error state display
+  const ErrorDisplay = () => (
+    <div className="w-full py-10 text-center">
+      <p className="text-red-500 mb-4">{error}</p>
+      <button
+        onClick={() => fetchProperties(true)}
+        className="px-4 py-2 bg-custom-red text-white rounded hover:bg-red-700 transition-colors"
+      >
+        Try Again
+      </button>
     </div>
   );
 
@@ -294,11 +356,11 @@ const FeaturedProperties = () => {
           </div>
         </div>
 
-        {loading && !cachedProperties ? (
-          // Show skeletons while loading
-          <div 
-            className="flex space-x-6 overflow-x-hidden"
-          >
+        {error ? (
+          <ErrorDisplay />
+        ) : loading && properties.length === 0 ? (
+          // Show skeletons only when loading and no cached data
+          <div className="flex space-x-6 overflow-x-hidden">
             {[...Array(3)].map((_, index) => (
               <PropertySkeleton key={index} />
             ))}
@@ -316,7 +378,8 @@ const FeaturedProperties = () => {
               <PropertyCard key={property.id} property={property} />
             ))}
           </div>
-        )}
+        )}       
+        
       </div>
     </section>
   );

@@ -1,12 +1,12 @@
 "use client";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Image from "next/image";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import debounce from 'lodash/debounce';
+import debounce from "lodash/debounce";
 
 // Import or replicate the propertySearchService
 const propertySearchService = {
@@ -16,22 +16,24 @@ const propertySearchService = {
   async getUniqueLocations() {
     try {
       const { data, error } = await supabase
-        .from('properties')
-        .select('location')
-        .not('location', 'is', null);
-        
+        .from("properties")
+        .select("location")
+        .not("location", "is", null);
+
       if (error) throw error;
-      
+
       // Filter out any empty locations and create unique set
-      const uniqueLocations = [...new Set(
-        data
-          .map(item => item.location)
-          .filter(location => location && location.trim() !== '')
-      )];
-      
+      const uniqueLocations = [
+        ...new Set(
+          data
+            .map((item) => item.location)
+            .filter((location) => location && location.trim() !== "")
+        ),
+      ];
+
       return { data: uniqueLocations, error: null };
     } catch (error) {
-      console.error('Error fetching locations:', error);
+      console.error("Error fetching locations:", error);
       return { data: [], error };
     }
   },
@@ -43,170 +45,176 @@ const propertySearchService = {
     try {
       // First check if there are properties with prices
       const { data, error } = await supabase
-        .from('properties')
-        .select('price')
-        .not('price', 'is', null)
-        .order('price', { ascending: true });
-      
+        .from("properties")
+        .select("price")
+        .not("price", "is", null)
+        .order("price", { ascending: true });
+
       if (error) throw error;
-      
+
       if (!data || data.length === 0) {
-        return { 
+        return {
           data: {
             minPrices: [1000, 100000, 300000, 500000, 1000000, 2000000],
-            maxPrices: [61000, 500000, 1000000, 2000000, 5000000, 10000000]
-          }, 
-          error: null 
+            maxPrices: [61000, 500000, 1000000, 2000000, 5000000, 10000000],
+          },
+          error: null,
         };
       }
-      
+
       // Filter out any invalid prices and convert to numbers
       const validPrices = data
-        .map(item => Number(item.price))
-        .filter(price => !isNaN(price) && price > 0);
-      
+        .map((item) => Number(item.price))
+        .filter((price) => !isNaN(price) && price > 0);
+
       if (validPrices.length === 0) {
-        return { 
+        return {
           data: {
             minPrices: [1000, 100000, 300000, 500000, 1000000, 2000000],
-            maxPrices: [61000, 500000, 1000000, 2000000, 5000000, 10000000]
-          }, 
-          error: null 
+            maxPrices: [61000, 500000, 1000000, 2000000, 5000000, 10000000],
+          },
+          error: null,
         };
       }
-      
+
       // Get min and max prices
       const minPrice = Math.min(...validPrices);
       const maxPrice = Math.max(...validPrices);
-      
+
       // Generate price points
-      const minPricePoints = this.generatePricePoints(minPrice, maxPrice * 0.8, 5);
+      const minPricePoints = this.generatePricePoints(
+        minPrice,
+        maxPrice * 0.8,
+        5
+      );
       const maxPricePoints = this.generatePricePoints(
         minPrice * 1.2,
         maxPrice * 1.2,
         5
       );
-      
-      return { 
+
+      return {
         data: {
           minPrices: minPricePoints,
-          maxPrices: maxPricePoints
-        }, 
-        error: null 
+          maxPrices: maxPricePoints,
+        },
+        error: null,
       };
     } catch (error) {
-      console.error('Error fetching price ranges:', error);
-      return { 
+      console.error("Error fetching price ranges:", error);
+      return {
         data: {
           minPrices: [1000, 100000, 300000, 500000, 1000000, 2000000],
-          maxPrices: [61000, 500000, 1000000, 2000000, 5000000, 10000000]
-        }, 
-        error 
+          maxPrices: [61000, 500000, 1000000, 2000000, 5000000, 10000000],
+        },
+        error,
       };
     }
   },
-  
+
   /**
    * Fetch bedroom options from database
    */
   async getBedroomOptions() {
     try {
       const { data, error } = await supabase
-        .from('properties')
-        .select('bedrooms')
-        .not('bedrooms', 'is', null);
-        
+        .from("properties")
+        .select("bedrooms")
+        .not("bedrooms", "is", null);
+
       if (error) throw error;
-      
+
       if (!data || data.length === 0) {
-        return { 
-          data: [1, 2, 3, 4, 5], 
-          error: null 
+        return {
+          data: [1, 2, 3, 4, 5],
+          error: null,
         };
       }
-      
+
       // Filter out any invalid values and convert to numbers
       const validBedrooms = data
-        .map(item => Number(item.bedrooms))
-        .filter(value => !isNaN(value) && value > 0);
-      
+        .map((item) => Number(item.bedrooms))
+        .filter((value) => !isNaN(value) && value > 0);
+
       if (validBedrooms.length === 0) {
-        return { 
-          data: [1, 2, 3, 4, 5], 
-          error: null 
+        return {
+          data: [1, 2, 3, 4, 5],
+          error: null,
         };
       }
-      
+
       // Get unique sorted values
       const uniqueBedrooms = [...new Set(validBedrooms)].sort((a, b) => a - b);
-      
+
       return { data: uniqueBedrooms, error: null };
     } catch (error) {
-      console.error('Error fetching bedroom options:', error);
+      console.error("Error fetching bedroom options:", error);
       return { data: [1, 2, 3, 4, 5], error };
     }
   },
-  
+
   /**
    * Fetch bathroom options from database
    */
   async getBathroomOptions() {
     try {
       const { data, error } = await supabase
-        .from('properties')
-        .select('bathrooms')
-        .not('bathrooms', 'is', null);
-        
+        .from("properties")
+        .select("bathrooms")
+        .not("bathrooms", "is", null);
+
       if (error) throw error;
-      
+
       if (!data || data.length === 0) {
-        return { 
-          data: [1, 1.5, 2, 2.5, 3, 4], 
-          error: null 
+        return {
+          data: [1, 1.5, 2, 2.5, 3, 4],
+          error: null,
         };
       }
-      
+
       // Filter out any invalid values and convert to numbers
       const validBathrooms = data
-        .map(item => Number(item.bathrooms))
-        .filter(value => !isNaN(value) && value > 0);
-      
+        .map((item) => Number(item.bathrooms))
+        .filter((value) => !isNaN(value) && value > 0);
+
       if (validBathrooms.length === 0) {
-        return { 
-          data: [1, 1.5, 2, 2.5, 3, 4], 
-          error: null 
+        return {
+          data: [1, 1.5, 2, 2.5, 3, 4],
+          error: null,
         };
       }
-      
+
       // Get unique sorted values
-      const uniqueBathrooms = [...new Set(validBathrooms)].sort((a, b) => a - b);
-      
+      const uniqueBathrooms = [...new Set(validBathrooms)].sort(
+        (a, b) => a - b
+      );
+
       return { data: uniqueBathrooms, error: null };
     } catch (error) {
-      console.error('Error fetching bathroom options:', error);
+      console.error("Error fetching bathroom options:", error);
       return { data: [1, 1.5, 2, 2.5, 3, 4], error };
     }
   },
-  
+
   /**
    * Helper to generate price points
    */
   generatePricePoints(min, max, count) {
     min = Math.max(0, Number(min) || 0);
     max = Math.max(min + 1000, Number(max) || min + 1000000);
-    
+
     const result = [];
     const range = max - min;
     const step = range / (count - 1);
-    
+
     for (let i = 0; i < count; i++) {
       // Round to nearest 1000 and ensure no duplicates
-      let price = Math.round((min + (step * i)) / 1000) * 1000;
+      let price = Math.round((min + step * i) / 1000) * 1000;
       if (result.indexOf(price) === -1) {
         result.push(price);
       }
     }
-    
+
     // Ensure the last value is the max
     if (result[result.length - 1] < max) {
       const roundedMax = Math.ceil(max / 1000) * 1000;
@@ -214,9 +222,9 @@ const propertySearchService = {
         result.push(roundedMax);
       }
     }
-    
+
     return result.sort((a, b) => a - b);
-  }
+  },
 };
 
 export default function SearchResults() {
@@ -230,16 +238,19 @@ export default function SearchResults() {
   const [locations, setLocations] = useState([]);
   const [favorites, setFavorites] = useState({});
   const [savingFavorite, setSavingFavorite] = useState(null);
+
+  // Improved state management
+  const dataFetchedRef = useRef(false);
   const [queryCache, setQueryCache] = useState({});
-  
+
   // Dynamic form options from database
   const [priceRanges, setPriceRanges] = useState({
     minPrices: [],
-    maxPrices: []
+    maxPrices: [],
   });
   const [bedroomOptions, setBedroomOptions] = useState([]);
   const [bathroomOptions, setBathroomOptions] = useState([]);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -255,86 +266,93 @@ export default function SearchResults() {
     bathrooms: "",
   });
 
-  // Update form data when searchParams are available
+  // Create a stable reference to the current search params and page
+  const cacheKey = useMemo(() => {
+    if (!searchParams) return "";
+    const queryString = new URLSearchParams(searchParams).toString();
+    return `${queryString}_page${currentPage}`;
+  }, [searchParams, currentPage]);
+
+  // Memoize the form data update logic for better performance
   useEffect(() => {
     if (searchParams) {
-      // Reset to page 1 when search params change
-      setCurrentPage(1);
-      
-      setFormData({
+      // Only update form data if search params have changed
+      const newFormData = {
         location: searchParams.get("location") || "",
         property_type: searchParams.get("property_type") || "",
         minPrice: searchParams.get("minPrice") || "",
         maxPrice: searchParams.get("maxPrice") || "",
         bedrooms: searchParams.get("bedrooms") || "",
         bathrooms: searchParams.get("bathrooms") || "",
-      });
+      };
+
+      // Check if form data has actually changed
+      const hasChanged = Object.keys(newFormData).some(
+        (key) => newFormData[key] !== formData[key]
+      );
+
+      if (hasChanged) {
+        setCurrentPage(1);
+        setFormData(newFormData);
+      }
     }
   }, [searchParams]);
 
-  // Create a cache key from the current search params and page
-  const cacheKey = useMemo(() => {
-    if (!searchParams) return '';
-    const queryString = new URLSearchParams(searchParams).toString();
-    return `${queryString}_page${currentPage}`;
-  }, [searchParams, currentPage]);
-
-  // Load initial data on component mount
+  // Load initial form options - ONCE only
   useEffect(() => {
-    // Fetch form options only once
-    fetchFormOptions();
-    
+    if (!dataFetchedRef.current) {
+      fetchFormOptions();
+      dataFetchedRef.current = true;
+    }
+
     // Fetch user favorites if user is logged in
     if (user) {
       fetchUserFavorites();
     }
   }, [user]);
 
+  // Page visibility handler to prevent unnecessary refetches
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      // Only trigger a refetch if visibility changes to visible AND cache is empty
+      if (
+        document.visibilityState === "visible" &&
+        (!queryCache[cacheKey] ||
+          (queryCache[cacheKey] &&
+            queryCache[cacheKey].properties.length === 0))
+      ) {
+        fetchProperties();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [cacheKey]);
+
   // Function to fetch all form options from database
   const fetchFormOptions = async () => {
     try {
       setFormLoading(true);
-      
-      // Fetch locations
-      const { data: locationsData, error: locationsError } = 
-        await propertySearchService.getUniqueLocations();
-      
-      if (locationsError) {
-        console.error("Error fetching locations:", locationsError);
-      } else {
-        setLocations(locationsData);
-      }
 
-      // Fetch price ranges
-      const { data: priceData, error: priceError } = 
-        await propertySearchService.getPriceRanges();
-      
-      if (priceError) {
-        console.error("Error fetching price ranges:", priceError);
-      } else {
-        setPriceRanges(priceData);
-      }
-      
-      // Fetch bedroom options
-      const { data: bedroomData, error: bedroomError } = 
-        await propertySearchService.getBedroomOptions();
-      
-      if (bedroomError) {
-        console.error("Error fetching bedroom options:", bedroomError);
-      } else {
-        setBedroomOptions(bedroomData);
-      }
-      
-      // Fetch bathroom options
-      const { data: bathroomData, error: bathroomError } = 
-        await propertySearchService.getBathroomOptions();
-      
-      if (bathroomError) {
-        console.error("Error fetching bathroom options:", bathroomError);
-      } else {
-        setBathroomOptions(bathroomData);
-      }
-      
+      // Use Promise.all to run these requests in parallel
+      const [locationsResult, priceResult, bedroomResult, bathroomResult] =
+        await Promise.all([
+          propertySearchService.getUniqueLocations(),
+          propertySearchService.getPriceRanges(),
+          propertySearchService.getBedroomOptions(),
+          propertySearchService.getBathroomOptions(),
+        ]);
+
+      // Set all form options at once to minimize renders
+      setLocations(locationsResult.error ? [] : locationsResult.data);
+      setPriceRanges(
+        priceResult.error ? { minPrices: [], maxPrices: [] } : priceResult.data
+      );
+      setBedroomOptions(bedroomResult.error ? [] : bedroomResult.data);
+      setBathroomOptions(bathroomResult.error ? [] : bathroomResult.data);
     } catch (error) {
       console.error("Error fetching form options:", error);
     } finally {
@@ -344,21 +362,18 @@ export default function SearchResults() {
 
   // Fetch properties when search params or page changes
   useEffect(() => {
-    const fetchAllData = async () => {
-      setLoading(true);
+    const fetchData = async () => {
+      // Prevent duplicate fetches when tab switching if we already have data
+      if (queryCache[cacheKey] && queryCache[cacheKey].properties.length > 0) {
+        setProperties(queryCache[cacheKey].properties);
+        setTotalCount(queryCache[cacheKey].totalCount);
+        setPropertyImages(queryCache[cacheKey].images || {});
+        setLoading(false);
+        return;
+      }
 
+      setLoading(true);
       try {
-        // Check cache before fetching properties
-        if (queryCache[cacheKey]) {
-          console.log('Using cached results');
-          setProperties(queryCache[cacheKey].properties);
-          setTotalCount(queryCache[cacheKey].totalCount);
-          setPropertyImages(queryCache[cacheKey].images || {});
-          setLoading(false);
-          return;
-        }
-        
-        // Fetch properties and images
         await fetchProperties();
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -368,8 +383,19 @@ export default function SearchResults() {
       }
     };
 
-    fetchAllData();
-  }, [searchParams, currentPage, cacheKey]);
+    fetchData();
+
+    // Add event listener for focus to prevent refetches on tab switch
+    const handleFocus = () => {
+      // Don't refetch if we already have data in the cache
+      if (queryCache[cacheKey]) return;
+
+      fetchData();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [cacheKey]);
 
   // Function to fetch user favorites
   const fetchUserFavorites = async () => {
@@ -437,35 +463,37 @@ export default function SearchResults() {
       // Add pagination
       const from = (currentPage - 1) * propertiesPerPage;
       const to = from + propertiesPerPage - 1;
-      
+
       // Execute the query with pagination
       const { data, error, count } = await query
         .range(from, to)
-        .order('created_at', { ascending: false });
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
 
+      // Save results in state
       setProperties(data || []);
       setTotalCount(count || 0);
 
       // Fetch images for the current page
       const imageUrls = await fetchPropertyImages(data || []);
-      
-      // Update cache
-      setQueryCache(prev => ({
+
+      // Update cache with new results
+      setQueryCache((prev) => ({
         ...prev,
         [cacheKey]: {
           properties: data || [],
           totalCount: count || 0,
-          images: imageUrls
-        }
+          images: imageUrls,
+          timestamp: Date.now(), // Add timestamp for cache invalidation
+        },
       }));
     } catch (error) {
       console.error("Error fetching properties:", error);
     }
   };
 
-  // Improved function to fetch property images in batches
+  // Optimized function to fetch property images in batches
   const fetchPropertyImages = async (propertiesData) => {
     if (!propertiesData.length) return {};
 
@@ -473,26 +501,28 @@ export default function SearchResults() {
       // Create batch requests (10 images per batch)
       const batchSize = 10;
       const batches = [];
-      
+
       for (let i = 0; i < propertiesData.length; i += batchSize) {
         const batch = propertiesData.slice(i, i + batchSize);
-        
-        // Process each batch in parallel
+
+        // Only fetch images for properties that have them
         batches.push(
           Promise.all(
             batch
-              .filter((property) => property.images && property.images.length > 0)
+              .filter(
+                (property) => property.images && property.images.length > 0
+              )
               .map(async (property) => {
                 const imagePath = property.images[0];
                 const normalizedPath = imagePath.includes("/")
                   ? imagePath
                   : `${property.owner_id}/${imagePath}`;
-                  
+
                 try {
                   const { data, error } = await supabase.storage
                     .from("property-images")
                     .createSignedUrl(normalizedPath, 60 * 60);
-                    
+
                   return [property.id, error ? null : data.signedUrl];
                 } catch (error) {
                   console.error("Error fetching image:", error);
@@ -502,18 +532,18 @@ export default function SearchResults() {
           )
         );
       }
-      
+
       // Process all batches
       const batchResults = await Promise.all(batches);
       const allResults = batchResults.flat();
-      
+
       // Convert results to an object
       const imageUrls = {};
       allResults.forEach(([propertyId, url]) => {
         if (url) imageUrls[propertyId] = url;
       });
-      
-      setPropertyImages(imageUrls);
+
+      setPropertyImages((prev) => ({ ...prev, ...imageUrls }));
       return imageUrls;
     } catch (error) {
       console.error("Error fetching property images:", error);
@@ -586,14 +616,15 @@ export default function SearchResults() {
     }
   };
 
-  // Debounced handle change for form fields
-  const debouncedHandleChange = useCallback(
-    debounce((name, value) => {
-      setFormData((prevState) => ({
-        ...prevState,
-        [name]: value,
-      }));
-    }, 300),
+  // More efficient debounced handle change for form fields
+  const debouncedHandleChange = useMemo(
+    () =>
+      debounce((name, value) => {
+        setFormData((prevState) => ({
+          ...prevState,
+          [name]: value,
+        }));
+      }, 300),
     []
   );
 
@@ -620,6 +651,7 @@ export default function SearchResults() {
     router.push(`/search?${queryString}`);
   };
 
+  // Your existing helper functions
   const formatPrice = (price) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -627,10 +659,8 @@ export default function SearchResults() {
       maximumFractionDigits: 0,
     }).format(price);
   };
-  
-  // Format bathroom display with optional decimal
+
   const formatBathrooms = (value) => {
-    // If it's a whole number, show as integer
     return Number.isInteger(value) ? value.toString() : value.toFixed(1);
   };
 
@@ -644,25 +674,27 @@ export default function SearchResults() {
   // Pagination component
   const Pagination = () => {
     const totalPages = Math.ceil(totalCount / propertiesPerPage);
-    
+
     if (totalPages <= 1) return null;
-    
+
     return (
       <div className="flex justify-center mt-8 space-x-2">
-        <button 
-          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+        <button
+          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
           disabled={currentPage === 1}
           className="px-4 py-2 rounded-md bg-gray-200 disabled:opacity-50 hover:bg-gray-300 transition-colors"
         >
           Previous
         </button>
-        
+
         <span className="px-4 py-2 bg-white rounded-md shadow">
           Page {currentPage} of {totalPages}
         </span>
-        
+
         <button
-          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+          onClick={() =>
+            setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+          }
           disabled={currentPage === totalPages}
           className="px-4 py-2 rounded-md bg-gray-200 disabled:opacity-50 hover:bg-gray-300 transition-colors"
         >
@@ -672,7 +704,7 @@ export default function SearchResults() {
     );
   };
 
-  // Skeleton loader for property cards
+  // Skeleton loaders (unchanged)
   const PropertySkeleton = () => (
     <div className="bg-white rounded-lg overflow-hidden shadow-lg animate-pulse">
       <div className="h-48 bg-gray-300"></div>
@@ -688,8 +720,7 @@ export default function SearchResults() {
       </div>
     </div>
   );
-  
-  // Form skeleton loader
+
   const FormSkeleton = () => (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-pulse">
@@ -705,6 +736,7 @@ export default function SearchResults() {
     </div>
   );
 
+  // Rest of your component remains the same
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -786,9 +818,9 @@ export default function SearchResults() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
                     >
                       <option value="">Any</option>
-                      {bedroomOptions.map(value => (
+                      {bedroomOptions.map((value) => (
                         <option key={`bed-${value}`} value={value}>
-                          {value}+ {value === 1 ? 'Bedroom' : 'Bedrooms'}
+                          {value}+ {value === 1 ? "Bedroom" : "Bedrooms"}
                         </option>
                       ))}
                     </select>
@@ -810,9 +842,10 @@ export default function SearchResults() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
                     >
                       <option value="">Any</option>
-                      {bathroomOptions.map(value => (
+                      {bathroomOptions.map((value) => (
                         <option key={`bath-${value}`} value={value}>
-                          {formatBathrooms(value)}+ {value === 1 ? 'Bathroom' : 'Bathrooms'}
+                          {formatBathrooms(value)}+{" "}
+                          {value === 1 ? "Bathroom" : "Bathrooms"}
                         </option>
                       ))}
                     </select>
@@ -839,7 +872,7 @@ export default function SearchResults() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
                     >
                       <option value="">No min</option>
-                      {priceRanges.minPrices.map(price => (
+                      {priceRanges.minPrices.map((price) => (
                         <option key={`min-${price}`} value={price}>
                           {formatPrice(price)}
                         </option>
@@ -863,7 +896,7 @@ export default function SearchResults() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
                     >
                       <option value="">No max</option>
-                      {priceRanges.maxPrices.map(price => (
+                      {priceRanges.maxPrices.map((price) => (
                         <option key={`max-${price}`} value={price}>
                           {formatPrice(price)}
                         </option>
@@ -893,9 +926,11 @@ export default function SearchResults() {
               <p className="text-gray-600">Loading properties...</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {Array(6).fill(0).map((_, index) => (
-                <PropertySkeleton key={index} />
-              ))}
+              {Array(6)
+                .fill(0)
+                .map((_, index) => (
+                  <PropertySkeleton key={index} />
+                ))}
             </div>
           </div>
         ) : (
@@ -905,7 +940,7 @@ export default function SearchResults() {
                 Found {totalCount}{" "}
                 {totalCount === 1 ? "property" : "properties"} matching your
                 criteria
-              </p>          
+              </p>
             </div>
 
             {/* No results message */}
@@ -950,13 +985,17 @@ export default function SearchResults() {
                             viewBox="0 0 24 24"
                             fill={favorites[property.id] ? "#dc2626" : "none"}
                             stroke={
-                              favorites[property.id] ? "#dc2626" : "currentColor"
+                              favorites[property.id]
+                                ? "#dc2626"
+                                : "currentColor"
                             }
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             className={`${
-                              savingFavorite === property.id ? "animate-pulse" : ""
+                              savingFavorite === property.id
+                                ? "animate-pulse"
+                                : ""
                             }`}
                           >
                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
@@ -966,7 +1005,9 @@ export default function SearchResults() {
                         {/* Property Image */}
                         <div
                           className="h-48 bg-gray-200 relative cursor-pointer"
-                          onClick={() => router.push(`/property/${property.id}`)}
+                          onClick={() =>
+                            router.push(`/property/${property.id}`)
+                          }
                         >
                           {propertyImages[property.id] ? (
                             <Image
@@ -990,7 +1031,9 @@ export default function SearchResults() {
                       <div className="p-4">
                         <h3
                           className="text-xl font-bold text-gray-800 mb-2 cursor-pointer hover:text-custom-red transition-colors"
-                          onClick={() => router.push(`/property/${property.id}`)}
+                          onClick={() =>
+                            router.push(`/property/${property.id}`)
+                          }
                         >
                           {property.title}
                         </h3>
@@ -1002,12 +1045,19 @@ export default function SearchResults() {
                             {formatPrice(property.price)}
                           </span>
                           <div className="text-gray-700">
-                            <span className="mr-2">{property.bedrooms} beds</span>•
-                            <span className="ml-2">{property.bathrooms} baths</span>
+                            <span className="mr-2">
+                              {property.bedrooms} beds
+                            </span>
+                            •
+                            <span className="ml-2">
+                              {property.bathrooms} baths
+                            </span>
                           </div>
                         </div>
                         <button
-                          onClick={() => router.push(`/property/${property.id}`)}
+                          onClick={() =>
+                            router.push(`/property/${property.id}`)
+                          }
                           className="w-full bg-custom-red hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300"
                         >
                           View Details
@@ -1016,7 +1066,7 @@ export default function SearchResults() {
                     </div>
                   ))}
                 </div>
-                
+
                 {/* Pagination component */}
                 <Pagination />
               </>
