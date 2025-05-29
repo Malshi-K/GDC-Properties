@@ -1,223 +1,13 @@
 "use client"
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from "@/lib/supabase";
-
-/**
- * Service for property search operations with Supabase
- */
-export const propertySearchService = {
-  /**
-   * Fetch unique locations from properties
-   */
-  async getUniqueLocations() {
-    try {
-      const { data, error } = await supabase
-        .from('properties')
-        .select('location')
-        .not('location', 'is', null); // Using 'not is null' instead of 'is.not.null'
-        
-      if (error) throw error;
-      
-      // Filter out any empty locations and create unique set
-      const uniqueLocations = [...new Set(
-        data
-          .map(item => item.location)
-          .filter(location => location && location.trim() !== '')
-      )];
-      
-      return { data: uniqueLocations, error: null };
-    } catch (error) {
-      console.error('Error fetching locations:', error);
-      return { data: [], error };
-    }
-  },
-
-  /**
-   * Fetch min and max property prices
-   */
-  async getPriceRanges() {
-    try {
-      // First check if there are properties with prices
-      const { data, error } = await supabase
-        .from('properties')
-        .select('price')
-        .not('price', 'is', null)
-        .order('price', { ascending: true });
-      
-      if (error) throw error;
-      
-      if (!data || data.length === 0) {
-        return { 
-          data: {
-            minPrices: [100000, 300000, 500000, 1000000, 2000000],
-            maxPrices: [500000, 1000000, 2000000, 5000000, 10000000]
-          }, 
-          error: null 
-        };
-      }
-      
-      // Filter out any invalid prices and convert to numbers
-      const validPrices = data
-        .map(item => Number(item.price))
-        .filter(price => !isNaN(price) && price > 0);
-      
-      if (validPrices.length === 0) {
-        return { 
-          data: {
-            minPrices: [100000, 300000, 500000, 1000000, 2000000],
-            maxPrices: [500000, 1000000, 2000000, 5000000, 10000000]
-          }, 
-          error: null 
-        };
-      }
-      
-      // Get min and max prices
-      const minPrice = Math.min(...validPrices);
-      const maxPrice = Math.max(...validPrices);
-      
-      // Generate price points
-      const minPricePoints = this.generatePricePoints(minPrice, maxPrice * 0.8, 5);
-      const maxPricePoints = this.generatePricePoints(
-        minPrice * 1.2,
-        maxPrice * 1.2,
-        5
-      );
-      
-      return { 
-        data: {
-          minPrices: minPricePoints,
-          maxPrices: maxPricePoints
-        }, 
-        error: null 
-      };
-    } catch (error) {
-      console.error('Error fetching price ranges:', error);
-      return { 
-        data: {
-          minPrices: [100000, 300000, 500000, 1000000, 2000000],
-          maxPrices: [500000, 1000000, 2000000, 5000000, 10000000]
-        }, 
-        error 
-      };
-    }
-  },
-  
-  /**
-   * Fetch bedroom options from database
-   */
-  async getBedroomOptions() {
-    try {
-      const { data, error } = await supabase
-        .from('properties')
-        .select('bedrooms')
-        .not('bedrooms', 'is', null);
-        
-      if (error) throw error;
-      
-      if (!data || data.length === 0) {
-        return { 
-          data: [1, 2, 3, 4, 5], 
-          error: null 
-        };
-      }
-      
-      // Filter out any invalid values and convert to numbers
-      const validBedrooms = data
-        .map(item => Number(item.bedrooms))
-        .filter(value => !isNaN(value) && value > 0);
-      
-      if (validBedrooms.length === 0) {
-        return { 
-          data: [1, 2, 3, 4, 5], 
-          error: null 
-        };
-      }
-      
-      // Get unique sorted values
-      const uniqueBedrooms = [...new Set(validBedrooms)].sort((a, b) => a - b);
-      
-      return { data: uniqueBedrooms, error: null };
-    } catch (error) {
-      console.error('Error fetching bedroom options:', error);
-      return { data: [1, 2, 3, 4, 5], error };
-    }
-  },
-  
-  /**
-   * Fetch bathroom options from database
-   */
-  async getBathroomOptions() {
-    try {
-      const { data, error } = await supabase
-        .from('properties')
-        .select('bathrooms')
-        .not('bathrooms', 'is', null);
-        
-      if (error) throw error;
-      
-      if (!data || data.length === 0) {
-        return { 
-          data: [1, 1.5, 2, 2.5, 3, 4], 
-          error: null 
-        };
-      }
-      
-      // Filter out any invalid values and convert to numbers
-      const validBathrooms = data
-        .map(item => Number(item.bathrooms))
-        .filter(value => !isNaN(value) && value > 0);
-      
-      if (validBathrooms.length === 0) {
-        return { 
-          data: [1, 1.5, 2, 2.5, 3, 4], 
-          error: null 
-        };
-      }
-      
-      // Get unique sorted values
-      const uniqueBathrooms = [...new Set(validBathrooms)].sort((a, b) => a - b);
-      
-      return { data: uniqueBathrooms, error: null };
-    } catch (error) {
-      console.error('Error fetching bathroom options:', error);
-      return { data: [1, 1.5, 2, 2.5, 3, 4], error };
-    }
-  },
-  
-  /**
-   * Helper to generate price points
-   */
-  generatePricePoints(min, max, count) {
-    min = Math.max(0, Number(min) || 0);
-    max = Math.max(min + 1000, Number(max) || min + 1000000);
-    
-    const result = [];
-    const range = max - min;
-    const step = range / (count - 1);
-    
-    for (let i = 0; i < count; i++) {
-      // Round to nearest 1000 and ensure no duplicates
-      let price = Math.round((min + (step * i)) / 1000) * 1000;
-      if (result.indexOf(price) === -1) {
-        result.push(price);
-      }
-    }
-    
-    // Ensure the last value is the max
-    if (result[result.length - 1] < max) {
-      const roundedMax = Math.ceil(max / 1000) * 1000;
-      if (result.indexOf(roundedMax) === -1) {
-        result.push(roundedMax);
-      }
-    }
-    
-    return result.sort((a, b) => a - b);
-  }
-};
+import { useGlobalData } from '@/contexts/GlobalDataContext';
+import { propertySearchService, PROPERTY_TYPES, CACHE_TTL } from '@/lib/utils/searchUtils';
 
 export default function PropertySearchForm() {
   const router = useRouter();
+  const { fetchData, loading } = useGlobalData();
+  
   const [formData, setFormData] = useState({
     location: '',
     property_type: '',
@@ -226,97 +16,105 @@ export default function PropertySearchForm() {
     bedrooms: '',
     bathrooms: ''
   });
-  const [locations, setLocations] = useState([]);
-  const [priceRanges, setPriceRanges] = useState({
-    minPrices: [],
-    maxPrices: []
+
+  // Form options state - all dynamic from database
+  const [formOptions, setFormOptions] = useState({
+    locations: [],
+    priceRanges: { minPrices: [], maxPrices: [] },
+    bedroomOptions: [],
+    bathroomOptions: [],
+    stats: null
   });
-  const [bedroomOptions, setBedroomOptions] = useState([]);
-  const [bathroomOptions, setBathroomOptions] = useState([]);
-  const [loading, setLoading] = useState(true);
+
   const [error, setError] = useState(null);
+  const [isLoadingOptions, setIsLoadingOptions] = useState(true);
 
-  // Fetch all form options when component mounts
+  // Fetch form options on mount
   useEffect(() => {
-    async function fetchData() {
+    const fetchFormOptions = async () => {
       try {
-        setLoading(true);
         setError(null);
+        setIsLoadingOptions(true);
 
-        // Fetch locations
-        const { data: locationsData, error: locationsError } = 
-          await propertySearchService.getUniqueLocations();
-        
-        if (locationsError) {
-          console.error("Error fetching locations:", locationsError);
-          setError("Failed to load locations. Please try again later.");
-        } else {
-          setLocations(locationsData);
-        }
+        console.log("🔄 Fetching dynamic form options from database...");
 
-        // Fetch price ranges
-        const { data: priceData, error: priceError } = 
-          await propertySearchService.getPriceRanges();
-        
-        if (priceError) {
-          console.error("Error fetching price ranges:", priceError);
-          if (!error) {
-            setError("Failed to load price ranges. Please try again later.");
-          }
-        } else {
-          setPriceRanges(priceData);
-        }
-        
-        // Fetch bedroom options
-        const { data: bedroomData, error: bedroomError } = 
-          await propertySearchService.getBedroomOptions();
-        
-        if (bedroomError) {
-          console.error("Error fetching bedroom options:", bedroomError);
-          if (!error) {
-            setError("Failed to load bedroom options. Please try again later.");
-          }
-        } else {
-          setBedroomOptions(bedroomData);
-        }
-        
-        // Fetch bathroom options
-        const { data: bathroomData, error: bathroomError } = 
-          await propertySearchService.getBathroomOptions();
-        
-        if (bathroomError) {
-          console.error("Error fetching bathroom options:", bathroomError);
-          if (!error) {
-            setError("Failed to load bathroom options. Please try again later.");
-          }
-        } else {
-          setBathroomOptions(bathroomData);
-        }
+        // Fetch all form options in parallel from database
+        const [locationsData, pricesData, bedroomsData, bathroomsData] = await Promise.all([
+          // Get all unique locations
+          fetchData({
+            table: 'properties',
+            select: 'location',
+            filters: [{ column: 'location', operator: 'not.is', value: null }]
+          }, { useCache: true, ttl: CACHE_TTL.FORM_OPTIONS }),
+
+          // Get all prices to calculate ranges
+          fetchData({
+            table: 'properties',
+            select: 'price',
+            filters: [{ column: 'price', operator: 'not.is', value: null }],
+            orderBy: { column: 'price', ascending: true }
+          }, { useCache: true, ttl: CACHE_TTL.FORM_OPTIONS }),
+
+          // Get all bedroom counts
+          fetchData({
+            table: 'properties',
+            select: 'bedrooms',
+            filters: [{ column: 'bedrooms', operator: 'not.is', value: null }]
+          }, { useCache: true, ttl: CACHE_TTL.FORM_OPTIONS }),
+
+          // Get all bathroom counts
+          fetchData({
+            table: 'properties',
+            select: 'bathrooms',
+            filters: [{ column: 'bathrooms', operator: 'not.is', value: null }]
+          }, { useCache: true, ttl: CACHE_TTL.FORM_OPTIONS })
+        ]);
+
+        console.log("✅ Raw data fetched:", {
+          locations: locationsData?.length,
+          prices: pricesData?.length,
+          bedrooms: bedroomsData?.length,
+          bathrooms: bathroomsData?.length
+        });
+
+        // Process the raw data using shared utilities
+        const processedOptions = propertySearchService.processFormOptionsFromRawData({
+          locationsData,
+          pricesData,
+          bedroomsData,
+          bathroomsData
+        });
+
+        console.log("✅ Processed form options:", {
+          locations: processedOptions.locations.length,
+          minPrices: processedOptions.priceRanges.minPrices.length,
+          maxPrices: processedOptions.priceRanges.maxPrices.length,
+          bedrooms: processedOptions.bedroomOptions.length,
+          bathrooms: processedOptions.bathroomOptions.length,
+          stats: processedOptions.stats
+        });
+
+        setFormOptions(processedOptions);
+
       } catch (err) {
-        console.error("Unexpected error:", err);
-        setError("An unexpected error occurred. Please try again later.");
+        console.error("❌ Error fetching form options:", err);
+        setError("Failed to load search options. Please try again later.");
+        
+        // Set fallback options from utilities
+        setFormOptions({
+          locations: [],
+          priceRanges: propertySearchService.getFallbackPriceRanges(),
+          bedroomOptions: propertySearchService.getFallbackBedrooms(),
+          bathroomOptions: propertySearchService.getFallbackBathrooms(),
+          stats: null
+        });
       } finally {
-        setLoading(false);
+        setIsLoadingOptions(false);
       }
-    }
+    };
 
-    fetchData();
-  }, []);
-
-  // Format price for display
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 0
-    }).format(price);
-  };
-  
-  // Format bathroom display with optional decimal
-  const formatBathrooms = (value) => {
-    // If it's a whole number, show as integer
-    return Number.isInteger(value) ? value.toString() : value.toFixed(1);
-  };
+    fetchFormOptions();
+  }, [fetchData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -329,27 +127,19 @@ export default function PropertySearchForm() {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Filter out empty values
-    const queryParams = Object.entries(formData)
-      .filter(([_, value]) => value !== '')
-      .reduce((acc, [key, value]) => {
-        acc[key] = value;
-        return acc;
-      }, {});
+    // Validate form data
+    const validation = propertySearchService.validateFormData(formData);
+    if (!validation.isValid) {
+      setError(validation.errors.join(', '));
+      return;
+    }
     
-    // Create the query string
-    const queryString = new URLSearchParams(queryParams).toString();
+    // Convert form data to query string
+    const queryString = propertySearchService.formDataToSearchParams(formData);
     
-    // Use router.push to navigate
+    // Navigate to search page with filters
     router.push(`/search?${queryString}`);
   };
-
-  const propertyTypes = [
-    { value: "apartment", label: "Apartment" },
-    { value: "house", label: "House" },
-    { value: "townhouse", label: "Townhouse" },
-    { value: "units", label: "Units" }
-  ];
 
   return (
     <div className="w-full lg:w-4/12 mt-8 lg:mt-0">
@@ -357,27 +147,46 @@ export default function PropertySearchForm() {
         <h2 className="text-xl sm:text-2xl font-bold text-center text-gray-800 mb-1">Find Your Dream Home</h2>
         <p className="text-center text-gray-600 text-sm mb-4 sm:mb-6">Filter properties to match your needs</p>
         
+        {/* Display database stats if available
+        {formOptions.stats && (
+          <div className="mb-4 p-2 bg-gray-50 rounded text-xs text-gray-600">
+            <div className="flex justify-between">
+              <span>{formOptions.locations.length} locations</span>
+              {formOptions.stats.priceRange && (
+                <span>
+                  {propertySearchService.formatPrice(formOptions.stats.priceRange.min)} - {propertySearchService.formatPrice(formOptions.stats.priceRange.max)}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+        
         {error && (
           <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-md text-sm">
             {error}
           </div>
-        )}
+        )} */}
         
         <form className="space-y-3 sm:space-y-4" onSubmit={handleSubmit}>
+          {/* Location dropdown - Dynamic from database */}
           <div>
             <select 
               name="location"
               value={formData.location}
               onChange={handleChange}
               className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none text-sm sm:text-base"
+              disabled={isLoadingOptions}
             >
-              <option value="">Select Location</option>
-              {locations.map(location => (
+              <option value="">
+                {isLoadingOptions ? "Loading locations..." : "Select Location"}
+              </option>
+              {formOptions.locations.map(location => (
                 <option key={location} value={location}>{location}</option>
               ))}
             </select>
           </div>
           
+          {/* Property type dropdown */}
           <div>
             <select 
               name="property_type"
@@ -386,12 +195,13 @@ export default function PropertySearchForm() {
               className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none text-sm sm:text-base"
             >
               <option value="">All property types</option>
-              {propertyTypes.map(type => (
+              {PROPERTY_TYPES.map(type => (
                 <option key={type.value} value={type.value}>{type.label}</option>
               ))}
             </select>
           </div>
           
+          {/* Price range - Dynamic from database */}
           <div className="grid grid-cols-2 gap-2 sm:gap-4">
             <div>
               <select 
@@ -399,11 +209,14 @@ export default function PropertySearchForm() {
                 value={formData.minPrice}
                 onChange={handleChange}
                 className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none text-sm sm:text-base"
+                disabled={isLoadingOptions}
               >
-                <option value="">Min Price</option>
-                {priceRanges.minPrices.map(price => (
+                <option value="">
+                  {isLoadingOptions ? "Loading..." : "Min Price"}
+                </option>
+                {formOptions.priceRanges.minPrices.map(price => (
                   <option key={`min-${price}`} value={price}>
-                    {formatPrice(price)}
+                    {propertySearchService.formatPrice(price)}
                   </option>
                 ))}
               </select>
@@ -414,17 +227,21 @@ export default function PropertySearchForm() {
                 value={formData.maxPrice}
                 onChange={handleChange}
                 className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none text-sm sm:text-base"
+                disabled={isLoadingOptions}
               >
-                <option value="">Max Price</option>
-                {priceRanges.maxPrices.map(price => (
+                <option value="">
+                  {isLoadingOptions ? "Loading..." : "Max Price"}
+                </option>
+                {formOptions.priceRanges.maxPrices.map(price => (
                   <option key={`max-${price}`} value={price}>
-                    {formatPrice(price)}
+                    {propertySearchService.formatPrice(price)}
                   </option>
                 ))}
               </select>
             </div>
           </div>
           
+          {/* Bedrooms and bathrooms - Dynamic from database */}
           <div className="grid grid-cols-2 gap-2 sm:gap-4">
             <div>
               <select 
@@ -432,11 +249,14 @@ export default function PropertySearchForm() {
                 value={formData.bedrooms}
                 onChange={handleChange}
                 className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none text-sm sm:text-base"
+                disabled={isLoadingOptions}
               >
-                <option value="">Bedrooms</option>
-                {bedroomOptions.map(value => (
+                <option value="">
+                  {isLoadingOptions ? "Loading..." : "Bedrooms"}
+                </option>
+                {formOptions.bedroomOptions.map(value => (
                   <option key={`bed-${value}`} value={value}>
-                    {value} {value === 1 ? 'Bedroom' : 'Bedrooms'}
+                    {value}+ {value === 1 ? 'Bedroom' : 'Bedrooms'}
                   </option>
                 ))}
               </select>
@@ -447,11 +267,14 @@ export default function PropertySearchForm() {
                 value={formData.bathrooms}
                 onChange={handleChange}
                 className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none text-sm sm:text-base"
+                disabled={isLoadingOptions}
               >
-                <option value="">Bathrooms</option>
-                {bathroomOptions.map(value => (
+                <option value="">
+                  {isLoadingOptions ? "Loading..." : "Bathrooms"}
+                </option>
+                {formOptions.bathroomOptions.map(value => (
                   <option key={`bath-${value}`} value={value}>
-                    {formatBathrooms(value)} {value === 1 ? 'Bathroom' : 'Bathrooms'}
+                    {propertySearchService.formatBathrooms(value)}+ {value === 1 ? 'Bathroom' : 'Bathrooms'}
                   </option>
                 ))}
               </select>
@@ -460,12 +283,24 @@ export default function PropertySearchForm() {
           
           <button 
             type="submit" 
-            className="w-full bg-custom-red hover:bg-red-700 text-white font-bold py-2 sm:py-3 px-4 rounded-md transition-colors duration-300 text-sm sm:text-base"
-            disabled={loading}
+            className="w-full bg-custom-red hover:bg-red-700 text-white font-bold py-2 sm:py-3 px-4 rounded-md transition-colors duration-300 text-sm sm:text-base disabled:opacity-50"
+            disabled={isLoadingOptions}
           >
-            {loading ? 'Loading...' : 'Search Properties'}
+            {isLoadingOptions ? 'Loading Options...' : 'Search Properties'}
           </button>
         </form>
+
+        {/* Debug info in development */}
+        {process.env.NODE_ENV === 'development' && formOptions.stats && (
+          <div className="mt-4 p-2 bg-gray-100 rounded text-xs">
+            <details>
+              <summary className="cursor-pointer font-medium">Debug Info</summary>
+              <pre className="mt-2 whitespace-pre-wrap">
+                {JSON.stringify(formOptions.stats, null, 2)}
+              </pre>
+            </details>
+          </div>
+        )}
       </div>
     </div>
   );

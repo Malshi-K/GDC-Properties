@@ -1,6 +1,6 @@
 // components/ui/PropertyCard.js
 import Link from 'next/link';
-import { formatPrice } from '@/utils/formatters';
+import { formatPrice } from '@/lib/utils/formatters';
 
 /**
  * Reusable property card component for displaying property information

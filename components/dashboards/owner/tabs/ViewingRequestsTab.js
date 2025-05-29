@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
-import { formatDate } from "@/utils/formatters";
+import { formatDate } from "@/lib/utils/formatters";
 import { toast } from "react-hot-toast";
 import { supabase } from "@/lib/supabase";
 

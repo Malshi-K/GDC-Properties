@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { formatPrice, formatDate } from "@/utils/formatters";
+import { formatPrice, formatDate } from "@/lib/utils/formatters";
 import { supabase } from "@/lib/supabase";
 import { createClient } from "@supabase/supabase-js";
 import { toast } from "react-hot-toast";

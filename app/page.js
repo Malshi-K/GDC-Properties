@@ -8,7 +8,6 @@ export default function Home() {
     <div className="bg-fixed bg-cover bg-center min-h-screen" 
          style={{ backgroundImage: "url('/images/background.jpg')" }}>
       <div className="relative z-10">
-        {/* Your scrollable content sections go here */}
         <section className="flex items-center justify-center bg-opacity-50 bg-black">
           <HeroSection />
         </section>
