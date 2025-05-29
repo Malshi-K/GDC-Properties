@@ -291,7 +291,7 @@ export default function PropertySearchForm() {
         </form>
 
         {/* Debug info in development */}
-        {process.env.NODE_ENV === 'development' && formOptions.stats && (
+        {/* {process.env.NODE_ENV === 'development' && formOptions.stats && (
           <div className="mt-4 p-2 bg-gray-100 rounded text-xs">
             <details>
               <summary className="cursor-pointer font-medium">Debug Info</summary>
@@ -300,7 +300,7 @@ export default function PropertySearchForm() {
               </pre>
             </details>
           </div>
-        )}
+        )} */}
       </div>
     </div>
   );
