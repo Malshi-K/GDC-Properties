@@ -3,22 +3,31 @@
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { fetchSupabaseData, generateCacheKey } from '@/lib/utils/dataFetchingUtils';
+import { supabase } from '@/lib/supabase';
 
 const CACHE_PREFIX = 'global_data_';
+const PROFILE_IMAGE_PREFIX = 'profile_img_';
 const DEFAULT_TTL = 10 * 60 * 1000; // 10 minutes
+const PROFILE_IMAGE_TTL = 30 * 60 * 1000; // 30 minutes for profile images
 
 const GlobalDataContext = createContext({
   data: {},
   loading: {},
+  profileImages: {},
   fetchData: async () => {},
   updateData: () => {},
   invalidateCache: () => {},
   clearCache: () => {},
+  loadProfileImage: async () => {},
+  getProfileImageUrl: () => null,
+  isProfileImageLoading: () => false,
 });
 
 export function GlobalDataProvider({ children }) {
   const [data, setData] = useState({});
   const [loading, setLoading] = useState({});
+  const [profileImages, setProfileImages] = useState({});
+  const [profileImageLoading, setProfileImageLoading] = useState({});
 
   // Load cache from sessionStorage on mount
   useEffect(() => {
@@ -26,6 +35,7 @@ export function GlobalDataProvider({ children }) {
     
     try {
       const cachedData = {};
+      const cachedProfileImages = {};
       
       for (let i = 0; i < sessionStorage.length; i++) {
         const key = sessionStorage.key(i);
@@ -46,11 +56,34 @@ export function GlobalDataProvider({ children }) {
             sessionStorage.removeItem(key);
           }
         }
+        
+        // Load profile image cache
+        if (key?.startsWith(PROFILE_IMAGE_PREFIX)) {
+          try {
+            const cached = JSON.parse(sessionStorage.getItem(key));
+            
+            // Skip expired entries
+            if (cached.expiry < Date.now()) {
+              sessionStorage.removeItem(key);
+              continue;
+            }
+            
+            const userId = key.replace(PROFILE_IMAGE_PREFIX, '');
+            cachedProfileImages[userId] = cached.url;
+          } catch (e) {
+            sessionStorage.removeItem(key);
+          }
+        }
       }
       
       if (Object.keys(cachedData).length > 0) {
         setData(cachedData);
         console.log(`Loaded ${Object.keys(cachedData).length} cached entries`);
+      }
+      
+      if (Object.keys(cachedProfileImages).length > 0) {
+        setProfileImages(cachedProfileImages);
+        console.log(`Loaded ${Object.keys(cachedProfileImages).length} cached profile images`);
       }
     } catch (error) {
       console.error("Error loading cache:", error);
@@ -76,6 +109,7 @@ export function GlobalDataProvider({ children }) {
     }
   }, []);
 
+  // Enhanced fetchData function
   const fetchData = useCallback(async (params, options = {}) => {
     const { 
       useCache = true, 
@@ -144,8 +178,117 @@ export function GlobalDataProvider({ children }) {
     }
   }, [data, loading]);
 
-  // Attach helper methods to fetchData
-  fetchData.updateData = updateData;
+  // Profile image loading function
+  const loadProfileImage = useCallback(async (userId, imagePath = null) => {
+    if (!userId) return null;
+
+    // Return cached image if available
+    if (profileImages[userId]) {
+      console.log(`Profile image cache HIT: ${userId}`);
+      return profileImages[userId];
+    }
+
+    // Skip if already loading
+    if (profileImageLoading[userId]) {
+      console.log(`Profile image already loading: ${userId}`);
+      return null;
+    }
+
+    setProfileImageLoading(prev => ({ ...prev, [userId]: true }));
+
+    try {
+      console.log(`Profile image cache MISS: ${userId} - Loading from storage`);
+      let imageUrl = null;
+
+      // Try with provided path first
+      if (imagePath) {
+        try {
+          const { data, error } = await supabase.storage
+            .from("profile-images")
+            .createSignedUrl(imagePath, 3600);
+          
+          if (!error && data?.signedUrl) {
+            imageUrl = data.signedUrl;
+          }
+        } catch (pathError) {
+          console.warn(`Failed to load profile image with provided path for ${userId}`);
+        }
+      }
+
+      // If no image URL yet, try listing files in user's folder
+      if (!imageUrl) {
+        try {
+          const { data: files, error } = await supabase.storage
+            .from("profile-images")
+            .list(userId);
+          
+          if (!error && files && files.length > 0) {
+            const sortedFiles = [...files].sort((a, b) => {
+              if (!a.created_at || !b.created_at) return 0;
+              return new Date(b.created_at) - new Date(a.created_at);
+            });
+            
+            const latestFile = sortedFiles[0];
+            const filePath = `${userId}/${latestFile.name}`;
+            
+            const { data, error: urlError } = await supabase.storage
+              .from("profile-images")
+              .createSignedUrl(filePath, 3600);
+            
+            if (!urlError && data?.signedUrl) {
+              imageUrl = data.signedUrl;
+            }
+          }
+        } catch (listError) {
+          console.warn(`Failed to list profile images for ${userId}`);
+        }
+      }
+
+      if (imageUrl) {
+        // Update state
+        setProfileImages(prev => ({ ...prev, [userId]: imageUrl }));
+        
+        // Cache in sessionStorage
+        if (typeof window !== 'undefined') {
+          try {
+            const cacheData = {
+              url: imageUrl,
+              expiry: Date.now() + PROFILE_IMAGE_TTL,
+              timestamp: Date.now()
+            };
+            sessionStorage.setItem(`${PROFILE_IMAGE_PREFIX}${userId}`, JSON.stringify(cacheData));
+          } catch (storageError) {
+            console.warn("Failed to cache profile image:", storageError);
+          }
+        }
+
+        console.log(`✅ Profile image loaded for ${userId}`);
+        return imageUrl;
+      }
+
+      console.log(`❌ No profile image found for ${userId}`);
+      return null;
+    } catch (error) {
+      console.error(`Error loading profile image for ${userId}:`, error);
+      return null;
+    } finally {
+      setProfileImageLoading(prev => {
+        const newLoading = { ...prev };
+        delete newLoading[userId];
+        return newLoading;
+      });
+    }
+  }, [profileImages, profileImageLoading]);
+
+  // Get profile image URL
+  const getProfileImageUrl = useCallback((userId) => {
+    return profileImages[userId] || null;
+  }, [profileImages]);
+
+  // Check if profile image is loading
+  const isProfileImageLoading = useCallback((userId) => {
+    return Boolean(profileImageLoading[userId]);
+  }, [profileImageLoading]);
 
   const invalidateCache = useCallback((pattern) => {
     // Update memory cache
@@ -186,14 +329,36 @@ export function GlobalDataProvider({ children }) {
     console.log(`Invalidated cache for pattern: ${pattern}`);
   }, []);
 
+  // Invalidate profile image cache
+  const invalidateProfileImageCache = useCallback((userId) => {
+    if (userId) {
+      setProfileImages(prev => {
+        const newImages = { ...prev };
+        delete newImages[userId];
+        return newImages;
+      });
+      
+      if (typeof window !== 'undefined') {
+        try {
+          sessionStorage.removeItem(`${PROFILE_IMAGE_PREFIX}${userId}`);
+        } catch (error) {
+          console.error("Error invalidating profile image cache:", error);
+        }
+      }
+      
+      console.log(`Invalidated profile image cache for user: ${userId}`);
+    }
+  }, []);
+
   const clearCache = useCallback(() => {
     setData({});
+    setProfileImages({});
     
     if (typeof window !== 'undefined') {
       try {
         for (let i = sessionStorage.length - 1; i >= 0; i--) {
           const key = sessionStorage.key(i);
-          if (key?.startsWith(CACHE_PREFIX)) {
+          if (key?.startsWith(CACHE_PREFIX) || key?.startsWith(PROFILE_IMAGE_PREFIX)) {
             sessionStorage.removeItem(key);
           }
         }
@@ -208,10 +373,15 @@ export function GlobalDataProvider({ children }) {
   const value = {
     data,
     loading,
+    profileImages,
     fetchData,
     updateData,
     invalidateCache,
-    clearCache
+    clearCache,
+    loadProfileImage,
+    getProfileImageUrl,
+    isProfileImageLoading,
+    invalidateProfileImageCache,
   };
 
   return (

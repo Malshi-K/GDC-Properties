@@ -9,7 +9,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useGlobalData } from "@/contexts/GlobalDataContext";
 import { useImageLoader } from "@/lib/services/imageLoaderService";
 import { propertySearchService, PROPERTY_TYPES, CACHE_TTL } from "@/lib/utils/searchUtils";
-import debounce from "lodash/debounce";
 
 export default function SearchResults() {
   const searchParams = useSearchParams();
@@ -39,15 +38,22 @@ export default function SearchResults() {
 
   const [isLoadingFormOptions, setIsLoadingFormOptions] = useState(true);
 
-  // Form data state - initialize from URL params
-  const [formData, setFormData] = useState(() => 
-    propertySearchService.searchParamsToFormData(searchParams)
-  );
+  // FIXED: Derive form data directly from searchParams - single source of truth
+  const formData = useMemo(() => {
+    return propertySearchService.searchParamsToFormData(searchParams);
+  }, [searchParams]);
 
-  // FIXED: Load properties using direct Supabase query for better debugging
+  // FIXED: Separate form state for immediate UI updates (before submission)
+  const [localFormData, setLocalFormData] = useState(formData);
+
+  // Update local form data when URL changes
+  useEffect(() => {
+    setLocalFormData(formData);
+    setCurrentPage(1); // Reset page when search changes
+  }, [formData]);
+
+  // Load properties function - now uses formData directly from URL
   const loadProperties = useCallback(async () => {
-    if (!searchParams) return;
-
     setLoadingProperties(true);
     
     try {
@@ -165,7 +171,7 @@ export default function SearchResults() {
     } finally {
       setLoadingProperties(false);
     }
-  }, [formData, currentPage, propertiesPerPage, preloadPropertiesImages, searchParams]);
+  }, [formData, currentPage, propertiesPerPage, preloadPropertiesImages]);
 
   // Load form options using GlobalDataContext - Dynamic from database
   const loadFormOptions = useCallback(async () => {
@@ -238,26 +244,6 @@ export default function SearchResults() {
       setIsLoadingFormOptions(false);
     }
   }, [fetchData]);
-
-  // Update form data when URL search params change
-  useEffect(() => {
-    if (searchParams) {
-      const newFormData = propertySearchService.searchParamsToFormData(searchParams);
-      
-      const hasChanged = Object.keys(newFormData).some(
-        (key) => newFormData[key] !== formData[key]
-      );
-
-      if (hasChanged) {
-        console.log("🔄 Search params changed:", {
-          old: formData,
-          new: newFormData
-        });
-        setCurrentPage(1);
-        setFormData(newFormData);
-      }
-    }
-  }, [searchParams]);
 
   // Load form options on mount
   useEffect(() => {
@@ -361,43 +347,32 @@ export default function SearchResults() {
     }
   };
 
-  // Debounced form change handler
-  const debouncedHandleChange = useMemo(
-    () =>
-      debounce((name, value) => {
-        setFormData((prevState) => ({
-          ...prevState,
-          [name]: value,
-        }));
-      }, 300),
-    []
-  );
-
+  // FIXED: Handle form changes - update local state immediately
   const handleChange = (e) => {
     const { name, value } = e.target;
-    // Update form data immediately for display
-    setFormData((prevState) => ({
+    setLocalFormData((prevState) => ({
       ...prevState,
       [name]: value,
     }));
-    // Also debounce for performance
-    debouncedHandleChange(name, value);
   };
 
+  // FIXED: Handle form submission - navigate with new params
   const handleSubmit = (e) => {
     e.preventDefault();
     
     // Validate form data
-    const validation = propertySearchService.validateFormData(formData);
+    const validation = propertySearchService.validateFormData(localFormData);
     if (!validation.isValid) {
       toast.error(validation.errors.join(', '));
       return;
     }
     
     // Convert form data to query string and navigate
-    const queryString = propertySearchService.formDataToSearchParams(formData);
+    const queryString = propertySearchService.formDataToSearchParams(localFormData);
     console.log("🚀 Navigating with query string:", queryString);
-    router.push(`/search?${queryString}`);
+    
+    // FIXED: Use replace to avoid adding to history, and ensure URL change triggers re-render
+    router.replace(`/search?${queryString}`);
   };
 
   // Pagination component
@@ -468,50 +443,11 @@ export default function SearchResults() {
   return (
     <div className="min-h-screen bg-gray-100 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        {/* Debug Panel - Remove in production */}
-        {/* {process.env.NODE_ENV === 'development' && (
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
-            <div className="flex">
-              <div className="ml-3">
-                <p className="text-sm text-yellow-700">
-                  <strong>Debug Info:</strong>
-                </p>
-                <pre className="text-xs text-yellow-600 mt-1">
-                  Current Form Data: {JSON.stringify(formData, null, 2)}
-                </pre>
-                <p className="text-xs text-yellow-600 mt-2">
-                  URL Search Params: {searchParams?.toString() || 'None'}
-                </p>
-                <p className="text-xs text-yellow-600">
-                  Total Properties Found: {totalCount}
-                </p>
-              </div>
-            </div>
-          </div>
-        )} */}
-
         {/* Search filters - Refine Your Search */}
         <div className="bg-white p-6 rounded-lg shadow-md mb-8">
           <h2 className="text-2xl font-bold text-center text-gray-800 mb-4">
             Refine Your Search
           </h2>
-
-          {/* Display current search summary */}
-          {/* {!isLoadingFormOptions && (
-            <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <strong>Current search:</strong> {propertySearchService.getSearchSummary(formData)}
-              </p>
-              {formOptions.stats && (
-                <p className="text-xs text-blue-600 mt-1">
-                  Database: {formOptions.locations.length} locations, 
-                  {formOptions.stats.priceRange && (
-                    <span> prices from {propertySearchService.formatPrice(formOptions.stats.priceRange.min)} to {propertySearchService.formatPrice(formOptions.stats.priceRange.max)}</span>
-                  )}
-                </p>
-              )}
-            </div>
-          )} */}
 
           {isLoadingFormOptions ? (
             <FormSkeleton />
@@ -529,7 +465,7 @@ export default function SearchResults() {
                   <select
                     id="location"
                     name="location"
-                    value={formData.location}
+                    value={localFormData.location}
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
                   >
@@ -553,7 +489,7 @@ export default function SearchResults() {
                   <select
                     id="property_type"
                     name="property_type"
-                    value={formData.property_type}
+                    value={localFormData.property_type}
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
                   >
@@ -579,7 +515,7 @@ export default function SearchResults() {
                     <select
                       id="bedrooms"
                       name="bedrooms"
-                      value={formData.bedrooms}
+                      value={localFormData.bedrooms}
                       onChange={handleChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
                     >
@@ -603,7 +539,7 @@ export default function SearchResults() {
                     <select
                       id="bathrooms"
                       name="bathrooms"
-                      value={formData.bathrooms}
+                      value={localFormData.bathrooms}
                       onChange={handleChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
                     >
@@ -633,7 +569,7 @@ export default function SearchResults() {
                     <select
                       id="minPrice"
                       name="minPrice"
-                      value={formData.minPrice}
+                      value={localFormData.minPrice}
                       onChange={handleChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
                     >
@@ -657,7 +593,7 @@ export default function SearchResults() {
                     <select
                       id="maxPrice"
                       name="maxPrice"
-                      value={formData.maxPrice}
+                      value={localFormData.maxPrice}
                       onChange={handleChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
                     >

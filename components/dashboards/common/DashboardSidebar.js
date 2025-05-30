@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   FaUser,
   FaEdit,
@@ -10,36 +10,38 @@ import {
   FaTimes
 } from "react-icons/fa";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGlobalData } from "@/contexts/GlobalDataContext"; // Use enhanced GlobalDataContext
 import ProfileEditModal from "./ProfileEditModal";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 const DashboardSidebar = ({ activeTab, setActiveTab }) => {
   const [showEditModal, setShowEditModal] = useState(false);
-  const [profileImageUrl, setProfileImageUrl] = useState("");
-  const [imageError, setImageError] = useState(false);
-  const [isLoadingImage, setIsLoadingImage] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const sidebarRef = useRef(null);
   const router = useRouter();
 
-  // Add image cache state
-  const [imageCache, setImageCache] = useState({
-    url: null,
-    timestamp: null,
-    userId: null
-  });
+  // Use enhanced GlobalDataContext for profile images
+  const { 
+    loadProfileImage, 
+    getProfileImageUrl, 
+    isProfileImageLoading, 
+    invalidateProfileImageCache 
+  } = useGlobalData();
   
-  // Cache expiry - 30 minutes for profile images
-  const IMAGE_CACHE_EXPIRY = 30 * 60 * 1000;
+  const { user, profile, userRole } = useAuth();
 
-  const { user, profile, userRole, getProfileImageUrl } = useAuth();
+  // Get profile image URL and loading state from GlobalDataContext
+  const profileImageUrl = getProfileImageUrl(user?.id);
+  const isLoadingImage = isProfileImageLoading(user?.id);
 
-  // Check if image cache is valid
-  const isImageCacheValid = () => {
-    if (!imageCache.url || !imageCache.timestamp || imageCache.userId !== user?.id) return false;
-    return (Date.now() - imageCache.timestamp) < IMAGE_CACHE_EXPIRY;
-  };
+  // Load profile image when component mounts or profile changes
+  useEffect(() => {
+    if (user?.id) {
+      console.log("Loading profile image for user:", user.id, "with profile:", profile?.profile_image);
+      loadProfileImage(user.id, profile?.profile_image);
+    }
+  }, [user?.id, profile?.profile_image, loadProfileImage]);
 
   // Handle clicks outside the sidebar to close mobile menu
   useEffect(() => {
@@ -54,140 +56,6 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isMobileMenuOpen]);
-
-  // Create a memoized function to load the profile image using the AuthContext's getProfileImageUrl
-  // This is better because it uses the same centralized logic for profile images
-  const loadProfileImage = useCallback(async () => {
-    // If we don't have a user ID, there's nothing to load
-    if (!user?.id) return;
-    
-    // If we have a valid cache, use it instead of fetching again
-    if (isImageCacheValid()) {
-      setProfileImageUrl(imageCache.url);
-      setImageError(false);
-      return;
-    }
-
-    try {
-      setIsLoadingImage(true);
-      setImageError(false);
-      
-      // First check if we can use the AuthContext's getProfileImageUrl method
-      if (getProfileImageUrl) {
-        const imageUrl = await getProfileImageUrl();
-        
-        if (imageUrl) {
-          setProfileImageUrl(imageUrl);
-          setImageCache({
-            url: imageUrl,
-            timestamp: Date.now(),
-            userId: user.id
-          });
-          setImageError(false);
-          return;
-        }
-      }
-      
-      // Fallback approach 1: Use profile.profile_image if available
-      if (profile?.profile_image) {
-        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-          .from("profile-images")
-          .createSignedUrl(profile.profile_image, 3600); // 1 hour expiry
-          
-        if (!signedUrlError && signedUrlData?.signedUrl) {
-          setProfileImageUrl(signedUrlData.signedUrl);
-          setImageCache({
-            url: signedUrlData.signedUrl,
-            timestamp: Date.now(),
-            userId: user.id
-          });
-          setImageError(false);
-          return;
-        }
-      }
-      
-      // Fallback approach 2: Try public URL if available
-      if (profile?.profile_image_url) {
-        setProfileImageUrl(`${profile.profile_image_url}?t=${Date.now()}`);
-        setImageCache({
-          url: `${profile.profile_image_url}?t=${Date.now()}`,
-          timestamp: Date.now(),
-          userId: user.id
-        });
-        setImageError(false);
-        return;
-      }
-      
-      // Fallback approach 3: List files and get the most recent one
-      const { data: files, error: listError } = await supabase.storage
-        .from("profile-images")
-        .list(user.id);
-        
-      if (listError || !files || files.length === 0) {
-        throw new Error("No profile images found");
-      }
-      
-      // Find the most recent file
-      const sortedFiles = [...files].sort((a, b) => {
-        if (!a.created_at || !b.created_at) return 0;
-        return new Date(b.created_at) - new Date(a.created_at);
-      });
-      
-      const latestFile = sortedFiles[0];
-      const filePath = `${user.id}/${latestFile.name}`;
-      
-      // Get a signed URL for the file
-      const { data: urlData, error: urlError } = await supabase.storage
-        .from("profile-images")
-        .createSignedUrl(filePath, 3600); // 1 hour expiry
-        
-      if (urlError) {
-        throw urlError;
-      }
-      
-      setProfileImageUrl(urlData.signedUrl);
-      setImageCache({
-        url: urlData.signedUrl,
-        timestamp: Date.now(),
-        userId: user.id
-      });
-      setImageError(false);
-    } catch (error) {
-      console.error("Error loading profile image:", error);
-      setImageError(true);
-      setProfileImageUrl("");
-    } finally {
-      setIsLoadingImage(false);
-    }
-  }, [user?.id, profile, getProfileImageUrl, isImageCacheValid, imageCache.url]);
-  
-  // Load profile image when component mounts or when user/profile changes
-  // No longer reload on every tab change - only when necessary
-  useEffect(() => {
-    // Only load if:
-    // 1. We have a user ID
-    // 2. We don't have a valid cache
-    // 3. The profile image might have changed (profile object is different)
-    if (user?.id && !isImageCacheValid()) {
-      loadProfileImage();
-    }
-  }, [user?.id, profile, loadProfileImage, isImageCacheValid]);
-  
-  // Add a focus event listener to refresh the image when tab gains focus
-  // But only if the cache is expired
-  useEffect(() => {
-    const handleFocus = () => {
-      if (!isImageCacheValid()) {
-        loadProfileImage();
-      }
-    };
-    
-    window.addEventListener('focus', handleFocus);
-    
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [loadProfileImage, isImageCacheValid]);
 
   // Handle sign out
   const handleSignOut = async () => {
@@ -204,6 +72,21 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
   const handleTabSelect = (tabId) => {
     setActiveTab(tabId);
     setIsMobileMenuOpen(false);
+  };
+
+  // Handle modal close and refresh profile image
+  const handleModalClose = () => {
+    setShowEditModal(false);
+    
+    if (user?.id) {
+      // Invalidate the profile image cache to force reload
+      invalidateProfileImageCache(user.id);
+      
+      // Reload the profile image after a short delay
+      setTimeout(() => {
+        loadProfileImage(user.id, profile?.profile_image);
+      }, 1000);
+    }
   };
 
   // Define all navigation items with role access
@@ -411,27 +294,43 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
         <div className="p-6 flex flex-col items-center border-b border-red-600">
           {/* Profile Image */}
           <div className="w-16 h-16 md:w-24 md:h-24 relative rounded-full overflow-hidden mb-4 bg-red-500 border-2 border-white">
-            {profileImageUrl && !imageError ? (
+            {profileImageUrl ? (
               <img
                 src={profileImageUrl}
                 alt={profile?.full_name || "User"}
                 className="w-full h-full object-cover"
-                onError={() => {
-                  console.error("Image failed to load");
-                  setImageError(true);
+                onError={(e) => {
+                  console.error("Profile image failed to load:", e);
+                  e.target.style.display = 'none';
+                  // Show fallback icon
+                  e.target.parentElement.querySelector('.fallback-icon').style.display = 'flex';
+                }}
+                onLoad={() => {
+                  console.log("Profile image loaded successfully");
                 }}
                 key={profileImageUrl} // Force re-render when URL changes
               />
-            ) : (
-              <div className="absolute inset-0 bg-white flex items-center justify-center">
-                <FaUser className="text-custom-red text-xl md:text-3xl" />
-              </div>
-            )}
+            ) : null}
 
-            {/* Loading spinner overlay - only shown when loading */}
+            {/* Fallback icon */}
+            <div 
+              className={`fallback-icon absolute inset-0 bg-white flex items-center justify-center ${profileImageUrl ? 'hidden' : 'flex'}`}
+              style={{ display: profileImageUrl ? 'none' : 'flex' }}
+            >
+              <FaUser className="text-custom-red text-xl md:text-3xl" />
+            </div>
+
+            {/* Loading spinner overlay */}
             {isLoadingImage && (
               <div className="absolute inset-0 bg-red-500 bg-opacity-50 flex items-center justify-center">
                 <div className="w-4 h-4 md:w-6 md:h-6 border-2 md:border-3 border-white border-t-red-300 rounded-full animate-spin"></div>
+              </div>
+            )}
+
+            {/* Debug info in development */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="absolute -bottom-8 left-0 right-0 text-xs text-red-200 text-center">
+                {profileImageUrl ? "✓ IMG" : isLoadingImage ? "⌛ LOAD" : "✗ NO"}
               </div>
             )}
           </div>
@@ -531,13 +430,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
       {/* Profile Edit Modal */}
       <ProfileEditModal
         isOpen={showEditModal}
-        onClose={() => {
-          setShowEditModal(false);
-          // Invalidate the image cache when profile is edited
-          setImageCache({ url: null, timestamp: null, userId: null });
-          // Force refresh the profile image when modal is closed
-          loadProfileImage();
-        }}
+        onClose={handleModalClose}
       />
     </>
   );

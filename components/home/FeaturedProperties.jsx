@@ -142,7 +142,7 @@ const FeaturedProperties = () => {
     return (
       <div 
         key={property.id} 
-        className="min-w-[calc(33.333%-16px)] sm:min-w-[calc(50%-12px)] md:min-w-[calc(33.333%-16px)] flex-shrink-0 bg-custom-red rounded-lg overflow-hidden cursor-pointer shadow-lg transition-transform duration-300 hover:transform hover:scale-[1.02]"
+        className="min-w-[calc(33.333%-16px)] sm:min-w-[calc(50%-12px)] md:min-w-[calc(33.333%-16px)] flex-shrink-0 bg-custom-red rounded-lg overflow-hidden cursor-pointer shadow-lg transition-transform duration-300"
         onClick={() => handlePropertyClick(property.id)}
       >
         <div className="relative h-60 w-full">
