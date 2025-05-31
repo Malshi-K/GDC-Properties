@@ -47,7 +47,8 @@ const TabSkeleton = () => (
 
 export default function Dashboard() {
   const { user, profile, userRole, isLoading } = useAuth();
-  const { fetchData, updateData, invalidateCache, loading, data } = useGlobalData();
+  const { fetchData, updateData, invalidateCache, loading, data } =
+    useGlobalData();
 
   // State management
   const [mounted, setMounted] = useState(false);
@@ -58,6 +59,9 @@ export default function Dashboard() {
   const [currentProperties, setCurrentProperties] = useState([]);
   const [currentViewingRequests, setCurrentViewingRequests] = useState([]);
   const [currentApplications, setCurrentApplications] = useState([]);
+  const [currentUserViewingRequests, setCurrentUserViewingRequests] = useState(
+    []
+  );
 
   // Define default active tabs based on role
   const defaultOwnerTab = "properties";
@@ -94,24 +98,24 @@ export default function Dashboard() {
 
   // Get current properties from GlobalDataContext data
   useEffect(() => {
-    if (user?.id && userRole === 'owner') {
+    if (user?.id && userRole === "owner") {
       const cacheKey = `owner_properties_${user.id}`;
       const properties = data[cacheKey];
-      
+
       if (Array.isArray(properties)) {
         setCurrentProperties(properties);
       }
     }
   }, [data, user?.id, userRole]);
 
-  // NEW: Get current applications from GlobalDataContext data
+  // NEW: Get current user viewing requests from GlobalDataContext data
   useEffect(() => {
-    if (user?.id && userRole === 'owner') {
-      const cacheKey = `owner_applications_${user.id}`;
-      const applications = data[cacheKey];
-      
-      if (Array.isArray(applications)) {
-        setCurrentApplications(applications);
+    if (user?.id && userRole === "user") {
+      const cacheKey = `user_viewing_requests_${user.id}`;
+      const userViewingRequests = data[cacheKey];
+
+      if (Array.isArray(userViewingRequests)) {
+        setCurrentUserViewingRequests(userViewingRequests);
       }
     }
   }, [data, user?.id, userRole]);
@@ -121,24 +125,44 @@ export default function Dashboard() {
     if (!user?.id || !userRole) return;
 
     // Fetch data based on active tab and user role
-    if (userRole === 'owner') {
-      if (activeTab === 'properties') {
+    if (userRole === "owner") {
+      if (activeTab === "properties") {
         getOwnerProperties();
-      } else if (activeTab === 'viewings') {
+      } else if (activeTab === "viewings") {
         getViewingRequests();
-      } else if (activeTab === 'applications') {
+      } else if (activeTab === "applications") {
         getRentalApplications();
       }
-    } else if (userRole === 'user') {
-      if (activeTab === 'favorites') {
+    } else if (userRole === "user") {
+      if (activeTab === "favorites") {
         getUserFavorites();
-      } else if (activeTab === 'applications') {
+      } else if (activeTab === "applications") {
         getUserApplications();
-      } else if (activeTab === 'viewingRequests') {
+      } else if (activeTab === "viewingRequests") {
         getUserViewingRequests();
       }
     }
   }, [activeTab, user?.id, userRole, mounted]);
+
+  // Debug useEffect for user viewing requests
+  useEffect(() => {
+    if (userRole === 'user' && user?.id) {
+      const cacheKey = `user_viewing_requests_${user.id}`;
+      const requestsData = data[cacheKey];
+      
+      console.log('Dashboard Debug - User Viewing Requests:', {
+        userRole,
+        userId: user.id,
+        activeTab,
+        cacheKey,
+        hasData: !!requestsData,
+        dataLength: requestsData?.length,
+        requestsData,
+        allDataKeys: Object.keys(data),
+        loadingKeys: Object.keys(loading)
+      });
+    }
+  }, [userRole, user?.id, activeTab, data, loading]);
 
   // ----- DATA FETCHING FUNCTIONS USING GLOBAL CONTEXT -----
 
@@ -146,24 +170,27 @@ export default function Dashboard() {
   const getOwnerProperties = async () => {
     if (!user) return [];
     const cacheKey = `owner_properties_${user.id}`;
-    
+
     try {
-      const properties = await fetchData({
-        table: 'properties',
-        select: '*',
-        filters: [{ column: 'owner_id', operator: 'eq', value: user.id }],
-        orderBy: { column: 'created_at', ascending: false }
-      }, { 
-        useCache: true, 
-        ttl: CACHE_TTL.PROPERTIES,
-        _cached_key: cacheKey 
-      });
-      
+      const properties = await fetchData(
+        {
+          table: "properties",
+          select: "*",
+          filters: [{ column: "owner_id", operator: "eq", value: user.id }],
+          orderBy: { column: "created_at", ascending: false },
+        },
+        {
+          useCache: true,
+          ttl: CACHE_TTL.PROPERTIES,
+          _cached_key: cacheKey,
+        }
+      );
+
       // Update current properties for editing
       if (Array.isArray(properties)) {
         setCurrentProperties(properties);
       }
-      
+
       return properties;
     } catch (error) {
       console.error("Error fetching owner properties:", error);
@@ -174,13 +201,14 @@ export default function Dashboard() {
   const getViewingRequests = async () => {
     if (!user) return [];
     const cacheKey = `owner_viewing_requests_${user.id}`;
-    
+
     try {
-      console.log('Fetching viewing requests for owner:', user.id);
-      
-      const viewingRequests = await fetchData({
-        table: 'viewing_requests',
-        select: `
+      console.log("Fetching viewing requests for owner:", user.id);
+
+      const viewingRequests = await fetchData(
+        {
+          table: "viewing_requests",
+          select: `
           *,
           properties!viewing_requests_property_id_fkey (
             id,
@@ -191,31 +219,34 @@ export default function Dashboard() {
             owner_id
           )
         `,
-        filters: [{ column: 'owner_id', operator: 'eq', value: user.id }],
-        orderBy: { column: 'created_at', ascending: false }
-      }, { 
-        useCache: true, 
-        ttl: CACHE_TTL.VIEWING_REQUESTS,
-        _cached_key: cacheKey 
-      });
+          filters: [{ column: "owner_id", operator: "eq", value: user.id }],
+          orderBy: { column: "created_at", ascending: false },
+        },
+        {
+          useCache: true,
+          ttl: CACHE_TTL.VIEWING_REQUESTS,
+          _cached_key: cacheKey,
+        }
+      );
 
-      console.log('Fetched viewing requests with properties:', viewingRequests);
+      console.log("Fetched viewing requests with properties:", viewingRequests);
 
       // Update current viewing requests
       if (Array.isArray(viewingRequests)) {
         setCurrentViewingRequests(viewingRequests);
       }
-      
+
       return viewingRequests;
     } catch (error) {
       console.error("Error fetching viewing requests:", error);
-      
+
       // If the explicit foreign key relationship fails, try a simpler approach
-      console.log('Trying fallback query without explicit foreign key...');
+      console.log("Trying fallback query without explicit foreign key...");
       try {
-        const fallbackRequests = await fetchData({
-          table: 'viewing_requests',
-          select: `
+        const fallbackRequests = await fetchData(
+          {
+            table: "viewing_requests",
+            select: `
             *,
             properties (
               id,
@@ -226,19 +257,21 @@ export default function Dashboard() {
               owner_id
             )
           `,
-          filters: [{ column: 'owner_id', operator: 'eq', value: user.id }],
-          orderBy: { column: 'created_at', ascending: false }
-        }, { 
-          useCache: false, // Don't cache fallback
-          ttl: CACHE_TTL.VIEWING_REQUESTS
-        });
+            filters: [{ column: "owner_id", operator: "eq", value: user.id }],
+            orderBy: { column: "created_at", ascending: false },
+          },
+          {
+            useCache: false, // Don't cache fallback
+            ttl: CACHE_TTL.VIEWING_REQUESTS,
+          }
+        );
 
-        console.log('Fallback viewing requests:', fallbackRequests);
-        
+        console.log("Fallback viewing requests:", fallbackRequests);
+
         if (Array.isArray(fallbackRequests)) {
           setCurrentViewingRequests(fallbackRequests);
         }
-        
+
         return fallbackRequests;
       } catch (fallbackError) {
         console.error("Fallback query also failed:", fallbackError);
@@ -250,13 +283,14 @@ export default function Dashboard() {
   const getRentalApplications = async () => {
     if (!user) return [];
     const cacheKey = `owner_applications_${user.id}`;
-    
+
     try {
-      console.log('Fetching applications for owner:', user.id);
-      
-      const applications = await fetchData({
-        table: 'rental_applications',
-        select: `
+      console.log("Fetching applications for owner:", user.id);
+
+      const applications = await fetchData(
+        {
+          table: "rental_applications",
+          select: `
           *,
           properties!rental_applications_property_id_fkey (
             id,
@@ -267,31 +301,34 @@ export default function Dashboard() {
             owner_id
           )
         `,
-        filters: [{ column: 'owner_id', operator: 'eq', value: user.id }],
-        orderBy: { column: 'created_at', ascending: false }
-      }, { 
-        useCache: true, 
-        ttl: CACHE_TTL.APPLICATIONS,
-        _cached_key: cacheKey 
-      });
+          filters: [{ column: "owner_id", operator: "eq", value: user.id }],
+          orderBy: { column: "created_at", ascending: false },
+        },
+        {
+          useCache: true,
+          ttl: CACHE_TTL.APPLICATIONS,
+          _cached_key: cacheKey,
+        }
+      );
 
-      console.log('Fetched applications with properties:', applications);
+      console.log("Fetched applications with properties:", applications);
 
       // Update current applications
       if (Array.isArray(applications)) {
         setCurrentApplications(applications);
       }
-      
+
       return applications;
     } catch (error) {
       console.error("Error fetching applications:", error);
-      
+
       // If the explicit foreign key relationship fails, try a simpler approach
-      console.log('Trying fallback query for applications...');
+      console.log("Trying fallback query for applications...");
       try {
-        const fallbackApplications = await fetchData({
-          table: 'rental_applications',
-          select: `
+        const fallbackApplications = await fetchData(
+          {
+            table: "rental_applications",
+            select: `
             *,
             properties (
               id,
@@ -302,22 +339,27 @@ export default function Dashboard() {
               owner_id
             )
           `,
-          filters: [{ column: 'owner_id', operator: 'eq', value: user.id }],
-          orderBy: { column: 'created_at', ascending: false }
-        }, { 
-          useCache: false, // Don't cache fallback
-          ttl: CACHE_TTL.APPLICATIONS
-        });
+            filters: [{ column: "owner_id", operator: "eq", value: user.id }],
+            orderBy: { column: "created_at", ascending: false },
+          },
+          {
+            useCache: false, // Don't cache fallback
+            ttl: CACHE_TTL.APPLICATIONS,
+          }
+        );
 
-        console.log('Fallback applications:', fallbackApplications);
-        
+        console.log("Fallback applications:", fallbackApplications);
+
         if (Array.isArray(fallbackApplications)) {
           setCurrentApplications(fallbackApplications);
         }
-        
+
         return fallbackApplications;
       } catch (fallbackError) {
-        console.error("Fallback query for applications also failed:", fallbackError);
+        console.error(
+          "Fallback query for applications also failed:",
+          fallbackError
+        );
         return [];
       }
     }
@@ -327,11 +369,12 @@ export default function Dashboard() {
   const getUserFavorites = async () => {
     if (!user) return [];
     const cacheKey = `user_favorites_${user.id}`;
-    
+
     try {
-      return await fetchData({
-        table: 'favorites',
-        select: `
+      return await fetchData(
+        {
+          table: "favorites",
+          select: `
           id,
           property_id,
           properties (
@@ -345,13 +388,15 @@ export default function Dashboard() {
             owner_id
           )
         `,
-        filters: [{ column: 'user_id', operator: 'eq', value: user.id }],
-        orderBy: { column: 'created_at', ascending: false }
-      }, { 
-        useCache: true, 
-        ttl: CACHE_TTL.FAVORITES,
-        _cached_key: cacheKey 
-      });
+          filters: [{ column: "user_id", operator: "eq", value: user.id }],
+          orderBy: { column: "created_at", ascending: false },
+        },
+        {
+          useCache: true,
+          ttl: CACHE_TTL.FAVORITES,
+          _cached_key: cacheKey,
+        }
+      );
     } catch (error) {
       console.error("Error fetching favorites:", error);
       return [];
@@ -361,11 +406,12 @@ export default function Dashboard() {
   const getUserApplications = async () => {
     if (!user) return [];
     const cacheKey = `user_applications_${user.id}`;
-    
+
     try {
-      return await fetchData({
-        table: 'rental_applications',
-        select: `
+      return await fetchData(
+        {
+          table: "rental_applications",
+          select: `
           *,
           properties (
             id,
@@ -375,13 +421,15 @@ export default function Dashboard() {
             images
           )
         `,
-        filters: [{ column: 'user_id', operator: 'eq', value: user.id }],
-        orderBy: { column: 'created_at', ascending: false }
-      }, { 
-        useCache: true, 
-        ttl: CACHE_TTL.APPLICATIONS,
-        _cached_key: cacheKey 
-      });
+          filters: [{ column: "user_id", operator: "eq", value: user.id }],
+          orderBy: { column: "created_at", ascending: false },
+        },
+        {
+          useCache: true,
+          ttl: CACHE_TTL.APPLICATIONS,
+          _cached_key: cacheKey,
+        }
+      );
     } catch (error) {
       console.error("Error fetching user applications:", error);
       return [];
@@ -391,35 +439,93 @@ export default function Dashboard() {
   const getUserViewingRequests = async () => {
     if (!user) return [];
     const cacheKey = `user_viewing_requests_${user.id}`;
-    
+
     try {
-      return await fetchData({
-        table: 'viewing_requests',
-        select: `
+      console.log("Fetching user viewing requests for:", user.id);
+
+      const userViewingRequests = await fetchData(
+        {
+          table: "viewing_requests",
+          select: `
           *,
-          properties (
+          properties!viewing_requests_property_id_fkey (
             id,
             title,
             location,
             price,
-            images
+            images,
+            owner_id
           )
         `,
-        filters: [{ column: 'user_id', operator: 'eq', value: user.id }],
-        orderBy: { column: 'created_at', ascending: false }
-      }, { 
-        useCache: true, 
-        ttl: CACHE_TTL.VIEWING_REQUESTS,
-        _cached_key: cacheKey 
-      });
+          filters: [{ column: "user_id", operator: "eq", value: user.id }],
+          orderBy: { column: "created_at", ascending: false },
+        },
+        {
+          useCache: true,
+          ttl: CACHE_TTL.VIEWING_REQUESTS,
+          _cached_key: cacheKey,
+        }
+      );
+
+      console.log(
+        "Fetched user viewing requests with properties:",
+        userViewingRequests
+      );
+
+      // Update current user viewing requests
+      if (Array.isArray(userViewingRequests)) {
+        setCurrentUserViewingRequests(userViewingRequests);
+      }
+
+      return userViewingRequests;
     } catch (error) {
       console.error("Error fetching user viewing requests:", error);
-      return [];
+
+      // If the explicit foreign key relationship fails, try a simpler approach
+      console.log("Trying fallback query for user viewing requests...");
+      try {
+        const fallbackRequests = await fetchData(
+          {
+            table: "viewing_requests",
+            select: `
+            *,
+            properties (
+              id,
+              title,
+              location,
+              price,
+              images,
+              owner_id
+            )
+          `,
+            filters: [{ column: "user_id", operator: "eq", value: user.id }],
+            orderBy: { column: "created_at", ascending: false },
+          },
+          {
+            useCache: false, // Don't cache fallback
+            ttl: CACHE_TTL.VIEWING_REQUESTS,
+          }
+        );
+
+        console.log("Fallback user viewing requests:", fallbackRequests);
+
+        if (Array.isArray(fallbackRequests)) {
+          setCurrentUserViewingRequests(fallbackRequests);
+        }
+
+        return fallbackRequests;
+      } catch (fallbackError) {
+        console.error(
+          "Fallback query for user viewing requests also failed:",
+          fallbackError
+        );
+        return [];
+      }
     }
   };
 
   // ----- PROPERTY MANAGEMENT FUNCTIONS -----
-  
+
   const handleEditProperty = (propertyId) => {
     setEditPropertyId(propertyId);
     setShowAddPropertyModal(true);
@@ -483,7 +589,7 @@ export default function Dashboard() {
   };
 
   // ----- STATUS UPDATE FUNCTIONS -----
-  
+
   const handleViewingRequestStatusUpdate = async (requestId, status) => {
     try {
       const { data, error } = await propertyService.updateViewingRequestStatus(
@@ -494,7 +600,7 @@ export default function Dashboard() {
 
       // Invalidate relevant caches
       invalidateCache(`owner_viewing_requests_${user.id}`);
-      invalidateCache(`user_viewing_requests`);
+      invalidateCache(`user_viewing_requests_${user.id}`);
 
       toast.success(`Viewing request ${status}`);
     } catch (error) {
@@ -513,7 +619,7 @@ export default function Dashboard() {
 
       // Invalidate relevant caches
       invalidateCache(`owner_applications_${user.id}`);
-      invalidateCache(`user_applications`);
+      invalidateCache(`user_applications_${user.id}`);
 
       toast.success(`Application ${status}`);
     } catch (error) {
@@ -523,7 +629,7 @@ export default function Dashboard() {
   };
 
   // ----- USER FUNCTIONS -----
-  
+
   const removeFavorite = async (favoriteId) => {
     try {
       const { error } = await supabase
@@ -544,12 +650,12 @@ export default function Dashboard() {
   };
 
   // ----- HELPER FUNCTIONS -----
-  
+
   // Force refresh function
   const forceRefresh = () => {
     if (!user) return;
-    
-    if (userRole === 'owner') {
+
+    if (userRole === "owner") {
       invalidateCache(`owner_properties_${user.id}`);
       invalidateCache(`owner_viewing_requests_${user.id}`);
       invalidateCache(`owner_applications_${user.id}`);
@@ -561,26 +667,27 @@ export default function Dashboard() {
   };
 
   // Get property being edited using currentProperties state
-  const propertyToEdit = editPropertyId && Array.isArray(currentProperties)
-    ? currentProperties.find(property => property.id === editPropertyId)
-    : null;
+  const propertyToEdit =
+    editPropertyId && Array.isArray(currentProperties)
+      ? currentProperties.find((property) => property.id === editPropertyId)
+      : null;
 
   // NEW: Get viewing requests data and loading state
   const getViewingRequestsData = () => {
-    if (!user?.id || userRole !== 'owner') return { data: [], loading: false };
-    
+    if (!user?.id || userRole !== "owner") return { data: [], loading: false };
+
     const cacheKey = `owner_viewing_requests_${user.id}`;
     const isLoading = loading[cacheKey];
     const requestsData = data[cacheKey] || currentViewingRequests;
-    
+
     // If no data and not loading, trigger fetch
-    if (!requestsData?.length && !isLoading && activeTab === 'viewings') {
+    if (!requestsData?.length && !isLoading && activeTab === "viewings") {
       getViewingRequests();
     }
-    
+
     return {
       data: Array.isArray(requestsData) ? requestsData : [],
-      loading: Boolean(isLoading)
+      loading: Boolean(isLoading),
     };
   };
 
@@ -603,6 +710,29 @@ export default function Dashboard() {
     };
   };
 
+  // NEW: Get user viewing requests data and loading state
+  const getUserViewingRequestsData = () => {
+    if (!user?.id || userRole !== "user") return { data: [], loading: false };
+
+    const cacheKey = `user_viewing_requests_${user.id}`;
+    const isLoading = loading[cacheKey];
+    const requestsData = data[cacheKey] || currentUserViewingRequests;
+
+    // If no data and not loading, trigger fetch
+    if (
+      !requestsData?.length &&
+      !isLoading &&
+      activeTab === "viewingRequests"
+    ) {
+      getUserViewingRequests();
+    }
+
+    return {
+      data: Array.isArray(requestsData) ? requestsData : [],
+      loading: Boolean(isLoading),
+    };
+  };
+
   // Loading state for initial user role determination
   if (!userRole) {
     return (
@@ -612,7 +742,9 @@ export default function Dashboard() {
             <div className="absolute inset-0 border-4 border-custom-red border-opacity-20 rounded-full"></div>
             <div className="absolute inset-0 border-4 border-transparent border-t-custom-red rounded-full animate-spin"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-custom-red text-sm font-medium">Loading...</span>
+              <span className="text-custom-red text-sm font-medium">
+                Loading...
+              </span>
             </div>
           </div>
         </div>
@@ -699,9 +831,14 @@ export default function Dashboard() {
           {userRole === "user" && (
             <div>
               {activeTab === "viewingRequests" && (
-                <div className="text-center py-12">
-                  <p>User Viewing Requests Tab - Coming Soon</p>
-                </div>
+                <UserViewingRequestsTab
+                  viewingRequests={getUserViewingRequestsData().data}
+                  loading={getUserViewingRequestsData().loading}
+                  onRefresh={() => {
+                    invalidateCache(`user_viewing_requests_${user.id}`);
+                    getUserViewingRequests();
+                  }}
+                />
               )}
 
               {activeTab === "applications" && (

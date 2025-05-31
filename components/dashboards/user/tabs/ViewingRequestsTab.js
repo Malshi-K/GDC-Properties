@@ -2,6 +2,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useMemo } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useGlobalData } from '@/contexts/GlobalDataContext';
 import { formatDate } from '@/lib/utils/formatters';
 import { supabase } from '@/lib/supabase';
 import { createClient } from "@supabase/supabase-js";
@@ -17,12 +19,87 @@ const supabaseClient = createClient(
  * ViewingRequestsTab component for user dashboard
  * This component shows viewing requests submitted by the user
  */
-const ViewingRequestsTab = ({ viewingRequests = [], setViewingRequests, isOwner = false, loading = false }) => {
+const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading: propLoading = false, onRefresh }) => {
+  const { user } = useAuth();
+  const { loading, data, invalidateCache } = useGlobalData();
+  
+  console.log('ViewingRequestsTab mounted for user:', user?.id);
+  console.log('Props received:', { 
+    propViewingRequests, 
+    propViewingRequestsLength: propViewingRequests?.length,
+    propLoading 
+  });
+  
   const [cancelingId, setCancelingId] = useState(null);
   const [propertyImages, setPropertyImages] = useState({});
   const [expandedRequest, setExpandedRequest] = useState(null);
   const [imageLoading, setImageLoading] = useState(false);
+
+  // Use props first, then fallback to global context
+  const viewingRequests = propViewingRequests && propViewingRequests.length > 0 
+    ? propViewingRequests 
+    : getUserViewingRequestsDataFallback().data;
+    
+  const requestsLoading = propLoading || getUserViewingRequestsDataFallback().loading;
+
+  // Fallback function to get data from global context (same as before)
+  function getUserViewingRequestsDataFallback() {
+    if (!user?.id) return { data: [], loading: false };
+    
+    const cacheKey = `user_viewing_requests_${user.id}`;
+    const isLoading = loading[cacheKey];
+    const requestsData = data[cacheKey];
+    
+    console.log('Fallback getUserViewingRequestsData:', { 
+      cacheKey, 
+      isLoading, 
+      requestsData,
+      requestsDataType: typeof requestsData,
+      dataKeys: Object.keys(data),
+      hasData: !!requestsData,
+      isArray: Array.isArray(requestsData),
+      length: requestsData?.length,
+      firstItem: requestsData?.[0]
+    });
+    
+    // Handle both array and object responses
+    let finalData = [];
+    if (Array.isArray(requestsData)) {
+      finalData = requestsData;
+    } else if (requestsData && typeof requestsData === 'object' && requestsData.data) {
+      finalData = Array.isArray(requestsData.data) ? requestsData.data : [];
+    } else if (requestsData) {
+      console.warn('Unexpected data format:', requestsData);
+      finalData = [];
+    }
+    
+    return {
+      data: finalData,
+      loading: Boolean(isLoading)
+    };
+  }
   
+  console.log('Final component state:', { 
+    viewingRequests, 
+    viewingRequestsType: typeof viewingRequests,
+    viewingRequestsLength: viewingRequests?.length,
+    requestsLoading, 
+    userId: user?.id, 
+    isArray: Array.isArray(viewingRequests),
+    firstRequest: viewingRequests?.[0]
+  });
+
+  // Add a direct data check
+  useEffect(() => {
+    console.log('🔍 Component data check:', {
+      propViewingRequests,
+      propViewingRequestsLength: propViewingRequests?.length,
+      propLoading,
+      finalViewingRequests: viewingRequests,
+      finalLength: viewingRequests?.length
+    });
+  }, [propViewingRequests, propLoading, viewingRequests]);
+
   // Get unique property IDs from requests - memoized for performance
   const propertyIds = useMemo(() => {
     const ids = new Set();
@@ -39,7 +116,7 @@ const ViewingRequestsTab = ({ viewingRequests = [], setViewingRequests, isOwner 
   // Fetch property images only if needed (when properties exist and don't have images yet)
   useEffect(() => {
     // Skip if the parent is still loading data or no properties to fetch
-    if (loading || propertyIds.length === 0) return;
+    if (requestsLoading || propertyIds.length === 0) return;
     
     // Check which property IDs don't have images yet
     const missingPropertyIds = propertyIds.filter(id => !propertyImages[id]);
@@ -114,7 +191,7 @@ const ViewingRequestsTab = ({ viewingRequests = [], setViewingRequests, isOwner 
     };
     
     fetchPropertyImages();
-  }, [propertyIds, propertyImages, loading]);
+  }, [propertyIds, propertyImages, requestsLoading]);
 
   // Get the appropriate status badge based on the status
   const getStatusBadge = (status) => {
@@ -173,53 +250,13 @@ const ViewingRequestsTab = ({ viewingRequests = [], setViewingRequests, isOwner 
         
       if (error) throw error;
       
-      // Update the local state
-      setViewingRequests(
-        viewingRequests.map(request => 
-          request.id === requestId 
-            ? { ...request, status: 'canceled' } 
-            : request
-        )
-      );
+      // Invalidate cache to refresh data
+      invalidateCache(`user_viewing_requests_${user.id}`);
       
       toast.success('Viewing request cancelled successfully');
     } catch (error) {
       console.error('Error cancelling viewing request:', error);
       toast.error('Failed to cancel viewing request');
-    } finally {
-      setCancelingId(null);
-    }
-  };
-  
-  // Handle owner actions on viewing requests (approve/decline)
-  const handleOwnerAction = async (requestId, newStatus) => {
-    try {
-      setCancelingId(requestId);
-      
-      const { error } = await supabase
-        .from('viewing_requests')
-        .update({ status: newStatus })
-        .eq('id', requestId);
-        
-      if (error) throw error;
-      
-      // Update the local state
-      setViewingRequests(
-        viewingRequests.map(request => 
-          request.id === requestId 
-            ? { ...request, status: newStatus } 
-            : request
-        )
-      );
-      
-      const message = newStatus === 'approved' 
-        ? 'Viewing request approved successfully'
-        : 'Viewing request declined';
-        
-      toast.success(message);
-    } catch (error) {
-      console.error(`Error ${newStatus} viewing request:`, error);
-      toast.error(`Failed to ${newStatus} viewing request`);
     } finally {
       setCancelingId(null);
     }
@@ -232,15 +269,43 @@ const ViewingRequestsTab = ({ viewingRequests = [], setViewingRequests, isOwner 
     toast.info('Feature coming soon: Suggest a new time');
   };
 
+  // Force refresh function - use the provided onRefresh or fallback
+  const handleRefresh = () => {
+    if (onRefresh) {
+      onRefresh();
+    } else {
+      // Fallback refresh
+      if (!user?.id) return;
+      
+      // Invalidate cache
+      invalidateCache(`user_viewing_requests_${user.id}`);
+      
+      // Clear property images to force reload
+      setPropertyImages({});
+    }
+    
+    toast.info('Refreshing viewing requests...');
+  };
+
   // Simplified loading state - combines parent loading and image loading
-  const isLoading = loading || imageLoading;
+  const isLoading = requestsLoading || imageLoading;
   
-  if (isLoading) {
+  console.log('Component state:', { isLoading, requestsLoading, imageLoading, viewingRequestsLength: viewingRequests?.length });
+  
+  if (isLoading && (!viewingRequests || viewingRequests.length === 0)) {
     return (
       <div className="max-w-6xl mx-auto text-gray-600">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">
-          {isOwner ? 'Property Viewing Requests' : 'My Viewing Requests'}
-        </h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">
+            My Viewing Requests
+          </h2>
+          <button
+            onClick={handleRefresh}
+            className="px-4 py-2 bg-custom-red text-white rounded-md hover:bg-red-700 transition-colors"
+          >
+            Refresh
+          </button>
+        </div>
         <div className="flex justify-center my-12">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
         </div>
@@ -250,11 +315,36 @@ const ViewingRequestsTab = ({ viewingRequests = [], setViewingRequests, isOwner 
 
   return (
     <div className="max-w-6xl mx-auto text-gray-600">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">
-        {isOwner ? 'Property Viewing Requests' : 'My Viewing Requests'}
-      </h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">
+          My Viewing Requests
+        </h2>
+        <button
+          onClick={handleRefresh}
+          className="px-4 py-2 bg-custom-red text-white rounded-md hover:bg-red-700 transition-colors"
+        >
+          Refresh
+        </button>
+      </div>
+
+      {/* DEBUG SECTION - Remove this once working */}
+      <div className="mb-6 p-4 bg-yellow-100 border border-yellow-300 rounded">
+        <h3 className="font-semibold mb-2">🐛 Debug Info:</h3>
+        <p><strong>Viewing Requests Length:</strong> {viewingRequests?.length || 0}</p>
+        <p><strong>Is Loading:</strong> {isLoading ? 'Yes' : 'No'}</p>
+        <p><strong>Data Type:</strong> {typeof viewingRequests}</p>
+        <p><strong>Is Array:</strong> {Array.isArray(viewingRequests) ? 'Yes' : 'No'}</p>
+        {viewingRequests && viewingRequests.length > 0 && (
+          <details className="mt-2">
+            <summary className="cursor-pointer">View Raw Data</summary>
+            <pre className="mt-2 p-2 bg-white text-xs overflow-auto max-h-40">
+              {JSON.stringify(viewingRequests, null, 2)}
+            </pre>
+          </details>
+        )}
+      </div>
       
-      {!viewingRequests || viewingRequests.length === 0 ? (
+      {(!viewingRequests || !Array.isArray(viewingRequests) || viewingRequests.length === 0) ? (
         <div className="bg-white shadow rounded-lg p-8 text-center">
           <div className="flex flex-col items-center">
             <div className="mb-4">
@@ -264,18 +354,17 @@ const ViewingRequestsTab = ({ viewingRequests = [], setViewingRequests, isOwner 
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-1">No viewing requests</h3>
             <p className="text-gray-500 mb-4">
-              {isOwner 
-                ? "You haven't received any viewing requests yet." 
-                : "You haven't requested any property viewings yet."}
+              {!Array.isArray(viewingRequests) 
+                ? `Data format issue: ${typeof viewingRequests}` 
+                : "You haven't requested any property viewings yet."
+              }
             </p>
-            {!isOwner && (
-              <Link 
-                href="/search" 
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-red hover:bg-red-700"
-              >
-                Browse Properties
-              </Link>
-            )}
+            <Link 
+              href="/search" 
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-red hover:bg-red-700"
+            >
+              Browse Properties
+            </Link>
           </div>
         </div>
       ) : (
@@ -312,7 +401,9 @@ const ViewingRequestsTab = ({ viewingRequests = [], setViewingRequests, isOwner 
                         )}
                       </div>
                       <div>
-                        <h3 className="font-medium text-gray-900">{request.property_title || 'Property Viewing'}</h3>
+                        <h3 className="font-medium text-gray-900">
+                          {request.properties?.title || request.property_title || 'Property Viewing'}
+                        </h3>
                         <p className="text-sm text-gray-500">
                           {formatDate(request.proposed_date)}
                         </p>
@@ -345,7 +436,7 @@ const ViewingRequestsTab = ({ viewingRequests = [], setViewingRequests, isOwner 
                             <div className="relative w-full h-48 md:h-64">
                               <Image 
                                 src={propertyImages[request.property_id]}
-                                alt={request.property_title || 'Property Image'}
+                                alt={request.properties?.title || request.property_title || 'Property Image'}
                                 fill
                                 className="object-cover"
                               />
@@ -367,14 +458,11 @@ const ViewingRequestsTab = ({ viewingRequests = [], setViewingRequests, isOwner 
                           <div className="mb-4">
                             <h3 className="text-xl font-semibold text-gray-900 mb-1">
                               <Link href={`/properties/${request.property_id}`} className="hover:text-custom-red">
-                                {request.property_title || 'Property Viewing'}
+                                {request.properties?.title || request.property_title || 'Property Viewing'}
                               </Link>
                             </h3>
                             <p className="text-gray-600 mb-2">
-                              {isOwner 
-                                ? `Request from ${request.user_name || 'User'}`
-                                : request.property_location || 'Location not specified'
-                              }
+                              {request.properties?.location || request.property_location || 'Location not specified'}
                             </p>
                           </div>
                           
@@ -396,26 +484,10 @@ const ViewingRequestsTab = ({ viewingRequests = [], setViewingRequests, isOwner 
                             </div>
                           )}
                           
-                          {isOwner && (
-                            <div className="bg-gray-50 p-4 rounded-md mb-4">
-                              <h4 className="text-sm font-medium text-gray-700 mb-2">Contact Information</h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                  <p className="text-sm text-gray-500">Email</p>
-                                  <p className="font-medium">{request.user_email || 'Not provided'}</p>
-                                </div>
-                                <div>
-                                  <p className="text-sm text-gray-500">Phone</p>
-                                  <p className="font-medium">{request.user_phone || 'Not provided'}</p>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                          
                           {/* Action buttons */}
                           <div className="flex flex-wrap justify-end gap-2 mt-4">
                             {/* For users viewing their own requests */}
-                            {!isOwner && request.status === 'pending' && (
+                            {request.status === 'pending' && (
                               <button 
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -426,41 +498,6 @@ const ViewingRequestsTab = ({ viewingRequests = [], setViewingRequests, isOwner 
                               >
                                 {cancelingId === request.id ? 'Cancelling...' : 'Cancel Request'}
                               </button>
-                            )}
-                            
-                            {/* For owners responding to requests */}
-                            {isOwner && request.status === 'pending' && (
-                              <>
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleSuggestNewTime(request.id);
-                                  }}
-                                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                                >
-                                  Suggest New Time
-                                </button>
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleOwnerAction(request.id, 'approved');
-                                  }}
-                                  disabled={cancelingId === request.id}
-                                  className="px-4 py-2 border border-green-500 rounded-md text-sm font-medium text-white bg-green-500 hover:bg-green-600"
-                                >
-                                  {cancelingId === request.id ? 'Processing...' : 'Approve'}
-                                </button>
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleOwnerAction(request.id, 'declined');
-                                  }}
-                                  disabled={cancelingId === request.id}
-                                  className="px-4 py-2 border border-red-500 rounded-md text-sm font-medium text-white bg-red-500 hover:bg-red-600"
-                                >
-                                  {cancelingId === request.id ? 'Processing...' : 'Decline'}
-                                </button>
-                              </>
                             )}
                             
                             {/* For approved requests */}
