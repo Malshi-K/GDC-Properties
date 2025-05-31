@@ -54,8 +54,10 @@ export default function Dashboard() {
   const [showAddPropertyModal, setShowAddPropertyModal] = useState(false);
   const [editPropertyId, setEditPropertyId] = useState(null);
 
-  // FIXED: Add state to store the actual properties data for editing
+  // Store the actual data for editing
   const [currentProperties, setCurrentProperties] = useState([]);
+  const [currentViewingRequests, setCurrentViewingRequests] = useState([]);
+  const [currentApplications, setCurrentApplications] = useState([]);
 
   // Define default active tabs based on role
   const defaultOwnerTab = "properties";
@@ -90,7 +92,7 @@ export default function Dashboard() {
     }
   }, [activeTab, userRole, mounted]);
 
-  // FIXED: Get current properties from GlobalDataContext data
+  // Get current properties from GlobalDataContext data
   useEffect(() => {
     if (user?.id && userRole === 'owner') {
       const cacheKey = `owner_properties_${user.id}`;
@@ -101,6 +103,42 @@ export default function Dashboard() {
       }
     }
   }, [data, user?.id, userRole]);
+
+  // NEW: Get current applications from GlobalDataContext data
+  useEffect(() => {
+    if (user?.id && userRole === 'owner') {
+      const cacheKey = `owner_applications_${user.id}`;
+      const applications = data[cacheKey];
+      
+      if (Array.isArray(applications)) {
+        setCurrentApplications(applications);
+      }
+    }
+  }, [data, user?.id, userRole]);
+
+  // NEW: Fetch data when tabs become active
+  useEffect(() => {
+    if (!user?.id || !userRole) return;
+
+    // Fetch data based on active tab and user role
+    if (userRole === 'owner') {
+      if (activeTab === 'properties') {
+        getOwnerProperties();
+      } else if (activeTab === 'viewings') {
+        getViewingRequests();
+      } else if (activeTab === 'applications') {
+        getRentalApplications();
+      }
+    } else if (userRole === 'user') {
+      if (activeTab === 'favorites') {
+        getUserFavorites();
+      } else if (activeTab === 'applications') {
+        getUserApplications();
+      } else if (activeTab === 'viewingRequests') {
+        getUserViewingRequests();
+      }
+    }
+  }, [activeTab, user?.id, userRole, mounted]);
 
   // ----- DATA FETCHING FUNCTIONS USING GLOBAL CONTEXT -----
 
@@ -138,9 +176,21 @@ export default function Dashboard() {
     const cacheKey = `owner_viewing_requests_${user.id}`;
     
     try {
-      return await fetchData({
+      console.log('Fetching viewing requests for owner:', user.id);
+      
+      const viewingRequests = await fetchData({
         table: 'viewing_requests',
-        select: '*',
+        select: `
+          *,
+          properties!viewing_requests_property_id_fkey (
+            id,
+            title,
+            location,
+            price,
+            images,
+            owner_id
+          )
+        `,
         filters: [{ column: 'owner_id', operator: 'eq', value: user.id }],
         orderBy: { column: 'created_at', ascending: false }
       }, { 
@@ -148,9 +198,52 @@ export default function Dashboard() {
         ttl: CACHE_TTL.VIEWING_REQUESTS,
         _cached_key: cacheKey 
       });
+
+      console.log('Fetched viewing requests with properties:', viewingRequests);
+
+      // Update current viewing requests
+      if (Array.isArray(viewingRequests)) {
+        setCurrentViewingRequests(viewingRequests);
+      }
+      
+      return viewingRequests;
     } catch (error) {
       console.error("Error fetching viewing requests:", error);
-      return [];
+      
+      // If the explicit foreign key relationship fails, try a simpler approach
+      console.log('Trying fallback query without explicit foreign key...');
+      try {
+        const fallbackRequests = await fetchData({
+          table: 'viewing_requests',
+          select: `
+            *,
+            properties (
+              id,
+              title,
+              location,
+              price,
+              images,
+              owner_id
+            )
+          `,
+          filters: [{ column: 'owner_id', operator: 'eq', value: user.id }],
+          orderBy: { column: 'created_at', ascending: false }
+        }, { 
+          useCache: false, // Don't cache fallback
+          ttl: CACHE_TTL.VIEWING_REQUESTS
+        });
+
+        console.log('Fallback viewing requests:', fallbackRequests);
+        
+        if (Array.isArray(fallbackRequests)) {
+          setCurrentViewingRequests(fallbackRequests);
+        }
+        
+        return fallbackRequests;
+      } catch (fallbackError) {
+        console.error("Fallback query also failed:", fallbackError);
+        return [];
+      }
     }
   };
 
@@ -159,9 +252,21 @@ export default function Dashboard() {
     const cacheKey = `owner_applications_${user.id}`;
     
     try {
-      return await fetchData({
+      console.log('Fetching applications for owner:', user.id);
+      
+      const applications = await fetchData({
         table: 'rental_applications',
-        select: '*',
+        select: `
+          *,
+          properties!rental_applications_property_id_fkey (
+            id,
+            title,
+            location,
+            price,
+            images,
+            owner_id
+          )
+        `,
         filters: [{ column: 'owner_id', operator: 'eq', value: user.id }],
         orderBy: { column: 'created_at', ascending: false }
       }, { 
@@ -169,9 +274,52 @@ export default function Dashboard() {
         ttl: CACHE_TTL.APPLICATIONS,
         _cached_key: cacheKey 
       });
+
+      console.log('Fetched applications with properties:', applications);
+
+      // Update current applications
+      if (Array.isArray(applications)) {
+        setCurrentApplications(applications);
+      }
+      
+      return applications;
     } catch (error) {
       console.error("Error fetching applications:", error);
-      return [];
+      
+      // If the explicit foreign key relationship fails, try a simpler approach
+      console.log('Trying fallback query for applications...');
+      try {
+        const fallbackApplications = await fetchData({
+          table: 'rental_applications',
+          select: `
+            *,
+            properties (
+              id,
+              title,
+              location,
+              price,
+              images,
+              owner_id
+            )
+          `,
+          filters: [{ column: 'owner_id', operator: 'eq', value: user.id }],
+          orderBy: { column: 'created_at', ascending: false }
+        }, { 
+          useCache: false, // Don't cache fallback
+          ttl: CACHE_TTL.APPLICATIONS
+        });
+
+        console.log('Fallback applications:', fallbackApplications);
+        
+        if (Array.isArray(fallbackApplications)) {
+          setCurrentApplications(fallbackApplications);
+        }
+        
+        return fallbackApplications;
+      } catch (fallbackError) {
+        console.error("Fallback query for applications also failed:", fallbackError);
+        return [];
+      }
     }
   };
 
@@ -412,10 +560,48 @@ export default function Dashboard() {
     }
   };
 
-  // FIXED: Get property being edited using currentProperties state
+  // Get property being edited using currentProperties state
   const propertyToEdit = editPropertyId && Array.isArray(currentProperties)
     ? currentProperties.find(property => property.id === editPropertyId)
     : null;
+
+  // NEW: Get viewing requests data and loading state
+  const getViewingRequestsData = () => {
+    if (!user?.id || userRole !== 'owner') return { data: [], loading: false };
+    
+    const cacheKey = `owner_viewing_requests_${user.id}`;
+    const isLoading = loading[cacheKey];
+    const requestsData = data[cacheKey] || currentViewingRequests;
+    
+    // If no data and not loading, trigger fetch
+    if (!requestsData?.length && !isLoading && activeTab === 'viewings') {
+      getViewingRequests();
+    }
+    
+    return {
+      data: Array.isArray(requestsData) ? requestsData : [],
+      loading: Boolean(isLoading)
+    };
+  };
+
+  // NEW: Get applications data and loading state
+  const getApplicationsData = () => {
+    if (!user?.id || userRole !== 'owner') return { data: [], loading: false };
+    
+    const cacheKey = `owner_applications_${user.id}`;
+    const isLoading = loading[cacheKey];
+    const applicationsData = data[cacheKey] || currentApplications;
+    
+    // If no data and not loading, trigger fetch
+    if (!applicationsData?.length && !isLoading && activeTab === 'applications') {
+      getRentalApplications();
+    }
+    
+    return {
+      data: Array.isArray(applicationsData) ? applicationsData : [],
+      loading: Boolean(isLoading)
+    };
+  };
 
   // Loading state for initial user role determination
   if (!userRole) {
@@ -467,23 +653,40 @@ export default function Dashboard() {
                 />
               )}
 
-              {/* Other tabs would go here */}
+              {/* FIXED: Viewing Requests Tab - Now properly implemented */}
               {activeTab === "viewings" && (
-                <div className="text-center py-12">
-                  <p>Viewing Requests Tab - Coming Soon</p>
-                </div>
+                <OwnerViewingRequestsTab
+                  viewingRequests={getViewingRequestsData().data}
+                  loading={getViewingRequestsData().loading}
+                  error={null}
+                  onStatusUpdate={handleViewingRequestStatusUpdate}
+                  onRefresh={() => {
+                    invalidateCache(`owner_viewing_requests_${user.id}`);
+                    getViewingRequests();
+                  }}
+                />
               )}
 
               {activeTab === "applications" && (
-                <div className="text-center py-12">
-                  <p>Applications Tab - Coming Soon</p>
-                </div>
+                <ApplicationsTab
+                  applications={getApplicationsData().data}
+                  loading={getApplicationsData().loading}
+                  error={null}
+                  onStatusUpdate={handleApplicationStatusUpdate}
+                  onRefresh={() => {
+                    invalidateCache(`owner_applications_${user.id}`);
+                    getRentalApplications();
+                  }}
+                />
               )}
 
               {activeTab === "analytics" && (
-                <div className="text-center py-12">
-                  <p>Analytics Tab - Coming Soon</p>
-                </div>
+                <AnalyticsTab
+                  properties={getOwnerProperties}
+                  viewingRequests={getViewingRequests}
+                  applications={getRentalApplications}
+                  onRefresh={forceRefresh}
+                />
               )}
 
               {activeTab === "settings" && (

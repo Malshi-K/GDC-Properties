@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { useAuth } from "@/contexts/AuthContext";
+import { useGlobalData } from "@/contexts/GlobalDataContext";
 import {
   BarChart,
   Bar,
@@ -18,12 +19,23 @@ import {
   Cell,
 } from "recharts";
 
-export default function AnalyticsTab() {
+// Cache TTL constants
+const CACHE_TTL = {
+  PROPERTIES: 10 * 60 * 1000, // 10 minutes
+  VIEWING_REQUESTS: 5 * 60 * 1000, // 5 minutes
+  APPLICATIONS: 5 * 60 * 1000, // 5 minutes
+  PROFILES: 15 * 60 * 1000, // 15 minutes for profiles
+};
+
+export default function AnalyticsTab({ onRefresh }) {
+  const { user, userRole } = useAuth();
+  const { fetchData, loading, data } = useGlobalData();
+
   const [properties, setProperties] = useState([]);
   const [viewingRequests, setViewingRequests] = useState([]);
   const [rentalApplications, setRentalApplications] = useState([]);
   const [userLookup, setUserLookup] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeView, setActiveView] = useState("overview");
 
@@ -42,65 +54,110 @@ export default function AnalyticsTab() {
     "#A569BD",
   ];
 
-  // Initialize Supabase client
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  // Fetch all analytics data using global context
+  const fetchAnalyticsData = async () => {
+    if (!user?.id || userRole !== 'owner') return;
 
-  useEffect(() => {
-    const fetchData = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      console.log('📊 Fetching analytics data for owner:', user.id);
+
+      // Fetch properties data
+      const propertiesData = await fetchData({
+        table: 'properties',
+        select: '*',
+        filters: [{ column: 'owner_id', operator: 'eq', value: user.id }],
+        orderBy: { column: 'created_at', ascending: false }
+      }, { 
+        useCache: true, 
+        ttl: CACHE_TTL.PROPERTIES,
+        _cached_key: `owner_properties_${user.id}`
+      });
+
+      // Fetch viewing requests data
+      const viewingRequestsData = await fetchData({
+        table: 'viewing_requests',
+        select: '*',
+        filters: [{ column: 'owner_id', operator: 'eq', value: user.id }],
+        orderBy: { column: 'created_at', ascending: false }
+      }, { 
+        useCache: true, 
+        ttl: CACHE_TTL.VIEWING_REQUESTS,
+        _cached_key: `owner_viewing_requests_${user.id}`
+      });
+
+      // Fetch applications data
+      const applicationsData = await fetchData({
+        table: 'rental_applications',
+        select: '*',
+        filters: [{ column: 'owner_id', operator: 'eq', value: user.id }],
+        orderBy: { column: 'created_at', ascending: false }
+      }, { 
+        useCache: true, 
+        ttl: CACHE_TTL.APPLICATIONS,
+        _cached_key: `owner_applications_${user.id}`
+      });
+
+      // Fetch profiles data for user lookup
       try {
-        setLoading(true);
+        const profilesData = await fetchData({
+          table: 'profiles',
+          select: '*'
+        }, { 
+          useCache: true, 
+          ttl: CACHE_TTL.PROFILES,
+          _cached_key: 'all_profiles'
+        });
 
-        // Fetch properties data
-        const { data: propertiesData, error: propertiesError } = await supabase
-          .from("properties")
-          .select("*");
-
-        // Fetch profiles data for user info
-        const { data: profilesData, error: profilesError } = await supabase
-          .from("profiles")
-          .select("*");
-
-        // Fetch viewing requests data
-        const { data: viewingRequestsData, error: viewingError } =
-          await supabase.from("viewing_requests").select("*");
-
-        // Fetch rental applications data
-        const { data: applicationsData, error: applicationsError } =
-          await supabase.from("rental_applications").select("*");
-
-        if (propertiesError) throw propertiesError;
-        if (profilesError) throw profilesError;
-        if (viewingError) throw viewingError;
-        if (applicationsError) throw applicationsError;
-
-        // Create a user lookup for easier access
-        const userLookup = {};
-        if (profilesData) {
+        // Create user lookup
+        const userLookupMap = {};
+        if (Array.isArray(profilesData)) {
           profilesData.forEach((profile) => {
-            userLookup[profile.id] = profile;
+            userLookupMap[profile.id] = profile;
           });
         }
-
-        setProperties(propertiesData || []);
-        setViewingRequests(viewingRequestsData || []);
-        setRentalApplications(applicationsData || []);
-
-        // Store the user lookup for use in rendering
-        setUserLookup(userLookup);
-
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching analytics data:", err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
+        setUserLookup(userLookupMap);
+      } catch (profileError) {
+        console.warn('Could not fetch profiles data:', profileError);
+        setUserLookup({});
       }
-    };
 
-    fetchData();
-  }, []);
+      // Set the data with proper array validation
+      setProperties(Array.isArray(propertiesData) ? propertiesData : []);
+      setViewingRequests(Array.isArray(viewingRequestsData) ? viewingRequestsData : []);
+      setRentalApplications(Array.isArray(applicationsData) ? applicationsData : []);
+
+      console.log('✅ Analytics data loaded:', {
+        properties: Array.isArray(propertiesData) ? propertiesData.length : 0,
+        viewingRequests: Array.isArray(viewingRequestsData) ? viewingRequestsData.length : 0,
+        applications: Array.isArray(applicationsData) ? applicationsData.length : 0
+      });
+
+    } catch (err) {
+      console.error('❌ Error fetching analytics data:', err);
+      setError(err.message || 'Failed to load analytics data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load data when component mounts or user changes
+  useEffect(() => {
+    if (user?.id && userRole === 'owner') {
+      fetchAnalyticsData();
+    }
+  }, [user?.id, userRole]);
+
+  // Handle refresh
+  const handleRefresh = async () => {
+    console.log('🔄 Refreshing analytics data...');
+    await fetchAnalyticsData();
+    if (typeof onRefresh === 'function') {
+      onRefresh();
+    }
+  };
 
   // Prepare data for charts
   const preparePropertyTypeData = () => {
@@ -121,7 +178,7 @@ export default function AnalyticsTab() {
     const statusCounts = {
       pending: 0,
       approved: 0,
-      rejected: 0,
+      declined: 0,
       completed: 0,
     };
 
@@ -256,22 +313,34 @@ export default function AnalyticsTab() {
     };
   };
 
+  // Check if we have any loading states from global context
+  const hasLoadingStates = Object.keys(loading).some(key => 
+    key.includes(`owner_properties_${user?.id}`) ||
+    key.includes(`owner_viewing_requests_${user?.id}`) ||
+    key.includes(`owner_applications_${user?.id}`)
+  );
+
   // Error handling component
   if (error) {
     return (
       <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-2xl font-bold text-custom-gray mb-6">
-          Property Analytics
-        </h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-custom-gray">Property Analytics</h2>
+          <button
+            onClick={handleRefresh}
+            className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Retry
+          </button>
+        </div>
         <div className="bg-red-50 p-4 rounded-md text-red-600">
           <p>Error loading analytics data: {error}</p>
           <p className="mt-2">
             Please ensure your database connection is properly configured and
             all required tables exist.
-          </p>
-          <p className="mt-2">
-            If you're seeing relationship errors, make sure foreign key
-            relationships are correctly set up in your database schema.
           </p>
         </div>
       </div>
@@ -294,12 +363,22 @@ export default function AnalyticsTab() {
     (a) => a.status?.toLowerCase() === "pending"
   ).length;
 
-  if (loading) {
+  if (isLoading || hasLoadingStates) {
     return (
       <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-2xl font-bold text-custom-gray mb-6">
-          Property Analytics
-        </h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-custom-gray">Property Analytics</h2>
+          <button
+            onClick={handleRefresh}
+            className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            disabled={isLoading}
+          >
+            <svg className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {isLoading ? 'Loading...' : 'Refresh'}
+          </button>
+        </div>
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
         </div>
@@ -308,10 +387,19 @@ export default function AnalyticsTab() {
   }
 
   return (
-    <div className="bg-white shadow rounded-lg p-6 text-custom-gray">
-      <h2 className="text-2xl font-bold text-custom-gray mb-6">
-        Property Analytics
-      </h2>
+    <div className="bg-white shadow rounded-lg p-6 text-custom-gray max-w-6xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-custom-gray">Property Analytics</h2>
+        <button
+          onClick={handleRefresh}
+          className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+        >
+          <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Refresh
+        </button>
+      </div>
 
       {/* Navigation */}
       <div className="flex flex-wrap mb-6 gap-2">
@@ -774,7 +862,7 @@ export default function AnalyticsTab() {
                               ? customYellow
                               : entry.name === "Approved"
                               ? "#00C49F"
-                              : entry.name === "Rejected"
+                              : entry.name === "Declined"
                               ? customRed
                               : "#0088FE"
                           }
@@ -835,7 +923,6 @@ export default function AnalyticsTab() {
                     >
                       Property
                     </th>
-
                     <th
                       scope="col"
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -860,7 +947,6 @@ export default function AnalyticsTab() {
                       const property = properties.find(
                         (p) => p.id === request.property_id
                       );
-                      const userInfo = getUserDisplayInfo(request.user_id);
                       return (
                         <tr key={request.id}>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -868,7 +954,6 @@ export default function AnalyticsTab() {
                               ? property.title
                               : `Property ID: ${request.property_id}`}
                           </td>
-
                           <td className="px-6 py-4 whitespace-nowrap">
                             {new Date(
                               request.proposed_date
@@ -881,7 +966,7 @@ export default function AnalyticsTab() {
                                   ? "bg-yellow-100 text-yellow-800"
                                   : request.status?.toLowerCase() === "approved"
                                   ? "bg-green-100 text-green-800"
-                                  : request.status?.toLowerCase() === "rejected"
+                                  : request.status?.toLowerCase() === "declined"
                                   ? "bg-red-100 text-red-800"
                                   : request.status?.toLowerCase() === "canceled"
                                   ? "bg-blue-100 text-blue-800"
@@ -1017,7 +1102,6 @@ export default function AnalyticsTab() {
                     >
                       Property
                     </th>
-
                     <th
                       scope="col"
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -1048,7 +1132,6 @@ export default function AnalyticsTab() {
                       const property = properties.find(
                         (p) => p.id === application.property_id
                       );
-                      const userInfo = getUserDisplayInfo(application.user_id);
                       return (
                         <tr key={application.id}>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -1056,7 +1139,6 @@ export default function AnalyticsTab() {
                               ? property.title
                               : `Property ID: ${application.property_id}`}
                           </td>
-
                           <td className="px-6 py-4 whitespace-nowrap">
                             ${application.income?.toLocaleString() || "N/A"}
                           </td>
