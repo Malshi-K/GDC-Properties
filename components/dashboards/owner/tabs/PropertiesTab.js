@@ -351,7 +351,7 @@ export default function PropertiesTab({
       </div>
 
       {/* Debug info in development */}
-      {process.env.NODE_ENV === 'development' && (
+      {/* {process.env.NODE_ENV === 'development' && (
         <div className="mb-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-600">
           <div className="font-medium mb-1">Debug Info:</div>
           <div className="grid grid-cols-2 gap-4">
@@ -368,7 +368,7 @@ export default function PropertiesTab({
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Content based on state */}
       {isLoading ? (

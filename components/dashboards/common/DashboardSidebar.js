@@ -10,7 +10,7 @@ import {
   FaTimes
 } from "react-icons/fa";
 import { useAuth } from "@/contexts/AuthContext";
-import { useGlobalData } from "@/contexts/GlobalDataContext"; // Use enhanced GlobalDataContext
+import { useImageLoader } from "@/lib/services/imageLoaderService"; // NEW: Import useImageLoader
 import ProfileEditModal from "./ProfileEditModal";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -21,21 +21,21 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
   const sidebarRef = useRef(null);
   const router = useRouter();
 
-  // Use enhanced GlobalDataContext for profile images
+  // NEW: Use centralized image loader service
   const { 
+    profileImages, 
     loadProfileImage, 
-    getProfileImageUrl, 
-    isProfileImageLoading, 
-    invalidateProfileImageCache 
-  } = useGlobalData();
+    isProfileImageLoading,
+    clearImageCache
+  } = useImageLoader();
   
   const { user, profile, userRole } = useAuth();
 
-  // Get profile image URL and loading state from GlobalDataContext
-  const profileImageUrl = getProfileImageUrl(user?.id);
+  // NEW: Get profile image URL and loading state from imageLoader
+  const profileImageUrl = profileImages[user?.id];
   const isLoadingImage = isProfileImageLoading(user?.id);
 
-  // Load profile image when component mounts or profile changes
+  // NEW: Load profile image when component mounts or profile changes
   useEffect(() => {
     if (user?.id) {
       console.log("Loading profile image for user:", user.id, "with profile:", profile?.profile_image);
@@ -74,15 +74,12 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
     setIsMobileMenuOpen(false);
   };
 
-  // Handle modal close and refresh profile image
+  // NEW: Enhanced modal close handler with image cache refresh
   const handleModalClose = () => {
     setShowEditModal(false);
     
     if (user?.id) {
-      // Invalidate the profile image cache to force reload
-      invalidateProfileImageCache(user.id);
-      
-      // Reload the profile image after a short delay
+      // Small delay to allow upload to complete, then reload profile image
       setTimeout(() => {
         loadProfileImage(user.id, profile?.profile_image);
       }, 1000);
@@ -294,6 +291,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
         <div className="p-6 flex flex-col items-center border-b border-red-600">
           {/* Profile Image */}
           <div className="w-16 h-16 md:w-24 md:h-24 relative rounded-full overflow-hidden mb-4 bg-red-500 border-2 border-white">
+            {/* NEW: Enhanced profile image handling with imageLoader */}
             {profileImageUrl ? (
               <img
                 src={profileImageUrl}
@@ -320,7 +318,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
               <FaUser className="text-custom-red text-xl md:text-3xl" />
             </div>
 
-            {/* Loading spinner overlay */}
+            {/* NEW: Loading spinner overlay from imageLoader */}
             {isLoadingImage && (
               <div className="absolute inset-0 bg-red-500 bg-opacity-50 flex items-center justify-center">
                 <div className="w-4 h-4 md:w-6 md:h-6 border-2 md:border-3 border-white border-t-red-300 rounded-full animate-spin"></div>

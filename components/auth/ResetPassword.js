@@ -281,14 +281,14 @@ export default function ResetPassword() {
             </div>
           )}
 
-          {debug && sessionInfo && (
+          {/* {debug && sessionInfo && (
             <div className="mb-6 p-3 bg-blue-50 text-blue-800 rounded text-xs">
               <h4 className="font-bold mb-1">Session Debug Info:</h4>
               <pre className="overflow-auto max-h-32">
                 {JSON.stringify(sessionInfo, null, 2)}
               </pre>
             </div>
-          )}
+          )} */}
 
           {validToken && redirectCountdown === null && (
             <>

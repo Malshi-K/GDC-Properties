@@ -5,10 +5,19 @@ import { useState, useEffect } from "react";
 import { FaUser, FaUpload, FaSave, FaTimes } from "react-icons/fa";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/lib/supabase"; // Make sure to import supabase
+import { useImageLoader } from "@/lib/services/imageLoaderService"; // NEW: Import useImageLoader
+import { supabase } from "@/lib/supabase";
 
 export default function ProfileEditModal({ isOpen, onClose }) {
   const { user, profile, updateProfile, refreshProfile } = useAuth();
+  
+  // NEW: Use centralized image loader service
+  const { 
+    profileImages, 
+    loadProfileImage, 
+    isProfileImageLoading 
+  } = useImageLoader();
+  
   const [formData, setFormData] = useState({
     full_name: "",
     phone: "",
@@ -18,72 +27,18 @@ export default function ProfileEditModal({ isOpen, onClose }) {
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [profileImageUrl, setProfileImageUrl] = useState("");
-  const [loadingImage, setLoadingImage] = useState(false);
 
-  // Get profile image directly from storage
+  // NEW: Get profile image URL and loading state from imageLoader
+  const profileImageUrl = profileImages[user?.id];
+  const isLoadingImage = isProfileImageLoading(user?.id);
+
+  // NEW: Load profile image when modal opens
   useEffect(() => {
-    const getDirectProfileImage = async () => {
-      if (!user?.id) return;
-
-      try {
-        setLoadingImage(true);
-
-        // List files in user's folder
-        const { data: files, error } = await supabase.storage
-          .from("profile-images")
-          .list(user.id);
-
-        if (error) {
-          console.error("Error listing files:", error);
-          setLoadingImage(false);
-          return;
-        }
-
-        if (files && files.length > 0) {
-          // Sort files to get the most recent
-          const sortedFiles = [...files].sort((a, b) => {
-            if (!a.created_at || !b.created_at) return 0;
-            return new Date(b.created_at) - new Date(a.created_at);
-          });
-
-          // Get the latest file
-          const latestFile = sortedFiles[0];
-          const filePath = `${user.id}/${latestFile.name}`;
-
-          // Download file directly
-          const { data, error: downloadError } = await supabase.storage
-            .from("profile-images")
-            .download(filePath);
-
-          if (downloadError) {
-            console.error("Error downloading file:", downloadError);
-            setLoadingImage(false);
-            return;
-          }
-
-          // Create blob URL
-          const blobUrl = URL.createObjectURL(data);
-          setProfileImageUrl(blobUrl);
-        }
-      } catch (error) {
-        console.error("Error getting profile image:", error);
-      } finally {
-        setLoadingImage(false);
-      }
-    };
-
-    if (isOpen) {
-      getDirectProfileImage();
+    if (isOpen && user?.id) {
+      console.log("ProfileEditModal: Loading profile image for user:", user.id);
+      loadProfileImage(user.id, profile?.profile_image);
     }
-
-    // Clean up blob URLs
-    return () => {
-      if (profileImageUrl && profileImageUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(profileImageUrl);
-      }
-    };
-  }, [user, isOpen]);
+  }, [isOpen, user?.id, profile?.profile_image, loadProfileImage]);
 
   // Initialize form data when profile is loaded
   useEffect(() => {
@@ -142,7 +97,7 @@ export default function ProfileEditModal({ isOpen, onClose }) {
     }
   };
 
-  // Handle form submission
+  // NEW: Enhanced form submission with imageLoader integration
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -176,6 +131,12 @@ export default function ProfileEditModal({ isOpen, onClose }) {
           if (uploadError) throw uploadError;
 
           console.log("Profile photo uploaded successfully");
+          
+          // NEW: Reload the profile image after successful upload
+          setTimeout(() => {
+            loadProfileImage(user.id, filePath);
+          }, 500);
+          
         } catch (photoError) {
           console.error("Error uploading profile photo:", photoError);
           toast.error("Profile updated but photo upload failed");
@@ -217,36 +178,46 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                   {/* Profile Photo */}
                   <div className="mb-5 flex flex-col items-center">
                     <div className="w-24 h-24 relative rounded-full overflow-hidden mb-3 bg-gray-300">
+                      {/* NEW: Enhanced image handling with imageLoader */}
                       {photoPreview ? (
+                        // Show preview of new photo being uploaded
                         <img
                           src={photoPreview}
                           alt="Profile Preview"
                           className="w-full h-full object-cover"
                         />
                       ) : profileImageUrl ? (
+                        // Show current profile image from imageLoader
                         <img
                           src={profileImageUrl}
                           alt="Profile"
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            console.error("Image failed to load");
+                            console.error("Profile image failed to load in modal");
                             e.target.onerror = null;
-                            e.target.src = "";
                             e.target.style.display = "none";
+                            // Show fallback icon
+                            e.target.parentElement.querySelector('.fallback-icon').style.display = 'flex';
                           }}
                         />
-                      ) : (
-                        <div className="absolute inset-0 bg-gray-300 flex items-center justify-center">
-                          <FaUser className="text-gray-600 text-4xl" />
-                        </div>
-                      )}
+                      ) : null}
 
-                      {loadingImage && (
+                      {/* Fallback icon */}
+                      <div 
+                        className={`fallback-icon absolute inset-0 bg-gray-300 flex items-center justify-center ${(photoPreview || profileImageUrl) ? 'hidden' : 'flex'}`}
+                        style={{ display: (photoPreview || profileImageUrl) ? 'none' : 'flex' }}
+                      >
+                        <FaUser className="text-gray-600 text-4xl" />
+                      </div>
+
+                      {/* NEW: Loading spinner from imageLoader */}
+                      {isLoadingImage && !photoPreview && (
                         <div className="absolute inset-0 flex items-center justify-center bg-gray-200 bg-opacity-50">
                           <div className="w-5 h-5 border-2 border-gray-600 border-t-transparent rounded-full animate-spin"></div>
                         </div>
                       )}
 
+                      {/* Upload button */}
                       <label className="absolute bottom-0 right-0 bg-custom-red hover:bg-red-700 text-white rounded-full p-1.5 cursor-pointer transition-colors duration-300">
                         <FaUpload className="text-xs" />
                         <input
@@ -254,8 +225,22 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                           className="hidden"
                           accept="image/*"
                           onChange={handlePhotoChange}
+                          disabled={loading}
                         />
                       </label>
+                    </div>
+                    
+                    {/* NEW: Image status indicator */}
+                    <div className="text-xs text-gray-500 mt-1">
+                      {photoPreview ? (
+                        <span className="text-green-600">New photo selected</span>
+                      ) : profileImageUrl ? (
+                        <span className="text-blue-600">Current profile photo</span>
+                      ) : isLoadingImage ? (
+                        <span className="text-yellow-600">Loading photo...</span>
+                      ) : (
+                        <span className="text-gray-400">No photo uploaded</span>
+                      )}
                     </div>
                   </div>
 
@@ -270,7 +255,8 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                         name="full_name"
                         value={formData.full_name}
                         onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red"
+                        disabled={loading}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red disabled:bg-gray-50"
                         placeholder="Enter your full name"
                       />
                     </div>
@@ -299,7 +285,8 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                         name="phone"
                         value={formData.phone}
                         onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red"
+                        disabled={loading}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red disabled:bg-gray-50"
                         placeholder="Enter your phone number"
                       />
                     </div>
@@ -312,8 +299,9 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                         name="address"
                         value={formData.address}
                         onChange={handleChange}
+                        disabled={loading}
                         rows="2"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red disabled:bg-gray-50"
                         placeholder="Enter your address"
                       ></textarea>
                     </div>
@@ -328,8 +316,9 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                           name="preferences"
                           value={formData.preferences}
                           onChange={handleChange}
+                          disabled={loading}
                           rows="2"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red disabled:bg-gray-50"
                           placeholder="Describe your rental preferences"
                         ></textarea>
                       </div>
@@ -341,12 +330,12 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-custom-red text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red sm:ml-3 sm:w-auto sm:text-sm"
+                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-custom-red text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {loading ? (
                         <>
                           <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
-                          Saving...
+                          {photoFile ? "Uploading..." : "Saving..."}
                         </>
                       ) : (
                         <>
@@ -359,7 +348,7 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                       type="button"
                       onClick={onClose}
                       disabled={loading}
-                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red sm:mt-0 sm:w-auto sm:text-sm"
+                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red sm:mt-0 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <FaTimes className="mr-2" />
                       Cancel

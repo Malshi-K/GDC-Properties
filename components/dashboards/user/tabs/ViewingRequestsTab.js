@@ -6,14 +6,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
 import { formatDate } from '@/lib/utils/formatters';
 import { supabase } from '@/lib/supabase';
-import { createClient } from "@supabase/supabase-js";
 import { toast } from 'react-hot-toast';
-
-// Initialize Supabase client for storage
-const supabaseClient = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+import { useImageLoader } from '@/lib/services/imageLoaderService'; // NEW: Import useImageLoader
 
 /**
  * ViewingRequestsTab component for user dashboard
@@ -22,6 +16,7 @@ const supabaseClient = createClient(
 const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading: propLoading = false, onRefresh }) => {
   const { user } = useAuth();
   const { loading, data, invalidateCache } = useGlobalData();
+  const { propertyImages, loadPropertyImage, isPropertyImageLoading, preloadPropertiesImages } = useImageLoader(); // NEW: Use imageLoader
   
   console.log('ViewingRequestsTab mounted for user:', user?.id);
   console.log('Props received:', { 
@@ -31,9 +26,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
   });
   
   const [cancelingId, setCancelingId] = useState(null);
-  const [propertyImages, setPropertyImages] = useState({});
   const [expandedRequest, setExpandedRequest] = useState(null);
-  const [imageLoading, setImageLoading] = useState(false);
 
   // Use props first, then fallback to global context
   const viewingRequests = propViewingRequests && propViewingRequests.length > 0 
@@ -100,98 +93,58 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
     });
   }, [propViewingRequests, propLoading, viewingRequests]);
 
-  // Get unique property IDs from requests - memoized for performance
-  const propertyIds = useMemo(() => {
-    const ids = new Set();
-    if (Array.isArray(viewingRequests)) {
-      viewingRequests.forEach(request => {
-        if (request.property_id) {
-          ids.add(request.property_id);
+  // NEW: Enhanced properties data for image loading - extract properties from viewing requests
+  const propertiesForImageLoading = useMemo(() => {
+    if (!Array.isArray(viewingRequests)) return [];
+    
+    return viewingRequests
+      .filter(request => request.property_id && request.properties)
+      .map(request => ({
+        id: request.property_id,
+        owner_id: request.properties.owner_id || request.property_owner_id,
+        images: request.properties.images || [],
+        title: request.properties.title || request.property_title
+      }))
+      .filter(property => property.owner_id && property.images && property.images.length > 0);
+  }, [viewingRequests]);
+
+  // NEW: Load property images using the imageLoader service
+  useEffect(() => {
+    if (!requestsLoading && propertiesForImageLoading.length > 0) {
+      console.log('🖼️ Loading images for properties:', propertiesForImageLoading.map(p => p.id));
+      
+      // Load individual images for properties that need them
+      propertiesForImageLoading.forEach(property => {
+        if (!propertyImages[property.id] && !isPropertyImageLoading(property.id)) {
+          loadPropertyImage(property.id, property.owner_id, property.images[0]);
         }
       });
-    }
-    return Array.from(ids);
-  }, [viewingRequests]);
-  
-  // Fetch property images only if needed (when properties exist and don't have images yet)
-  useEffect(() => {
-    // Skip if the parent is still loading data or no properties to fetch
-    if (requestsLoading || propertyIds.length === 0) return;
-    
-    // Check which property IDs don't have images yet
-    const missingPropertyIds = propertyIds.filter(id => !propertyImages[id]);
-    
-    // If all properties already have images, do nothing
-    if (missingPropertyIds.length === 0) return;
-    
-    const fetchPropertyImages = async () => {
-      try {
-        setImageLoading(true);
-        const newPropertyImages = { ...propertyImages };
-        
-        // Get all missing properties data in a single query
-        const { data: propertiesData, error: propertiesError } = await supabase
-          .from('properties')
-          .select('id, images, owner_id')
-          .in('id', missingPropertyIds);
-        
-        if (propertiesError) {
-          console.error('Error fetching properties data:', propertiesError);
-          setImageLoading(false);
-          return;
-        }
-        
-        // Process all properties in parallel with Promise.all
-        const imagePromises = propertiesData.map(async (property) => {
-          if (!property.images || property.images.length === 0) {
-            // Store null to avoid repeated fetching for properties without images
-            return [property.id, null];
-          }
-          
-          try {
-            // Get the first image from the property
-            const firstImage = property.images[0];
-            
-            // Normalize the path
-            const normalizedPath = firstImage.includes("/")
-              ? firstImage
-              : `${property.owner_id}/${firstImage}`;
-              
-            // Get signed URL for the image
-            const { data: urlData, error: urlError } = await supabaseClient.storage
-              .from("property-images")
-              .createSignedUrl(normalizedPath, 60 * 60); // 1 hour expiry
-              
-            if (urlError) {
-              console.error(`Error getting signed URL for property ${property.id}:`, urlError);
-              return [property.id, null];
-            }
-            
-            return [property.id, urlData.signedUrl];
-          } catch (error) {
-            console.error(`Error processing image for property ${property.id}:`, error);
-            return [property.id, null];
-          }
-        });
-        
-        // Wait for all image promises to complete
-        const results = await Promise.all(imagePromises);
-        
-        // Update the property images state with all results at once
-        results.forEach(([propertyId, url]) => {
-          newPropertyImages[propertyId] = url;
-        });
-        
-        setPropertyImages(newPropertyImages);
-      } catch (error) {
-        console.error('Error in bulk image loading:', error);
-      } finally {
-        setImageLoading(false);
+      
+      // Optional: Preload remaining images in batches for better UX
+      const unloadedProperties = propertiesForImageLoading.filter(
+        property => !propertyImages[property.id] && !isPropertyImageLoading(property.id)
+      );
+      
+      if (unloadedProperties.length > 0) {
+        // Small delay to avoid overwhelming the system
+        setTimeout(() => {
+          preloadPropertiesImages(unloadedProperties);
+        }, 100);
       }
-    };
-    
-    fetchPropertyImages();
-  }, [propertyIds, propertyImages, requestsLoading]);
+    }
+  }, [
+    requestsLoading,
+    propertiesForImageLoading,
+    propertyImages,
+    isPropertyImageLoading,
+    loadPropertyImage,
+    preloadPropertiesImages
+  ]);
+
+  // NEW: Check if any images are still loading
+  const someImagesLoading = useMemo(() => {
+    return propertiesForImageLoading.some(property => isPropertyImageLoading(property.id));
+  }, [propertiesForImageLoading, isPropertyImageLoading]);
 
   // Get the appropriate status badge based on the status
   const getStatusBadge = (status) => {
@@ -279,18 +232,21 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
       
       // Invalidate cache
       invalidateCache(`user_viewing_requests_${user.id}`);
-      
-      // Clear property images to force reload
-      setPropertyImages({});
     }
     
     toast.info('Refreshing viewing requests...');
   };
 
-  // Simplified loading state - combines parent loading and image loading
-  const isLoading = requestsLoading || imageLoading;
+  // NEW: Updated loading state - combines parent loading and image loading
+  const isLoading = requestsLoading || someImagesLoading;
   
-  console.log('Component state:', { isLoading, requestsLoading, imageLoading, viewingRequestsLength: viewingRequests?.length });
+  console.log('Component state:', { 
+    isLoading, 
+    requestsLoading, 
+    someImagesLoading, 
+    viewingRequestsLength: viewingRequests?.length,
+    propertiesForImageLoadingLength: propertiesForImageLoading.length
+  });
   
   if (isLoading && (!viewingRequests || viewingRequests.length === 0)) {
     return (
@@ -301,8 +257,22 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
           </h2>
           <button
             onClick={handleRefresh}
-            className="px-4 py-2 bg-custom-red text-white rounded-md hover:bg-red-700 transition-colors"
+            disabled={requestsLoading}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red disabled:opacity-50"
           >
+            <svg
+              className={`-ml-0.5 mr-2 h-4 w-4 ${requestsLoading ? 'animate-spin' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
             Refresh
           </button>
         </div>
@@ -321,27 +291,24 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
         </h2>
         <button
           onClick={handleRefresh}
-          className="px-4 py-2 bg-custom-red text-white rounded-md hover:bg-red-700 transition-colors"
+          disabled={requestsLoading}
+          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red disabled:opacity-50"
         >
+          <svg
+            className={`-ml-0.5 mr-2 h-4 w-4 ${requestsLoading ? 'animate-spin' : ''}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
+          </svg>
           Refresh
         </button>
-      </div>
-
-      {/* DEBUG SECTION - Remove this once working */}
-      <div className="mb-6 p-4 bg-yellow-100 border border-yellow-300 rounded">
-        <h3 className="font-semibold mb-2">🐛 Debug Info:</h3>
-        <p><strong>Viewing Requests Length:</strong> {viewingRequests?.length || 0}</p>
-        <p><strong>Is Loading:</strong> {isLoading ? 'Yes' : 'No'}</p>
-        <p><strong>Data Type:</strong> {typeof viewingRequests}</p>
-        <p><strong>Is Array:</strong> {Array.isArray(viewingRequests) ? 'Yes' : 'No'}</p>
-        {viewingRequests && viewingRequests.length > 0 && (
-          <details className="mt-2">
-            <summary className="cursor-pointer">View Raw Data</summary>
-            <pre className="mt-2 p-2 bg-white text-xs overflow-auto max-h-40">
-              {JSON.stringify(viewingRequests, null, 2)}
-            </pre>
-          </details>
-        )}
       </div>
       
       {(!viewingRequests || !Array.isArray(viewingRequests) || viewingRequests.length === 0) ? (
@@ -373,6 +340,10 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
             const statusBadge = getStatusBadge(request.status);
             const isExpanded = expandedRequest === request.id;
             
+            // NEW: Get property image and loading state from imageLoader
+            const propertyImage = propertyImages[request.property_id];
+            const imageLoading = isPropertyImageLoading(request.property_id);
+            
             return (
               <div key={request.id} className="bg-white shadow rounded-lg overflow-hidden border border-gray-200">
                 {/* Compact View - Always visible */}
@@ -383,13 +354,21 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between">
                     <div className="flex items-center space-x-3 mb-2 sm:mb-0">
                       <div className="h-12 w-12 bg-gray-200 rounded-md overflow-hidden flex-shrink-0">
-                        {propertyImages[request.property_id] ? (
+                        {/* NEW: Enhanced image handling with loading state */}
+                        {imageLoading ? (
+                          <div className="flex items-center justify-center h-full w-full">
+                            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-custom-red"></div>
+                          </div>
+                        ) : propertyImage ? (
                           <div className="relative h-full w-full">
                             <Image 
-                              src={propertyImages[request.property_id]}
-                              alt=""
+                              src={propertyImage}
+                              alt={request.properties?.title || request.property_title || "Property"}
                               fill
                               className="object-cover"
+                              sizes="48px"
+                              priority={false}
+                              loading="lazy"
                             />
                           </div>
                         ) : (
@@ -432,23 +411,34 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
                       <div className="flex flex-col md:flex-row gap-6">
                         {/* Property Image - Larger in expanded view */}
                         <div className="w-full md:w-1/3 h-48 md:h-auto rounded-lg overflow-hidden bg-gray-100">
-                          {propertyImages[request.property_id] ? (
+                          {/* NEW: Enhanced large image handling with loading state */}
+                          {imageLoading ? (
+                            <div className="w-full h-48 md:h-64 flex items-center justify-center">
+                              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
+                            </div>
+                          ) : propertyImage ? (
                             <div className="relative w-full h-48 md:h-64">
                               <Image 
-                                src={propertyImages[request.property_id]}
+                                src={propertyImage}
                                 alt={request.properties?.title || request.property_title || 'Property Image'}
                                 fill
                                 className="object-cover"
+                                sizes="(max-width: 768px) 100vw, 33vw"
+                                priority={false}
+                                loading="lazy"
                               />
                             </div>
                           ) : (
                             <div className="w-full h-48 md:h-64 flex items-center justify-center bg-gray-200 text-gray-400">
-                              <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" 
-                                  d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" 
-                                  d="M9 22V12h6v10" />
-                              </svg>
+                              <div className="text-center">
+                                <svg className="h-12 w-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" 
+                                    d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" 
+                                    d="M9 22V12h6v10" />
+                                </svg>
+                                <p className="text-sm">No image available</p>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -494,7 +484,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
                                   handleCancelRequest(request.id);
                                 }}
                                 disabled={cancelingId === request.id}
-                                className="px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50"
+                                className="px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50 disabled:opacity-50"
                               >
                                 {cancelingId === request.id ? 'Cancelling...' : 'Cancel Request'}
                               </button>

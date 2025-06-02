@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useGlobalData } from "@/contexts/GlobalDataContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { toast } from "react-hot-toast";
+import { supabase } from "@/lib/supabase";
 
 // Import services
 import { propertyService } from "@/lib/services/propertyService";
@@ -21,9 +22,9 @@ import AnalyticsTab from "@/components/dashboards/owner/tabs/AnalyticsTab";
 import AddEditPropertyModal from "@/components/dashboards/owner/property/AddEditPropertyModal";
 
 // Import user components
+import UserViewingRequestsTab from "@/components/dashboards/user/tabs/ViewingRequestsTab";
 import PropertyApplications from "@/components/dashboards/user/tabs/PropertyApplications";
 import SavedProperties from "@/components/dashboards/user/tabs/SavedProperties";
-import UserViewingRequestsTab from "@/components/dashboards/user/tabs/ViewingRequestsTab";
 
 // Cache TTL constants
 const CACHE_TTL = {
@@ -59,9 +60,9 @@ export default function Dashboard() {
   const [currentProperties, setCurrentProperties] = useState([]);
   const [currentViewingRequests, setCurrentViewingRequests] = useState([]);
   const [currentApplications, setCurrentApplications] = useState([]);
-  const [currentUserViewingRequests, setCurrentUserViewingRequests] = useState(
-    []
-  );
+  const [currentUserViewingRequests, setCurrentUserViewingRequests] = useState([]);
+  const [currentUserApplications, setCurrentUserApplications] = useState([]);
+  const [currentUserFavorites, setCurrentUserFavorites] = useState([]);
 
   // Define default active tabs based on role
   const defaultOwnerTab = "properties";
@@ -108,7 +109,7 @@ export default function Dashboard() {
     }
   }, [data, user?.id, userRole]);
 
-  // NEW: Get current user viewing requests from GlobalDataContext data
+  // Get current user viewing requests from GlobalDataContext data
   useEffect(() => {
     if (user?.id && userRole === "user") {
       const cacheKey = `user_viewing_requests_${user.id}`;
@@ -120,7 +121,31 @@ export default function Dashboard() {
     }
   }, [data, user?.id, userRole]);
 
-  // NEW: Fetch data when tabs become active
+  // Get current user applications from GlobalDataContext data
+  useEffect(() => {
+    if (user?.id && userRole === "user") {
+      const cacheKey = `user_applications_${user.id}`;
+      const userApplications = data[cacheKey];
+
+      if (Array.isArray(userApplications)) {
+        setCurrentUserApplications(userApplications);
+      }
+    }
+  }, [data, user?.id, userRole]);
+
+  // Get current user favorites from GlobalDataContext data
+  useEffect(() => {
+    if (user?.id && userRole === "user") {
+      const cacheKey = `user_favorites_${user.id}`;
+      const userFavorites = data[cacheKey];
+
+      if (Array.isArray(userFavorites)) {
+        setCurrentUserFavorites(userFavorites);
+      }
+    }
+  }, [data, user?.id, userRole]);
+
+  // Fetch data when tabs become active
   useEffect(() => {
     if (!user?.id || !userRole) return;
 
@@ -158,6 +183,46 @@ export default function Dashboard() {
         hasData: !!requestsData,
         dataLength: requestsData?.length,
         requestsData,
+        allDataKeys: Object.keys(data),
+        loadingKeys: Object.keys(loading)
+      });
+    }
+  }, [userRole, user?.id, activeTab, data, loading]);
+
+  // Debug useEffect for user applications
+  useEffect(() => {
+    if (userRole === 'user' && user?.id) {
+      const cacheKey = `user_applications_${user.id}`;
+      const applicationsData = data[cacheKey];
+      
+      console.log('Dashboard Debug - User Applications:', {
+        userRole,
+        userId: user.id,
+        activeTab,
+        cacheKey,
+        hasData: !!applicationsData,
+        dataLength: applicationsData?.length,
+        applicationsData,
+        allDataKeys: Object.keys(data),
+        loadingKeys: Object.keys(loading)
+      });
+    }
+  }, [userRole, user?.id, activeTab, data, loading]);
+
+  // Debug useEffect for user favorites
+  useEffect(() => {
+    if (userRole === 'user' && user?.id) {
+      const cacheKey = `user_favorites_${user.id}`;
+      const favoritesData = data[cacheKey];
+      
+      console.log('Dashboard Debug - User Favorites:', {
+        userRole,
+        userId: user.id,
+        activeTab,
+        cacheKey,
+        hasData: !!favoritesData,
+        dataLength: favoritesData?.length,
+        favoritesData,
         allDataKeys: Object.keys(data),
         loadingKeys: Object.keys(loading)
       });
@@ -371,13 +436,15 @@ export default function Dashboard() {
     const cacheKey = `user_favorites_${user.id}`;
 
     try {
-      return await fetchData(
+      console.log("Fetching user favorites for:", user.id);
+
+      const userFavorites = await fetchData(
         {
           table: "favorites",
           select: `
           id,
           property_id,
-          properties (
+          properties!favorites_property_id_fkey (
             id,
             title,
             location,
@@ -397,9 +464,61 @@ export default function Dashboard() {
           _cached_key: cacheKey,
         }
       );
+
+      console.log("Fetched user favorites with properties:", userFavorites);
+
+      // Update current user favorites
+      if (Array.isArray(userFavorites)) {
+        setCurrentUserFavorites(userFavorites);
+      }
+
+      return userFavorites;
     } catch (error) {
-      console.error("Error fetching favorites:", error);
-      return [];
+      console.error("Error fetching user favorites:", error);
+
+      // If the explicit foreign key relationship fails, try a simpler approach
+      console.log("Trying fallback query for user favorites...");
+      try {
+        const fallbackFavorites = await fetchData(
+          {
+            table: "favorites",
+            select: `
+            id,
+            property_id,
+            properties (
+              id,
+              title,
+              location,
+              price,
+              bedrooms,
+              bathrooms,
+              images,
+              owner_id
+            )
+          `,
+            filters: [{ column: "user_id", operator: "eq", value: user.id }],
+            orderBy: { column: "created_at", ascending: false },
+          },
+          {
+            useCache: false, // Don't cache fallback
+            ttl: CACHE_TTL.FAVORITES,
+          }
+        );
+
+        console.log("Fallback user favorites:", fallbackFavorites);
+
+        if (Array.isArray(fallbackFavorites)) {
+          setCurrentUserFavorites(fallbackFavorites);
+        }
+
+        return fallbackFavorites;
+      } catch (fallbackError) {
+        console.error(
+          "Fallback query for user favorites also failed:",
+          fallbackError
+        );
+        return [];
+      }
     }
   };
 
@@ -408,17 +527,20 @@ export default function Dashboard() {
     const cacheKey = `user_applications_${user.id}`;
 
     try {
-      return await fetchData(
+      console.log("Fetching user applications for:", user.id);
+
+      const userApplications = await fetchData(
         {
           table: "rental_applications",
           select: `
           *,
-          properties (
+          properties!rental_applications_property_id_fkey (
             id,
             title,
             location,
             price,
-            images
+            images,
+            owner_id
           )
         `,
           filters: [{ column: "user_id", operator: "eq", value: user.id }],
@@ -430,9 +552,58 @@ export default function Dashboard() {
           _cached_key: cacheKey,
         }
       );
+
+      console.log("Fetched user applications with properties:", userApplications);
+
+      // Update current user applications
+      if (Array.isArray(userApplications)) {
+        setCurrentUserApplications(userApplications);
+      }
+
+      return userApplications;
     } catch (error) {
       console.error("Error fetching user applications:", error);
-      return [];
+
+      // If the explicit foreign key relationship fails, try a simpler approach
+      console.log("Trying fallback query for user applications...");
+      try {
+        const fallbackApplications = await fetchData(
+          {
+            table: "rental_applications",
+            select: `
+            *,
+            properties (
+              id,
+              title,
+              location,
+              price,
+              images,
+              owner_id
+            )
+          `,
+            filters: [{ column: "user_id", operator: "eq", value: user.id }],
+            orderBy: { column: "created_at", ascending: false },
+          },
+          {
+            useCache: false, // Don't cache fallback
+            ttl: CACHE_TTL.APPLICATIONS,
+          }
+        );
+
+        console.log("Fallback user applications:", fallbackApplications);
+
+        if (Array.isArray(fallbackApplications)) {
+          setCurrentUserApplications(fallbackApplications);
+        }
+
+        return fallbackApplications;
+      } catch (fallbackError) {
+        console.error(
+          "Fallback query for user applications also failed:",
+          fallbackError
+        );
+        return [];
+      }
     }
   };
 
@@ -649,6 +820,24 @@ export default function Dashboard() {
     }
   };
 
+  // Function to handle user application updates
+  const handleUserApplicationUpdate = (updatedApplications) => {
+    setCurrentUserApplications(updatedApplications);
+    
+    // Also update the cache
+    const cacheKey = `user_applications_${user.id}`;
+    updateData(cacheKey, updatedApplications);
+  };
+
+  // Function to handle user favorites updates
+  const handleUserFavoritesUpdate = (updatedFavorites) => {
+    setCurrentUserFavorites(updatedFavorites);
+    
+    // Also update the cache
+    const cacheKey = `user_favorites_${user.id}`;
+    updateData(cacheKey, updatedFavorites);
+  };
+
   // ----- HELPER FUNCTIONS -----
 
   // Force refresh function
@@ -672,7 +861,7 @@ export default function Dashboard() {
       ? currentProperties.find((property) => property.id === editPropertyId)
       : null;
 
-  // NEW: Get viewing requests data and loading state
+  // Get viewing requests data and loading state
   const getViewingRequestsData = () => {
     if (!user?.id || userRole !== "owner") return { data: [], loading: false };
 
@@ -691,7 +880,7 @@ export default function Dashboard() {
     };
   };
 
-  // NEW: Get applications data and loading state
+  // Get applications data and loading state
   const getApplicationsData = () => {
     if (!user?.id || userRole !== 'owner') return { data: [], loading: false };
     
@@ -710,7 +899,7 @@ export default function Dashboard() {
     };
   };
 
-  // NEW: Get user viewing requests data and loading state
+  // Get user viewing requests data and loading state
   const getUserViewingRequestsData = () => {
     if (!user?.id || userRole !== "user") return { data: [], loading: false };
 
@@ -729,6 +918,52 @@ export default function Dashboard() {
 
     return {
       data: Array.isArray(requestsData) ? requestsData : [],
+      loading: Boolean(isLoading),
+    };
+  };
+
+  // Get user applications data and loading state
+  const getUserApplicationsData = () => {
+    if (!user?.id || userRole !== "user") return { data: [], loading: false };
+
+    const cacheKey = `user_applications_${user.id}`;
+    const isLoading = loading[cacheKey];
+    const applicationsData = data[cacheKey] || currentUserApplications;
+
+    // If no data and not loading, trigger fetch
+    if (
+      !applicationsData?.length &&
+      !isLoading &&
+      activeTab === "applications"
+    ) {
+      getUserApplications();
+    }
+
+    return {
+      data: Array.isArray(applicationsData) ? applicationsData : [],
+      loading: Boolean(isLoading),
+    };
+  };
+
+  // Get user favorites data and loading state
+  const getUserFavoritesData = () => {
+    if (!user?.id || userRole !== "user") return { data: [], loading: false };
+
+    const cacheKey = `user_favorites_${user.id}`;
+    const isLoading = loading[cacheKey];
+    const favoritesData = data[cacheKey] || currentUserFavorites;
+
+    // If no data and not loading, trigger fetch
+    if (
+      !favoritesData?.length &&
+      !isLoading &&
+      activeTab === "favorites"
+    ) {
+      getUserFavorites();
+    }
+
+    return {
+      data: Array.isArray(favoritesData) ? favoritesData : [],
       loading: Boolean(isLoading),
     };
   };
@@ -770,7 +1005,7 @@ export default function Dashboard() {
           {/* Owner Dashboard */}
           {userRole === "owner" && (
             <div>
-              {/* Properties Tab - Updated to use new PropertiesTab */}
+              {/* Properties Tab */}
               {activeTab === "properties" && (
                 <PropertiesTab
                   onEdit={handleEditProperty}
@@ -785,7 +1020,7 @@ export default function Dashboard() {
                 />
               )}
 
-              {/* FIXED: Viewing Requests Tab - Now properly implemented */}
+              {/* Viewing Requests Tab */}
               {activeTab === "viewings" && (
                 <OwnerViewingRequestsTab
                   viewingRequests={getViewingRequestsData().data}
@@ -799,6 +1034,7 @@ export default function Dashboard() {
                 />
               )}
 
+              {/* Applications Tab */}
               {activeTab === "applications" && (
                 <ApplicationsTab
                   applications={getApplicationsData().data}
@@ -812,6 +1048,7 @@ export default function Dashboard() {
                 />
               )}
 
+              {/* Analytics Tab */}
               {activeTab === "analytics" && (
                 <AnalyticsTab
                   properties={getOwnerProperties}
@@ -821,6 +1058,7 @@ export default function Dashboard() {
                 />
               )}
 
+              {/* Settings Tab */}
               {activeTab === "settings" && (
                 <SettingsTab user={user} profile={profile} />
               )}
@@ -830,6 +1068,7 @@ export default function Dashboard() {
           {/* User Dashboard */}
           {userRole === "user" && (
             <div>
+              {/* Viewing Requests Tab */}
               {activeTab === "viewingRequests" && (
                 <UserViewingRequestsTab
                   viewingRequests={getUserViewingRequestsData().data}
@@ -841,18 +1080,33 @@ export default function Dashboard() {
                 />
               )}
 
+              {/* Applications Tab */}
               {activeTab === "applications" && (
-                <div className="text-center py-12">
-                  <p>User Applications Tab - Coming Soon</p>
-                </div>
+                <PropertyApplications
+                  applications={getUserApplicationsData().data}
+                  setApplications={handleUserApplicationUpdate}
+                  loading={getUserApplicationsData().loading}
+                  onRefresh={() => {
+                    invalidateCache(`user_applications_${user.id}`);
+                    getUserApplications();
+                  }}
+                />
               )}
 
+              {/* Favorites Tab */}
               {activeTab === "favorites" && (
-                <div className="text-center py-12">
-                  <p>User Favorites Tab - Coming Soon</p>
-                </div>
+                <SavedProperties
+                  favorites={getUserFavoritesData().data}
+                  loadingFavorites={getUserFavoritesData().loading}
+                  onRemoveFavorite={removeFavorite}
+                  onRefresh={() => {
+                    invalidateCache(`user_favorites_${user.id}`);
+                    getUserFavorites();
+                  }}
+                />
               )}
 
+              {/* Settings Tab */}
               {activeTab === "settings" && (
                 <SettingsTab user={user} profile={profile} />
               )}

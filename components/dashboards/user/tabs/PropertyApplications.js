@@ -4,124 +4,85 @@ import Link from "next/link";
 import Image from "next/image";
 import { formatPrice, formatDate } from "@/lib/utils/formatters";
 import { supabase } from "@/lib/supabase";
-import { createClient } from "@supabase/supabase-js";
 import { toast } from "react-hot-toast";
-
-// Initialize Supabase client for storage
-const supabaseClient = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+import { useImageLoader } from "@/lib/services/imageLoaderService"; // NEW: Import useImageLoader
 
 const PropertyApplications = ({
   applications = [],
   setApplications,
   loading = false,
+  onRefresh, // Add onRefresh prop for triggering data refresh
 }) => {
   const [withdrawingId, setWithdrawingId] = useState(null);
-  const [propertyImages, setPropertyImages] = useState({});
   const [expandedApplication, setExpandedApplication] = useState(null);
-  const [imageLoading, setImageLoading] = useState(false);
+  const { propertyImages, loadPropertyImage, isPropertyImageLoading, preloadPropertiesImages } = useImageLoader(); // NEW: Use imageLoader
 
-  // Get unique property IDs from applications - memoized for performance
-  const propertyIds = useMemo(() => {
-    const ids = new Set();
-    if (Array.isArray(applications)) {
-      applications.forEach((application) => {
-        if (application.property_id) {
-          ids.add(application.property_id);
-        }
-      });
-    }
-    return Array.from(ids);
+  // Enhanced applications data - add property info from joined data
+  const enhancedApplications = useMemo(() => {
+    if (!Array.isArray(applications)) return [];
+    
+    return applications.map(application => ({
+      ...application,
+      // Handle both direct property data and nested property object
+      property_title: application.properties?.title || application.property_title || 'Unknown Property',
+      property_location: application.properties?.location || application.property_location || 'Unknown Location',
+      property_price: application.properties?.price || application.property_price || 0,
+      property_images: application.properties?.images || application.property_images || []
+    }));
   }, [applications]);
 
-  // Fetch property images only for missing IDs
+  // NEW: Enhanced properties data for image loading - extract properties from applications
+  const propertiesForImageLoading = useMemo(() => {
+    if (!Array.isArray(enhancedApplications)) return [];
+    
+    return enhancedApplications
+      .filter(application => application.property_id && (application.properties || application.property_images))
+      .map(application => ({
+        id: application.property_id,
+        owner_id: application.properties?.owner_id || application.property_owner_id,
+        images: application.properties?.images || application.property_images || [],
+        title: application.property_title
+      }))
+      .filter(property => property.owner_id && property.images && property.images.length > 0);
+  }, [enhancedApplications]);
+
+  // NEW: Load property images using the imageLoader service
   useEffect(() => {
-    // Skip if the parent is still loading data or no properties to fetch
-    if (loading || propertyIds.length === 0) return;
-
-    // Check which property IDs don't have images yet
-    const missingPropertyIds = propertyIds.filter((id) => !propertyImages[id]);
-
-    // If all properties already have images, do nothing
-    if (missingPropertyIds.length === 0) return;
-
-    const fetchPropertyImages = async () => {
-      try {
-        setImageLoading(true);
-        const newPropertyImages = { ...propertyImages };
-
-        // Get all missing properties data in a single query
-        const { data: propertiesData, error: propertiesError } = await supabase
-          .from("properties")
-          .select("id, images, owner_id")
-          .in("id", missingPropertyIds);
-
-        if (propertiesError) {
-          console.error("Error fetching properties data:", propertiesError);
-          setImageLoading(false);
-          return;
+    if (!loading && propertiesForImageLoading.length > 0) {
+      console.log('🖼️ Loading images for application properties:', propertiesForImageLoading.map(p => p.id));
+      
+      // Load individual images for properties that need them
+      propertiesForImageLoading.forEach(property => {
+        if (!propertyImages[property.id] && !isPropertyImageLoading(property.id)) {
+          loadPropertyImage(property.id, property.owner_id, property.images[0]);
         }
-
-        // Process all properties in parallel
-        const imagePromises = propertiesData.map(async (property) => {
-          if (!property.images || property.images.length === 0) {
-            // Store null to avoid repeated fetching for properties without images
-            return [property.id, null];
-          }
-
-          try {
-            // Get the first image from the property
-            const firstImage = property.images[0];
-
-            // Normalize the path
-            const normalizedPath = firstImage.includes("/")
-              ? firstImage
-              : `${property.owner_id}/${firstImage}`;
-
-            // Get signed URL for the image
-            const { data: urlData, error: urlError } =
-              await supabaseClient.storage
-                .from("property-images")
-                .createSignedUrl(normalizedPath, 60 * 60); // 1 hour expiry
-
-            if (urlError) {
-              console.error(
-                `Error getting signed URL for property ${property.id}:`,
-                urlError
-              );
-              return [property.id, null];
-            }
-
-            return [property.id, urlData.signedUrl];
-          } catch (error) {
-            console.error(
-              `Error processing image for property ${property.id}:`,
-              error
-            );
-            return [property.id, null];
-          }
-        });
-
-        // Wait for all image promises to complete
-        const results = await Promise.all(imagePromises);
-
-        // Update the property images state with all results at once
-        results.forEach(([propertyId, url]) => {
-          if (propertyId) newPropertyImages[propertyId] = url;
-        });
-
-        setPropertyImages(newPropertyImages);
-      } catch (error) {
-        console.error("Error in bulk image loading:", error);
-      } finally {
-        setImageLoading(false);
+      });
+      
+      // Optional: Preload remaining images in batches for better UX
+      const unloadedProperties = propertiesForImageLoading.filter(
+        property => !propertyImages[property.id] && !isPropertyImageLoading(property.id)
+      );
+      
+      if (unloadedProperties.length > 0) {
+        // Small delay to avoid overwhelming the system
+        setTimeout(() => {
+          preloadPropertiesImages(unloadedProperties);
+        }, 100);
       }
-    };
+    }
+  }, [
+    loading,
+    propertiesForImageLoading,
+    propertyImages,
+    isPropertyImageLoading,
+    loadPropertyImage,
+    preloadPropertiesImages
+  ]);
 
-    fetchPropertyImages();
-  }, [propertyIds, propertyImages, loading]);
+  // NEW: Check if any images are still loading
+  const someImagesLoading = useMemo(() => {
+    return propertiesForImageLoading.some(property => isPropertyImageLoading(property.id));
+  }, [propertiesForImageLoading, isPropertyImageLoading]);
 
   // Get the appropriate status badge based on the status
   const getStatusBadge = (status) => {
@@ -177,14 +138,21 @@ const PropertyApplications = ({
 
       if (error) throw error;
 
-      // Update the local state
-      setApplications(
-        applications.map((application) =>
-          application.id === applicationId
-            ? { ...application, status: "withdrawn" }
-            : application
-        )
-      );
+      // Update the local state if setApplications is provided
+      if (setApplications) {
+        setApplications(
+          applications.map((application) =>
+            application.id === applicationId
+              ? { ...application, status: "withdrawn" }
+              : application
+          )
+        );
+      }
+
+      // Call onRefresh if provided to refresh data from global context
+      if (onRefresh) {
+        onRefresh();
+      }
 
       toast.success("Application withdrawn successfully");
     } catch (error) {
@@ -204,15 +172,39 @@ const PropertyApplications = ({
     toast.info("Feature coming soon: Edit Application");
   };
 
-  // Combined loading state
-  const isLoading = loading || imageLoading;
+  // NEW: Updated loading state - combines parent loading and image loading
+  const isLoading = loading || someImagesLoading;
 
-  if (isLoading) {
+  if (isLoading && (!enhancedApplications || enhancedApplications.length === 0)) {
     return (
       <div className="max-w-6xl mx-auto">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">
-          My Property Applications
-        </h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">
+            My Property Applications
+          </h2>
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              disabled={loading}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red disabled:opacity-50"
+            >
+              <svg
+                className={`-ml-0.5 mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              Refresh
+            </button>
+          )}
+        </div>
         <div className="flex justify-center my-12">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
         </div>
@@ -222,11 +214,35 @@ const PropertyApplications = ({
 
   return (
     <div className="max-w-6xl mx-auto text-gray-600">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">
-        My Property Applications
-      </h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">
+          My Property Applications
+        </h2>
+        {onRefresh && (
+          <button
+            onClick={onRefresh}
+            disabled={loading}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red disabled:opacity-50"
+          >
+            <svg
+              className={`-ml-0.5 mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            Refresh
+          </button>
+        )}
+      </div>
 
-      {!applications || applications.length === 0 ? (
+      {!enhancedApplications || enhancedApplications.length === 0 ? (
         <div className="bg-white shadow rounded-lg p-8 text-center">
           <div className="flex flex-col items-center">
             <div className="mb-4">
@@ -260,9 +276,13 @@ const PropertyApplications = ({
         </div>
       ) : (
         <div className="space-y-4">
-          {applications.map((application) => {
+          {enhancedApplications.map((application) => {
             const statusBadge = getStatusBadge(application.status);
             const isExpanded = expandedApplication === application.id;
+            
+            // NEW: Get property image and loading state from imageLoader
+            const propertyImage = propertyImages[application.property_id];
+            const imageLoading = isPropertyImageLoading(application.property_id);
 
             return (
               <div
@@ -277,13 +297,21 @@ const PropertyApplications = ({
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between">
                     <div className="flex items-center space-x-3 mb-2 sm:mb-0">
                       <div className="h-12 w-12 bg-gray-200 rounded-md overflow-hidden flex-shrink-0">
-                        {propertyImages[application.property_id] ? (
+                        {/* NEW: Enhanced image handling with loading state */}
+                        {imageLoading ? (
+                          <div className="flex items-center justify-center h-full w-full">
+                            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-custom-red"></div>
+                          </div>
+                        ) : propertyImage ? (
                           <div className="relative h-full w-full">
                             <Image
-                              src={propertyImages[application.property_id]}
-                              alt=""
+                              src={propertyImage}
+                              alt={application.property_title || "Property"}
                               fill
                               className="object-cover"
+                              sizes="48px"
+                              priority={false}
+                              loading="lazy"
                             />
                           </div>
                         ) : (
@@ -306,7 +334,7 @@ const PropertyApplications = ({
                       </div>
                       <div>
                         <h3 className="font-medium text-gray-900">
-                          {application.property_title || "Property Application"}
+                          {application.property_title}
                         </h3>
                         <p className="text-sm text-gray-500">
                           Applied on{" "}
@@ -350,38 +378,47 @@ const PropertyApplications = ({
                       <div className="flex flex-col md:flex-row gap-6">
                         {/* Property Image - Larger in expanded view */}
                         <div className="w-full md:w-1/3 h-48 md:h-auto rounded-lg overflow-hidden bg-gray-100">
-                          {propertyImages[application.property_id] ? (
+                          {/* NEW: Enhanced large image handling with loading state */}
+                          {imageLoading ? (
+                            <div className="w-full h-48 md:h-64 flex items-center justify-center">
+                              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
+                            </div>
+                          ) : propertyImage ? (
                             <div className="relative w-full h-48 md:h-64">
                               <Image
-                                src={propertyImages[application.property_id]}
-                                alt={
-                                  application.property_title || "Property Image"
-                                }
+                                src={propertyImage}
+                                alt={application.property_title || "Property Image"}
                                 fill
                                 className="object-cover"
+                                sizes="(max-width: 768px) 100vw, 33vw"
+                                priority={false}
+                                loading="lazy"
                               />
                             </div>
                           ) : (
                             <div className="w-full h-48 md:h-64 flex items-center justify-center bg-gray-200 text-gray-400">
-                              <svg
-                                className="h-12 w-12"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth="1"
-                                  d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                                />
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth="1"
-                                  d="M9 22V12h6v10"
-                                />
-                              </svg>
+                              <div className="text-center">
+                                <svg
+                                  className="h-12 w-12 mx-auto mb-2"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="1"
+                                    d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                                  />
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="1"
+                                    d="M9 22V12h6v10"
+                                  />
+                                </svg>
+                                <p className="text-sm">No image available</p>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -541,7 +578,7 @@ const PropertyApplications = ({
                                     handleWithdraw(application.id, e)
                                   }
                                   disabled={withdrawingId === application.id}
-                                  className="px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50"
+                                  className="px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50 disabled:opacity-50"
                                 >
                                   {withdrawingId === application.id
                                     ? "Withdrawing..."
