@@ -295,16 +295,7 @@ const Header = () => {
                           className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         >
                           Dashboard
-                        </button>
-                        {shouldShowSavedProperties && (
-                          <Link
-                            href="/favorites"
-                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                            onClick={() => setUserMenuOpen(false)}
-                          >
-                            Saved Properties
-                          </Link>
-                        )}
+                        </button>                        
                         <button
                           onClick={handleSignOut}
                           className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"

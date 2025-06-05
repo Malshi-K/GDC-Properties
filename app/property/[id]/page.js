@@ -18,7 +18,7 @@ export default function PropertyDetails() {
   const { id } = params;
   
   // Image loader context
-  const { propertyImages, loadPropertyImage } = useImageLoader();
+  const { loadPropertyImage } = useImageLoader();
 
   const [property, setProperty] = useState(null);
   const [imageUrls, setImageUrls] = useState([]);
@@ -87,6 +87,7 @@ export default function PropertyDetails() {
         loadPropertyImages(propertyData);
       } else {
         console.log("No images found for property");
+        setImageUrls([]); // Clear any existing URLs
       }
 
     } catch (err) {
@@ -97,48 +98,49 @@ export default function PropertyDetails() {
     }
   }, [id]);
 
-  // Load property images
+  // Load property images - FIXED VERSION
   const loadPropertyImages = useCallback(async (propertyData) => {
-    if (!propertyData?.images || propertyData.images.length === 0) return;
+    if (!propertyData?.images || propertyData.images.length === 0) {
+      setImageUrls([]);
+      return;
+    }
 
     try {
       console.log("Loading images for property:", propertyData.id);
       console.log("Images array:", propertyData.images);
       
-      // Load main image with consistent key
-      const mainImageUrl = await loadPropertyImage(
-        propertyData.id, // Same key as FeaturedProperties
-        propertyData.owner_id,
-        propertyData.images[0]
-      );
+      // Reset imageUrls first
+      setImageUrls([]);
+      
+      // Load all images sequentially to maintain order
+      const imagePromises = propertyData.images.map(async (imagePath, index) => {
+        const imageUrl = await loadPropertyImage(
+          `${propertyData.id}_image_${index}`, // More unique key for each image
+          propertyData.owner_id,
+          imagePath
+        );
+        return { url: imageUrl, originalPath: imagePath };
+      });
 
-      console.log("Main image URL:", mainImageUrl);
-
-      if (mainImageUrl) {
-        setImageUrls([mainImageUrl]);
-      }
-
-      // Load additional images if available
-      if (propertyData.images.length > 1) {
-        const additionalImagePromises = propertyData.images.slice(1).map(async (imagePath, index) => {
-          const imageUrl = await loadPropertyImage(
-            `${propertyData.id}_${index + 1}`,
-            propertyData.owner_id,
-            imagePath
-          );
-          return imageUrl;
-        });
-
-        const additionalUrls = await Promise.all(additionalImagePromises);
-        const validAdditionalUrls = additionalUrls.filter(url => url && url !== "");
-        
-        if (validAdditionalUrls.length > 0) {
-          setImageUrls(prev => [...prev, ...validAdditionalUrls]);
-        }
-      }
+      const imageResults = await Promise.all(imagePromises);
+      
+      // Filter out any failed/empty URLs, remove duplicates by URL
+      const validImageUrls = imageResults
+        .filter(result => result.url && result.url !== "")
+        .map(result => result.url);
+      
+      // Remove duplicates using Set
+      const uniqueImageUrls = [...new Set(validImageUrls)];
+      
+      console.log("Loaded image URLs:", uniqueImageUrls);
+      console.log("Original images count:", propertyData.images.length);
+      console.log("Final unique URLs count:", uniqueImageUrls.length);
+      
+      setImageUrls(uniqueImageUrls);
 
     } catch (error) {
       console.error("Error loading property images:", error);
+      setImageUrls([]);
     }
   }, [loadPropertyImage]);
 
@@ -178,17 +180,30 @@ export default function PropertyDetails() {
     fetchUserRole();
   }, [fetchUserRole]);
 
-  // Get main image URL with fallback logic
+  // Get all available image URLs with fallback logic - FIXED VERSION
+  const allImageUrls = useMemo(() => {
+    // Only use imageUrls (loaded from database), don't mix with cached images
+    // This prevents duplication issues
+    const uniqueUrls = [...new Set(imageUrls.filter(url => url && url !== ""))];
+    
+    console.log("All available image URLs:", uniqueUrls);
+    console.log("imageUrls length:", imageUrls.length);
+    console.log("Final unique URLs length:", uniqueUrls.length);
+    
+    return uniqueUrls;
+  }, [imageUrls]);
+
+  // Get main image URL
   const mainImageUrl = useMemo(() => {
-    // First check if we have cached image from FeaturedProperties
-    const cachedImageUrl = propertyImages[property?.id];
-    if (cachedImageUrl) {
-      console.log("Using cached image from FeaturedProperties:", cachedImageUrl);
-      return cachedImageUrl;
+    // First check if we have a valid image from allImageUrls
+    const currentImageUrl = allImageUrls[activeImage];
+    if (currentImageUrl) {
+      console.log("Using main image URL:", currentImageUrl);
+      return currentImageUrl;
     }
     
-    // Fallback to loaded imageUrls
-    const fallbackUrl = imageUrls[activeImage];
+    // Fallback to first available image
+    const fallbackUrl = allImageUrls[0];
     if (fallbackUrl) {
       console.log("Using fallback image URL:", fallbackUrl);
       return fallbackUrl;
@@ -196,24 +211,26 @@ export default function PropertyDetails() {
     
     console.log("No image URL available");
     return null;
-  }, [propertyImages, property?.id, imageUrls, activeImage]);
+  }, [allImageUrls, activeImage]);
 
-  // Navigation handlers
+  // Navigation handlers - FIXED VERSION
   const handleImageClick = useCallback((index) => {
-    setActiveImage(index);
-  }, []);
+    if (index >= 0 && index < allImageUrls.length) {
+      setActiveImage(index);
+    }
+  }, [allImageUrls.length]);
 
   const handlePreviousImage = useCallback(() => {
     setActiveImage(prev => 
-      prev === 0 ? Math.max(0, imageUrls.length - 1) : prev - 1
+      prev === 0 ? Math.max(0, allImageUrls.length - 1) : prev - 1
     );
-  }, [imageUrls.length]);
+  }, [allImageUrls.length]);
 
   const handleNextImage = useCallback(() => {
     setActiveImage(prev => 
-      prev >= imageUrls.length - 1 ? 0 : prev + 1
+      prev >= allImageUrls.length - 1 ? 0 : prev + 1
     );
-  }, [imageUrls.length]);
+  }, [allImageUrls.length]);
 
   // Modal handlers
   const openViewingModal = useCallback(() => {
@@ -290,7 +307,7 @@ export default function PropertyDetails() {
           <div className="property-image-container">
             <div className="main-image-skeleton bg-gray-200 h-96 animate-pulse rounded-lg"></div>
             <div className="thumbnails-skeleton flex mt-2 space-x-2">
-              {[...Array(5)].map((_, index) => (
+              {[...Array(3)].map((_, index) => (
                 <div key={index} className="h-24 w-24 rounded-md bg-gray-300 animate-pulse"></div>
               ))}
             </div>
@@ -305,8 +322,9 @@ export default function PropertyDetails() {
     loading,
     error,
     property: property ? "loaded" : "null",
-    imageUrls: imageUrls.length,
+    totalImages: allImageUrls.length,
     mainImageUrl: mainImageUrl ? "available" : "null",
+    activeImageIndex: activeImage,
     id
   });
 
@@ -339,16 +357,6 @@ export default function PropertyDetails() {
   return (
     <div className="min-h-screen bg-white py-40 px-4 sm:px-6 lg:px-8 text-gray-600">
       <div className="max-w-6xl mx-auto">
-        {/* Debug Info - Remove in production */}
-        {/* <div className="mb-4 p-4 bg-yellow-100 rounded-md text-sm">
-          <strong>Debug Info:</strong>
-          <div>Property ID: {property.id}</div>
-          <div>Title: {property.title || "No title"}</div>
-          <div>Price: {property.price || "No price"}</div>
-          <div>Images: {property.images ? property.images.length : 0}</div>
-          <div>Main Image URL: {mainImageUrl ? "Available" : "Not available"}</div>
-        </div> */}
-
         {/* Property header */}
         <div className="mb-4">
           <div className="flex justify-between items-center">
@@ -377,7 +385,7 @@ export default function PropertyDetails() {
           </div>
         </div>
 
-        {/* Main image section */}
+        {/* Main image section - FIXED VERSION */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="md:col-span-3">
             <div className="relative aspect-[4/3] w-full rounded-lg overflow-hidden">
@@ -402,12 +410,12 @@ export default function PropertyDetails() {
                 </div>
               )}
 
-              {/* Navigation buttons */}
-              {imageUrls.length > 1 && (
+              {/* Navigation buttons - Only show if more than 1 image */}
+              {allImageUrls.length > 1 && (
                 <>
                   <button 
                     onClick={handlePreviousImage}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white rounded-full p-1 shadow-md z-10"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white rounded-full p-1 shadow-md z-10 hover:bg-gray-100"
                   >
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -415,39 +423,56 @@ export default function PropertyDetails() {
                   </button>
                   <button 
                     onClick={handleNextImage}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white rounded-full p-1 shadow-md z-10"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white rounded-full p-1 shadow-md z-10 hover:bg-gray-100"
                   >
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </button>
+
+                  {/* Image counter */}
+                  <div className="absolute bottom-4 right-4 bg-black bg-opacity-50 text-white text-sm px-2 py-1 rounded">
+                    {activeImage + 1} / {allImageUrls.length}
+                  </div>
                 </>
               )}
             </div>
           </div>
 
-          {/* Thumbnail gallery */}
+          {/* Thumbnail gallery - FIXED VERSION */}
           <div className="md:col-span-1">
-            <div className="grid grid-cols-2 gap-2">
-              {imageUrls.slice(0, 4).map((imageUrl, index) => (
-                <div
-                  key={index}
-                  className={`relative aspect-square rounded-md overflow-hidden cursor-pointer ${
-                    activeImage === index ? "ring-2 ring-custom-red" : ""
-                  }`}
-                  onClick={() => handleImageClick(index)}
-                >
-                  <Image
-                    src={imageUrl}
-                    alt={`${property.title || 'Property'} - Thumbnail ${index + 1}`}
-                    fill
-                    className="object-cover"
-                    loading="lazy"
-                    sizes="(max-width: 768px) 50vw, 15vw"
-                  />
-                </div>
-              ))}
-            </div>
+            {allImageUrls.length > 1 && (
+              <div className="grid grid-cols-2 gap-2">
+                {allImageUrls.slice(0, 4).map((imageUrl, index) => (
+                  <div
+                    key={`thumb-${index}`}
+                    className={`relative aspect-square rounded-md overflow-hidden cursor-pointer transition-all duration-200 ${
+                      activeImage === index 
+                        ? "ring-2 ring-custom-red" 
+                        : "hover:ring-2 hover:ring-gray-400"
+                    }`}
+                    onClick={() => handleImageClick(index)}
+                  >
+                    <Image
+                      src={imageUrl}
+                      alt={`${property.title || 'Property'} - Thumbnail ${index + 1}`}
+                      fill
+                      className="object-cover"
+                      loading="lazy"
+                      sizes="(max-width: 768px) 50vw, 15vw"
+                    />
+                    {/* Show +X more indicator for 4th thumbnail if there are more images */}
+                    {index === 3 && allImageUrls.length > 4 && (
+                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                        <span className="text-white font-semibold">
+                          +{allImageUrls.length - 4} more
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -582,7 +607,7 @@ export default function PropertyDetails() {
                   onClick={openApplicationModal}
                   className="w-full bg-white hover:bg-gray-100 text-gray-800 font-medium py-2 px-4 border border-gray-300 rounded-md transition-colors duration-300"
                 >
-                  Request Info
+                  Apply for the property
                 </button>
               </div>
             )}

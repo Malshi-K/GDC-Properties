@@ -78,7 +78,7 @@ export const PageTitle = () => {
 
             {/* CTA Button */}
             <div className="mt-6 sm:mt-8 md:mt-10">
-              <Link href="/login">
+              <Link href="/signup">
                 <button className="bg-custom-red hover:bg-custom-gray text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full flex items-center transition duration-300 group text-sm sm:text-base">
                   <span className="mr-2">Get Started Now</span>
                   <span className="bg-white p-1 rounded-full transform transition-transform group-hover:translate-x-1">
