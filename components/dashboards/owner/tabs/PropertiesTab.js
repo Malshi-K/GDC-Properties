@@ -22,13 +22,13 @@ export default function PropertiesTab({
 }) {
   const { user } = useAuth();
   const { fetchData, invalidateCache, loading } = useGlobalData();
-  
+
   // Local state for data
   const [properties, setProperties] = useState([]);
   const [viewingRequests, setViewingRequests] = useState([]);
   const [applications, setApplications] = useState([]);
   const [processedProperties, setProcessedProperties] = useState([]);
-  
+
   // Loading and error states
   const [isLoading, setIsLoading] = useState(true);
   const [processingError, setProcessingError] = useState(null);
@@ -39,7 +39,7 @@ export default function PropertiesTab({
     return {
       properties: `owner_properties_${user.id}`,
       viewingRequests: `owner_viewing_requests_${user.id}`,
-      applications: `owner_applications_${user.id}`
+      applications: `owner_applications_${user.id}`,
     };
   };
 
@@ -58,17 +58,20 @@ export default function PropertiesTab({
       // Fetch properties (owner's properties)
       let propertiesData = [];
       try {
-        propertiesData = await fetchData({
-          table: 'properties',
-          select: '*',
-          filters: [{ column: 'owner_id', operator: 'eq', value: user.id }],
-          orderBy: { column: 'created_at', ascending: false }
-        }, { 
-          useCache: true, 
-          ttl: CACHE_TTL.PROPERTIES,
-          _cached_key: cacheKeys.properties 
-        });
-        
+        propertiesData = await fetchData(
+          {
+            table: "properties",
+            select: "*",
+            filters: [{ column: "owner_id", operator: "eq", value: user.id }],
+            orderBy: { column: "created_at", ascending: false },
+          },
+          {
+            useCache: true,
+            ttl: CACHE_TTL.PROPERTIES,
+            _cached_key: cacheKeys.properties,
+          }
+        );
+
         console.log("✅ Properties fetched:", propertiesData?.length || 0);
       } catch (error) {
         console.error("❌ Error fetching properties:", error);
@@ -78,18 +81,24 @@ export default function PropertiesTab({
       // Fetch viewing requests for owner's properties
       let viewingRequestsData = [];
       try {
-        viewingRequestsData = await fetchData({
-          table: 'viewing_requests',
-          select: '*',
-          filters: [{ column: 'owner_id', operator: 'eq', value: user.id }],
-          orderBy: { column: 'created_at', ascending: false }
-        }, { 
-          useCache: true, 
-          ttl: CACHE_TTL.VIEWING_REQUESTS,
-          _cached_key: cacheKeys.viewingRequests 
-        });
-        
-        console.log("✅ Viewing requests fetched:", viewingRequestsData?.length || 0);
+        viewingRequestsData = await fetchData(
+          {
+            table: "viewing_requests",
+            select: "*",
+            filters: [{ column: "owner_id", operator: "eq", value: user.id }],
+            orderBy: { column: "created_at", ascending: false },
+          },
+          {
+            useCache: true,
+            ttl: CACHE_TTL.VIEWING_REQUESTS,
+            _cached_key: cacheKeys.viewingRequests,
+          }
+        );
+
+        console.log(
+          "✅ Viewing requests fetched:",
+          viewingRequestsData?.length || 0
+        );
       } catch (error) {
         console.error("❌ Error fetching viewing requests:", error);
         viewingRequestsData = [];
@@ -98,17 +107,20 @@ export default function PropertiesTab({
       // Fetch applications for owner's properties
       let applicationsData = [];
       try {
-        applicationsData = await fetchData({
-          table: 'rental_applications',
-          select: '*',
-          filters: [{ column: 'owner_id', operator: 'eq', value: user.id }],
-          orderBy: { column: 'created_at', ascending: false }
-        }, { 
-          useCache: true, 
-          ttl: CACHE_TTL.APPLICATIONS,
-          _cached_key: cacheKeys.applications 
-        });
-        
+        applicationsData = await fetchData(
+          {
+            table: "rental_applications",
+            select: "*",
+            filters: [{ column: "owner_id", operator: "eq", value: user.id }],
+            orderBy: { column: "created_at", ascending: false },
+          },
+          {
+            useCache: true,
+            ttl: CACHE_TTL.APPLICATIONS,
+            _cached_key: cacheKeys.applications,
+          }
+        );
+
         console.log("✅ Applications fetched:", applicationsData?.length || 0);
       } catch (error) {
         console.error("❌ Error fetching applications:", error);
@@ -117,22 +129,27 @@ export default function PropertiesTab({
 
       // Set the data (ensure arrays)
       setProperties(Array.isArray(propertiesData) ? propertiesData : []);
-      setViewingRequests(Array.isArray(viewingRequestsData) ? viewingRequestsData : []);
+      setViewingRequests(
+        Array.isArray(viewingRequestsData) ? viewingRequestsData : []
+      );
       setApplications(Array.isArray(applicationsData) ? applicationsData : []);
 
       console.log("✅ All data loaded successfully:", {
         properties: Array.isArray(propertiesData) ? propertiesData.length : 0,
-        viewingRequests: Array.isArray(viewingRequestsData) ? viewingRequestsData.length : 0,
-        applications: Array.isArray(applicationsData) ? applicationsData.length : 0
+        viewingRequests: Array.isArray(viewingRequestsData)
+          ? viewingRequestsData.length
+          : 0,
+        applications: Array.isArray(applicationsData)
+          ? applicationsData.length
+          : 0,
       });
 
       // Clear any previous errors
       setProcessingError(null);
-
     } catch (error) {
       console.error("❌ Error in fetchAllData:", error);
       setProcessingError(error.message || "Failed to load data");
-      
+
       // Set empty arrays on error
       setProperties([]);
       setViewingRequests([]);
@@ -150,6 +167,8 @@ export default function PropertiesTab({
   }, [user?.id]);
 
   // Process properties data to combine with related viewing requests and applications
+  // Replace your processing useEffect with this enhanced version:
+
   useEffect(() => {
     if (isLoading || !Array.isArray(properties)) {
       setProcessedProperties([]);
@@ -160,50 +179,94 @@ export default function PropertiesTab({
       console.log("🔄 Processing properties data...", {
         properties: properties.length,
         viewingRequests: viewingRequests.length,
-        applications: applications.length
+        applications: applications.length,
       });
 
-      const processed = properties.map(property => {
-        if (!property || !property.id) return null;
-        
+      // *** ENHANCED DEBUGGING ***
+      console.log("=== DETAILED PROPERTY ANALYSIS ===");
+      properties.forEach((property, index) => {
+        console.log(`Property ${index + 1}:`, {
+          exists: !!property,
+          hasId: property?.id ? true : false,
+          id: property?.id,
+          title: property?.title,
+          fullProperty: property,
+        });
+      });
+
+      const processed = properties.map((property, index) => {
+        console.log(`Processing property ${index + 1}:`, property); // Debug each property
+
+        if (!property) {
+          console.log(`❌ Property ${index + 1} is null/undefined`);
+          return null;
+        }
+
+        if (!property.id) {
+          console.log(`❌ Property ${index + 1} has no ID:`, property);
+          return null;
+        }
+
         try {
           const propertyId = property.id;
-          
+
           // Filter viewing requests for this property
-          const propertyViewingRequests = Array.isArray(viewingRequests) 
-            ? viewingRequests.filter(request => 
-                request && request.property_id === propertyId
+          const propertyViewingRequests = Array.isArray(viewingRequests)
+            ? viewingRequests.filter(
+                (request) => request && request.property_id === propertyId
               )
             : [];
-          
+
           // Filter applications for this property
           const propertyApplications = Array.isArray(applications)
-            ? applications.filter(application => 
-                application && application.property_id === propertyId
+            ? applications.filter(
+                (application) =>
+                  application && application.property_id === propertyId
               )
             : [];
-          
-          console.log(`Property ${propertyId}: ${propertyViewingRequests.length} viewing requests, ${propertyApplications.length} applications`);
-          
-          return {
+
+          console.log(
+            `✅ Property ${propertyId}: ${propertyViewingRequests.length} viewing requests, ${propertyApplications.length} applications`
+          );
+
+          const processedProperty = {
             ...property,
             viewing_requests: propertyViewingRequests,
-            applications: propertyApplications
+            applications: propertyApplications,
           };
+
+          console.log(`✅ Successfully processed property:`, processedProperty);
+          return processedProperty;
         } catch (err) {
-          console.error("Error processing individual property:", property, err);
+          console.error(
+            `❌ Error processing property ${index + 1}:`,
+            property,
+            err
+          );
           // Return property without related data on error
           return {
             ...property,
             viewing_requests: [],
-            applications: []
+            applications: [],
           };
         }
-      }).filter(Boolean); // Remove any null values
-      
-      console.log("✅ Properties processed successfully:", processed.length);
-      setProcessedProperties(processed);
-      
+      });
+
+      console.log("=== PROCESSING RESULTS ===");
+      console.log("Properties before filter:", processed);
+      console.log(
+        "Null properties:",
+        processed.filter((p) => p === null)
+      );
+
+      const finalProcessed = processed.filter(Boolean); // Remove any null values
+
+      console.log("✅ Final processed properties:", finalProcessed);
+      console.log(
+        "✅ Properties processed successfully:",
+        finalProcessed.length
+      );
+      setProcessedProperties(finalProcessed);
     } catch (err) {
       console.error("❌ Error in properties processing:", err);
       setProcessingError(err.message);
@@ -214,30 +277,30 @@ export default function PropertiesTab({
   // Enhanced refresh function that uses GlobalDataContext
   const handleRefresh = async () => {
     if (!user?.id) return;
-    
+
     console.log("🔄 Refreshing dashboard data...");
-    
+
     const cacheKeys = getCacheKeys();
-    
+
     // Invalidate all related caches
     invalidateCache(cacheKeys.properties);
     invalidateCache(cacheKeys.viewingRequests);
     invalidateCache(cacheKeys.applications);
-    
+
     // Fetch fresh data
     await fetchAllData();
-    
+
     // Call parent refresh if provided
-    if (typeof onRefresh === 'function') {
+    if (typeof onRefresh === "function") {
       onRefresh();
     }
   };
 
   // Enhanced delete handler that invalidates cache
   const handleDelete = async (propertyId) => {
-    if (typeof onDelete === 'function') {
+    if (typeof onDelete === "function") {
       await onDelete(propertyId);
-      
+
       // Refresh data after deletion
       await handleRefresh();
     }
@@ -245,32 +308,34 @@ export default function PropertiesTab({
 
   // Enhanced edit handler
   const handleEdit = (propertyId) => {
-    if (typeof onEdit === 'function') {
+    if (typeof onEdit === "function") {
       onEdit(propertyId);
     }
   };
 
   // Enhanced add new handler
   const handleAddNew = () => {
-    if (typeof onAddNew === 'function') {
+    if (typeof onAddNew === "function") {
       onAddNew();
     }
   };
 
   // Get pending counts safely
-  const pendingViewings = Array.isArray(viewingRequests) 
-    ? viewingRequests.filter(r => r?.status === 'pending').length 
+  const pendingViewings = Array.isArray(viewingRequests)
+    ? viewingRequests.filter((r) => r?.status === "pending").length
     : 0;
-  const pendingApplications = Array.isArray(applications) 
-    ? applications.filter(a => a?.status === 'pending').length 
+  const pendingApplications = Array.isArray(applications)
+    ? applications.filter((a) => a?.status === "pending").length
     : 0;
 
   return (
     <div className="w-full max-w-6xl mx-auto px-4 sm:px-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div className="flex items-center gap-4">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">My Properties</h2>
-          
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+            My Properties
+          </h2>
+
           {/* Quick stats */}
           {!isLoading && (
             <div className="flex gap-4 text-sm text-gray-600">
@@ -310,7 +375,9 @@ export default function PropertiesTab({
             title="Refresh data"
           >
             <svg
-              className={`h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2 ${isLoading ? 'animate-spin' : ''}`}
+              className={`h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2 ${
+                isLoading ? "animate-spin" : ""
+              }`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -381,10 +448,22 @@ export default function PropertiesTab({
       ) : processingError ? (
         <div className="bg-white shadow rounded-lg p-4 sm:p-6 text-center">
           <div className="text-red-500 mb-4">
-            <svg className="h-12 w-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+              className="h-12 w-12 mx-auto mb-2"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
-            <p className="text-sm sm:text-base font-medium">Error Loading Data</p>
+            <p className="text-sm sm:text-base font-medium">
+              Error Loading Data
+            </p>
             <p className="text-xs text-gray-500 mt-1">{processingError}</p>
           </div>
           <button
@@ -397,14 +476,32 @@ export default function PropertiesTab({
       ) : processedProperties.length === 0 ? (
         <div className="bg-white shadow rounded-lg p-4 sm:p-6 text-center">
           <div className="text-gray-400 mb-4">
-            <svg className="h-16 w-16 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 22V12h6v10" />
+            <svg
+              className="h-16 w-16 mx-auto mb-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1"
+                d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1"
+                d="M9 22V12h6v10"
+              />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Properties Found</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No Properties Found
+          </h3>
           <p className="text-gray-500 text-sm sm:text-base mb-4">
-            You haven't added any properties yet. Start by adding your first property to rent.
+            You haven't added any properties yet. Start by adding your first
+            property to rent.
           </p>
           <button
             onClick={handleAddNew}
@@ -430,31 +527,60 @@ export default function PropertiesTab({
           {/* Quick action buttons */}
           {(viewingRequests.length > 0 || applications.length > 0) && (
             <div className="bg-white shadow rounded-lg p-4 sm:p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Quick Actions
+              </h3>
               <div className="flex flex-wrap gap-4">
                 {viewingRequests.length > 0 && (
                   <button
                     onClick={() => onViewAllRequests && onViewAllRequests()}
                     className="flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
                   >
-                    <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    <svg
+                      className="h-5 w-5 mr-2"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
                     </svg>
-                    View All Viewing Requests 
+                    View All Viewing Requests
                     <span className="ml-1 px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs">
                       {viewingRequests.length}
                     </span>
                   </button>
                 )}
-                
+
                 {applications.length > 0 && (
                   <button
-                    onClick={() => onViewAllApplications && onViewAllApplications()}
+                    onClick={() =>
+                      onViewAllApplications && onViewAllApplications()
+                    }
                     className="flex items-center px-4 py-2 bg-green-50 text-green-700 rounded-md hover:bg-green-100 transition-colors"
                   >
-                    <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    <svg
+                      className="h-5 w-5 mr-2"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
                     </svg>
                     View All Applications
                     <span className="ml-1 px-2 py-0.5 bg-green-100 text-green-800 rounded-full text-xs">
