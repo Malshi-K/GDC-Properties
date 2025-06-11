@@ -26,7 +26,6 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
     profileImages, 
     loadProfileImage, 
     isProfileImageLoading,
-    clearImageCache
   } = useImageLoader();
   
   const { user, profile, userRole } = useAuth();

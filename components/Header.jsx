@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Menu, X, ChevronDown, ChevronUp, User } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { supabase } from "@/lib/supabase"; // Make sure this path is correct
+import { supabase } from "@/lib/supabase";
 
 const Header = () => {
   const pathname = usePathname();
@@ -23,11 +23,15 @@ const Header = () => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
 
+  // Ref for the dropdown container to handle hover events
+  const dropdownRef = useRef(null);
+  const hoverTimeoutRef = useRef(null);
+
   // Check for authenticated user on load
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         setUser(session.user);
         await getUserRole(session.user.id);
@@ -70,7 +74,6 @@ const Header = () => {
       if (error) throw error;
 
       setUserRole(data.role);
-      // After fetching user role
       console.log("User role retrieved:", data.role);
     } catch (error) {
       console.error("Error fetching user role:", error);
@@ -101,24 +104,47 @@ const Header = () => {
     router.push("/");
   };
 
-  // Navigate to dashboard (updated for unified dashboard)
+  // Navigate to dashboard
   const navigateToDashboard = () => {
-    // Use the single dashboard route
     router.push("/dashboard");
     setUserMenuOpen(false);
   };
+
+  // Hover handlers for dropdown
+  const handleMouseEnter = () => {
+    // Clear any existing timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setUserMenuOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    // Add a small delay before closing to prevent flickering
+    hoverTimeoutRef.current = setTimeout(() => {
+      setUserMenuOpen(false);
+    }, 150); // 150ms delay - adjust as needed
+  };
+
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Handle window resize
   useEffect(() => {
     const handleResize = () => {
       setWindowWidth(window.innerWidth);
-      // Close mobile menu if screen becomes larger than mobile breakpoint
       if (window.innerWidth >= 768) {
         setIsMenuOpen(false);
       }
     };
 
-    // Set initial window width
     if (typeof window !== "undefined") {
       setWindowWidth(window.innerWidth);
       window.addEventListener("resize", handleResize);
@@ -141,7 +167,6 @@ const Header = () => {
 
     if (typeof window !== "undefined") {
       window.addEventListener("scroll", handleScroll);
-      // Call once to set initial state
       handleScroll();
     }
 
@@ -201,7 +226,6 @@ const Header = () => {
             {/* Logo */}
             <div className="flex items-center">
               <div className="w-20 sm:w-24 md:w-32 h-12 sm:h-16 md:h-20 flex items-center justify-center overflow-hidden">
-                {/* Using Next.js Image for better optimization */}
                 <Link href="/">
                   <Image
                     src="/images/logo.png"
@@ -271,40 +295,47 @@ const Header = () => {
             {/* Connect Button / User Menu */}
             <div className="hidden md:flex items-center relative">
               {user ? (
-                <div className="relative">
+                <div 
+                  className="relative"
+                  ref={dropdownRef}
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
+                >
                   <button
-                    onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className="flex items-center space-x-2 text-custom-gray hover:text-custom-red"
+                    className="flex items-center space-x-2 text-custom-gray hover:text-custom-red transition-colors duration-200"
                   >
                     <User size={24} />
                     <span className="text-sm">
                       {userProfile?.full_name || user.email.split("@")[0]}
                     </span>
-                    {userMenuOpen ? (
-                      <ChevronUp size={16} />
-                    ) : (
+                    <div className={`transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : 'rotate-0'}`}>
                       <ChevronDown size={16} />
-                    )}
+                    </div>
                   </button>
 
-                  {userMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50">
-                      <div className="py-1">
-                        <button
-                          onClick={navigateToDashboard}
-                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        >
-                          Dashboard
-                        </button>                        
-                        <button
-                          onClick={handleSignOut}
-                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        >
-                          Sign Out
-                        </button>
-                      </div>
+                  {/* Dropdown Menu with smooth animation */}
+                  <div 
+                    className={`absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 transition-all duration-200 transform origin-top ${
+                      userMenuOpen 
+                        ? 'opacity-100 scale-100 translate-y-0' 
+                        : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
+                    }`}
+                  >
+                    <div className="py-1">
+                      <button
+                        onClick={navigateToDashboard}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
+                      >
+                        Dashboard
+                      </button>                        
+                      <button
+                        onClick={handleSignOut}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
+                      >
+                        Sign Out
+                      </button>
                     </div>
-                  )}
+                  </div>
                 </div>
               ) : (
                 <Link
