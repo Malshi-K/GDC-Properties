@@ -54,62 +54,106 @@ export default function AnalyticsTab({ onRefresh }) {
     "#A569BD",
   ];
 
+  const renderCustomLabel = ({
+    cx,
+    cy,
+    midAngle,
+    innerRadius,
+    outerRadius,
+    percent,
+    name,
+    value,
+  }) => {
+    // Don't show label if value is 0
+    if (value === 0) return null;
+
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 1.2; // Move labels further out
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="black"
+        textAnchor={x > cx ? "start" : "end"}
+        dominantBaseline="central"
+        fontSize="12"
+      >
+        {`${name}: ${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
+
   // Fetch all analytics data using global context
   const fetchAnalyticsData = async () => {
-    if (!user?.id || userRole !== 'owner') return;
+    if (!user?.id || userRole !== "owner") return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('📊 Fetching analytics data for owner:', user.id);
+      console.log("📊 Fetching analytics data for owner:", user.id);
 
       // Fetch properties data
-      const propertiesData = await fetchData({
-        table: 'properties',
-        select: '*',
-        filters: [{ column: 'owner_id', operator: 'eq', value: user.id }],
-        orderBy: { column: 'created_at', ascending: false }
-      }, { 
-        useCache: true, 
-        ttl: CACHE_TTL.PROPERTIES,
-        _cached_key: `owner_properties_${user.id}`
-      });
+      const propertiesData = await fetchData(
+        {
+          table: "properties",
+          select: "*",
+          filters: [{ column: "owner_id", operator: "eq", value: user.id }],
+          orderBy: { column: "created_at", ascending: false },
+        },
+        {
+          useCache: true,
+          ttl: CACHE_TTL.PROPERTIES,
+          _cached_key: `owner_properties_${user.id}`,
+        }
+      );
 
       // Fetch viewing requests data
-      const viewingRequestsData = await fetchData({
-        table: 'viewing_requests',
-        select: '*',
-        filters: [{ column: 'owner_id', operator: 'eq', value: user.id }],
-        orderBy: { column: 'created_at', ascending: false }
-      }, { 
-        useCache: true, 
-        ttl: CACHE_TTL.VIEWING_REQUESTS,
-        _cached_key: `owner_viewing_requests_${user.id}`
-      });
+      const viewingRequestsData = await fetchData(
+        {
+          table: "viewing_requests",
+          select: "*",
+          filters: [{ column: "owner_id", operator: "eq", value: user.id }],
+          orderBy: { column: "created_at", ascending: false },
+        },
+        {
+          useCache: true,
+          ttl: CACHE_TTL.VIEWING_REQUESTS,
+          _cached_key: `owner_viewing_requests_${user.id}`,
+        }
+      );
 
       // Fetch applications data
-      const applicationsData = await fetchData({
-        table: 'rental_applications',
-        select: '*',
-        filters: [{ column: 'owner_id', operator: 'eq', value: user.id }],
-        orderBy: { column: 'created_at', ascending: false }
-      }, { 
-        useCache: true, 
-        ttl: CACHE_TTL.APPLICATIONS,
-        _cached_key: `owner_applications_${user.id}`
-      });
+      const applicationsData = await fetchData(
+        {
+          table: "rental_applications",
+          select: "*",
+          filters: [{ column: "owner_id", operator: "eq", value: user.id }],
+          orderBy: { column: "created_at", ascending: false },
+        },
+        {
+          useCache: true,
+          ttl: CACHE_TTL.APPLICATIONS,
+          _cached_key: `owner_applications_${user.id}`,
+        }
+      );
 
       // Fetch profiles data for user lookup
       try {
-        const profilesData = await fetchData({
-          table: 'profiles',
-          select: '*'
-        }, { 
-          useCache: true, 
-          ttl: CACHE_TTL.PROFILES,
-          _cached_key: 'all_profiles'
-        });
+        const profilesData = await fetchData(
+          {
+            table: "profiles",
+            select: "*",
+          },
+          {
+            useCache: true,
+            ttl: CACHE_TTL.PROFILES,
+            _cached_key: "all_profiles",
+          }
+        );
 
         // Create user lookup
         const userLookupMap = {};
@@ -120,24 +164,31 @@ export default function AnalyticsTab({ onRefresh }) {
         }
         setUserLookup(userLookupMap);
       } catch (profileError) {
-        console.warn('Could not fetch profiles data:', profileError);
+        console.warn("Could not fetch profiles data:", profileError);
         setUserLookup({});
       }
 
       // Set the data with proper array validation
       setProperties(Array.isArray(propertiesData) ? propertiesData : []);
-      setViewingRequests(Array.isArray(viewingRequestsData) ? viewingRequestsData : []);
-      setRentalApplications(Array.isArray(applicationsData) ? applicationsData : []);
+      setViewingRequests(
+        Array.isArray(viewingRequestsData) ? viewingRequestsData : []
+      );
+      setRentalApplications(
+        Array.isArray(applicationsData) ? applicationsData : []
+      );
 
-      console.log('✅ Analytics data loaded:', {
+      console.log("✅ Analytics data loaded:", {
         properties: Array.isArray(propertiesData) ? propertiesData.length : 0,
-        viewingRequests: Array.isArray(viewingRequestsData) ? viewingRequestsData.length : 0,
-        applications: Array.isArray(applicationsData) ? applicationsData.length : 0
+        viewingRequests: Array.isArray(viewingRequestsData)
+          ? viewingRequestsData.length
+          : 0,
+        applications: Array.isArray(applicationsData)
+          ? applicationsData.length
+          : 0,
       });
-
     } catch (err) {
-      console.error('❌ Error fetching analytics data:', err);
-      setError(err.message || 'Failed to load analytics data');
+      console.error("❌ Error fetching analytics data:", err);
+      setError(err.message || "Failed to load analytics data");
     } finally {
       setIsLoading(false);
     }
@@ -145,16 +196,16 @@ export default function AnalyticsTab({ onRefresh }) {
 
   // Load data when component mounts or user changes
   useEffect(() => {
-    if (user?.id && userRole === 'owner') {
+    if (user?.id && userRole === "owner") {
       fetchAnalyticsData();
     }
   }, [user?.id, userRole]);
 
   // Handle refresh
   const handleRefresh = async () => {
-    console.log('🔄 Refreshing analytics data...');
+    console.log("🔄 Refreshing analytics data...");
     await fetchAnalyticsData();
-    if (typeof onRefresh === 'function') {
+    if (typeof onRefresh === "function") {
       onRefresh();
     }
   };
@@ -314,10 +365,11 @@ export default function AnalyticsTab({ onRefresh }) {
   };
 
   // Check if we have any loading states from global context
-  const hasLoadingStates = Object.keys(loading).some(key => 
-    key.includes(`owner_properties_${user?.id}`) ||
-    key.includes(`owner_viewing_requests_${user?.id}`) ||
-    key.includes(`owner_applications_${user?.id}`)
+  const hasLoadingStates = Object.keys(loading).some(
+    (key) =>
+      key.includes(`owner_properties_${user?.id}`) ||
+      key.includes(`owner_viewing_requests_${user?.id}`) ||
+      key.includes(`owner_applications_${user?.id}`)
   );
 
   // Error handling component
@@ -325,13 +377,25 @@ export default function AnalyticsTab({ onRefresh }) {
     return (
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-custom-gray">Property Analytics</h2>
+          <h2 className="text-2xl font-bold text-custom-gray">
+            Property Analytics
+          </h2>
           <button
             onClick={handleRefresh}
             className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
           >
-            <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <svg
+              className="h-4 w-4 mr-1"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
             </svg>
             Retry
           </button>
@@ -367,16 +431,28 @@ export default function AnalyticsTab({ onRefresh }) {
     return (
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-custom-gray">Property Analytics</h2>
+          <h2 className="text-2xl font-bold text-custom-gray">
+            Property Analytics
+          </h2>
           <button
             onClick={handleRefresh}
             className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
             disabled={isLoading}
           >
-            <svg className={`h-4 w-4 mr-1 ${isLoading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <svg
+              className={`h-4 w-4 mr-1 ${isLoading ? "animate-spin" : ""}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
             </svg>
-            {isLoading ? 'Loading...' : 'Refresh'}
+            {isLoading ? "Loading..." : "Refresh"}
           </button>
         </div>
         <div className="flex justify-center items-center h-64">
@@ -389,13 +465,25 @@ export default function AnalyticsTab({ onRefresh }) {
   return (
     <div className="bg-white shadow rounded-lg p-6 text-custom-gray max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-custom-gray">Property Analytics</h2>
+        <h2 className="text-2xl font-bold text-custom-gray">
+          Property Analytics
+        </h2>
         <button
           onClick={handleRefresh}
           className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
         >
-          <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          <svg
+            className="h-4 w-4 mr-1"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
           </svg>
           Refresh
         </button>
@@ -595,38 +683,11 @@ export default function AnalyticsTab({ onRefresh }) {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      outerRadius={80}
+                      outerRadius={70} // Reduced from 80
                       fill="#8884d8"
                       dataKey="value"
                       nameKey="name"
-                      label={({
-                        cx,
-                        cy,
-                        midAngle,
-                        innerRadius,
-                        outerRadius,
-                        percent,
-                        index,
-                        name,
-                      }) => {
-                        const RADIAN = Math.PI / 180;
-                        const radius =
-                          innerRadius + (outerRadius - innerRadius) * 0.5;
-                        const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                        const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-                        return (
-                          <text
-                            x={x}
-                            y={y}
-                            fill="white"
-                            textAnchor={x > cx ? "start" : "end"}
-                            dominantBaseline="central"
-                          >
-                            {`${name} ${(percent * 100).toFixed(0)}%`}
-                          </text>
-                        );
-                      }}
+                      label={renderCustomLabel} // Use custom label function
                     >
                       {preparePropertyTypeData().map((entry, index) => (
                         <Cell
@@ -635,7 +696,16 @@ export default function AnalyticsTab({ onRefresh }) {
                         />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip
+                      formatter={(value, name) => [`${value} properties`, name]}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      formatter={(value, entry) =>
+                        `${value}: ${entry.payload.value}`
+                      }
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -653,38 +723,11 @@ export default function AnalyticsTab({ onRefresh }) {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      outerRadius={80}
+                      outerRadius={70} // Reduced from 80
                       fill="#8884d8"
                       dataKey="value"
                       nameKey="name"
-                      label={({
-                        cx,
-                        cy,
-                        midAngle,
-                        innerRadius,
-                        outerRadius,
-                        percent,
-                        index,
-                        name,
-                      }) => {
-                        const RADIAN = Math.PI / 180;
-                        const radius =
-                          innerRadius + (outerRadius - innerRadius) * 0.5;
-                        const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                        const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-                        return (
-                          <text
-                            x={x}
-                            y={y}
-                            fill="white"
-                            textAnchor={x > cx ? "start" : "end"}
-                            dominantBaseline="central"
-                          >
-                            {`${name} ${(percent * 100).toFixed(0)}%`}
-                          </text>
-                        );
-                      }}
+                      label={renderCustomLabel} // Use custom label function
                     >
                       {prepareViewingRequestsData().map((entry, index) => (
                         <Cell
@@ -693,7 +736,16 @@ export default function AnalyticsTab({ onRefresh }) {
                         />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip
+                      formatter={(value, name) => [`${value} requests`, name]}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      formatter={(value, entry) =>
+                        `${value}: ${entry.payload.value}`
+                      }
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -821,38 +873,11 @@ export default function AnalyticsTab({ onRefresh }) {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      outerRadius={80}
+                      outerRadius={70} // Reduced from 80
                       fill="#8884d8"
                       dataKey="value"
                       nameKey="name"
-                      label={({
-                        cx,
-                        cy,
-                        midAngle,
-                        innerRadius,
-                        outerRadius,
-                        percent,
-                        index,
-                        name,
-                      }) => {
-                        const RADIAN = Math.PI / 180;
-                        const radius =
-                          innerRadius + (outerRadius - innerRadius) * 0.5;
-                        const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                        const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-                        return (
-                          <text
-                            x={x}
-                            y={y}
-                            fill="white"
-                            textAnchor={x > cx ? "start" : "end"}
-                            dominantBaseline="central"
-                          >
-                            {`${name} ${(percent * 100).toFixed(0)}%`}
-                          </text>
-                        );
-                      }}
+                      label={renderCustomLabel} // Use custom label function
                     >
                       {prepareViewingRequestsData().map((entry, index) => (
                         <Cell
@@ -869,8 +894,16 @@ export default function AnalyticsTab({ onRefresh }) {
                         />
                       ))}
                     </Pie>
-                    <Tooltip />
-                    <Legend />
+                    <Tooltip
+                      formatter={(value, name) => [`${value} requests`, name]}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      formatter={(value, entry) =>
+                        `${value}: ${entry.payload.value}`
+                      }
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -1002,38 +1035,11 @@ export default function AnalyticsTab({ onRefresh }) {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      outerRadius={80}
+                      outerRadius={70} // Reduced from 80
                       fill="#8884d8"
                       dataKey="value"
                       nameKey="name"
-                      label={({
-                        cx,
-                        cy,
-                        midAngle,
-                        innerRadius,
-                        outerRadius,
-                        percent,
-                        index,
-                        name,
-                      }) => {
-                        const RADIAN = Math.PI / 180;
-                        const radius =
-                          innerRadius + (outerRadius - innerRadius) * 0.5;
-                        const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                        const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-                        return (
-                          <text
-                            x={x}
-                            y={y}
-                            fill="white"
-                            textAnchor={x > cx ? "start" : "end"}
-                            dominantBaseline="central"
-                          >
-                            {`${name} ${(percent * 100).toFixed(0)}%`}
-                          </text>
-                        );
-                      }}
+                      label={renderCustomLabel} // Use custom label function
                     >
                       {prepareApplicationStatusData().map((entry, index) => (
                         <Cell
@@ -1048,8 +1054,19 @@ export default function AnalyticsTab({ onRefresh }) {
                         />
                       ))}
                     </Pie>
-                    <Tooltip />
-                    <Legend />
+                    <Tooltip
+                      formatter={(value, name) => [
+                        `${value} applications`,
+                        name,
+                      ]}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      formatter={(value, entry) =>
+                        `${value}: ${entry.payload.value}`
+                      }
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -1201,42 +1218,6 @@ export default function AnalyticsTab({ onRefresh }) {
                     dataKey="applications"
                     stroke={customRed}
                     name="Applications"
-                    strokeWidth={2}
-                    dot={{ r: 4 }}
-                    activeDot={{ r: 8 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="bg-white border rounded-md p-4">
-            <h3 className="text-lg font-semibold text-custom-gray mb-4">
-              Conversion Rates Over Time
-            </h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={prepareTrendsData().map((item) => ({
-                    month: item.month,
-                    conversionRate:
-                      item.viewings > 0
-                        ? Math.round((item.applications / item.viewings) * 100)
-                        : 0,
-                  }))}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis unit="%" />
-                  <Tooltip
-                    formatter={(value) => [`${value}%`, "Conversion Rate"]}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="conversionRate"
-                    stroke={customGray}
-                    name="Conversion Rate"
                     strokeWidth={2}
                     dot={{ r: 4 }}
                     activeDot={{ r: 8 }}
