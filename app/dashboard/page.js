@@ -25,6 +25,9 @@ import AddEditPropertyModal from "@/components/dashboards/owner/property/AddEdit
 import UserViewingRequestsTab from "@/components/dashboards/user/tabs/ViewingRequestsTab";
 import PropertyApplications from "@/components/dashboards/user/tabs/PropertyApplications";
 import SavedProperties from "@/components/dashboards/user/tabs/SavedProperties";
+import AdminUsersTab from "@/components/dashboards/admin/tabs/AdminUsersTab";
+import AdminPropertiesTab from "@/components/dashboards/admin/tabs/AdminPropertiesTab";
+import AdminAnalyticsTab from "@/components/dashboards/admin/tabs/AdminAnalyticsTab";
 
 // Cache TTL constants
 const CACHE_TTL = {
@@ -32,22 +35,35 @@ const CACHE_TTL = {
   VIEWING_REQUESTS: 5 * 60 * 1000, // 5 minutes
   APPLICATIONS: 5 * 60 * 1000, // 5 minutes
   FAVORITES: 10 * 60 * 1000, // 10 minutes
+  ADMIN_DATA: 5 * 60 * 1000, // 5 minutes for admin data
 };
 
-// Dashboard skeleton loader component
-const TabSkeleton = () => (
-  <div className="bg-white rounded-lg shadow p-6 animate-pulse">
-    <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-    <div className="space-y-4">
-      {[...Array(3)].map((_, index) => (
-        <div key={index} className="bg-gray-200 rounded h-24"></div>
-      ))}
-    </div>
-  </div>
-);
+// Helper function to get default tab based on role
+const getDefaultTab = (role) => {
+  switch (role) {
+    case "admin":
+      return "users";
+    case "property_owner":
+      return "properties";
+    case "property_seeker":
+      return "viewingRequests";
+    default:
+      return "viewingRequests";
+  }
+};
+
+// Helper function to check if user is owner
+const isOwner = (role) => {
+  return role === "property_owner";
+};
+
+// Helper function to check if user is property seeker
+const isUser = (role) => {
+  return role === "property_seeker";
+};
 
 export default function Dashboard() {
-  const { user, profile, userRole, isLoading } = useAuth();
+  const { user, profile, userRole } = useAuth();
   const { fetchData, updateData, invalidateCache, loading, data } =
     useGlobalData();
 
@@ -64,13 +80,9 @@ export default function Dashboard() {
   const [currentUserApplications, setCurrentUserApplications] = useState([]);
   const [currentUserFavorites, setCurrentUserFavorites] = useState([]);
 
-  // Define default active tabs based on role
-  const defaultOwnerTab = "properties";
-  const defaultUserTab = "viewingRequests";
-
-  // Active tab state
+  // Active tab state with role-based defaults
   const [activeTab, setActiveTab] = useState(() => {
-    return userRole === "owner" ? defaultOwnerTab : defaultUserTab;
+    return getDefaultTab(userRole);
   });
 
   // Handle localStorage for tab persistence
@@ -84,7 +96,7 @@ export default function Dashboard() {
       if (savedTab) {
         setActiveTab(savedTab);
       } else {
-        setActiveTab(userRole === "owner" ? defaultOwnerTab : defaultUserTab);
+        setActiveTab(getDefaultTab(userRole));
       }
     }
   }, [userRole]);
@@ -99,7 +111,7 @@ export default function Dashboard() {
 
   // Get current properties from GlobalDataContext data
   useEffect(() => {
-    if (user?.id && userRole === "owner") {
+    if (user?.id && isOwner(userRole)) {
       const cacheKey = `owner_properties_${user.id}`;
       const properties = data[cacheKey];
 
@@ -111,7 +123,7 @@ export default function Dashboard() {
 
   // Get current user viewing requests from GlobalDataContext data
   useEffect(() => {
-    if (user?.id && userRole === "user") {
+    if (user?.id && isUser(userRole)) {
       const cacheKey = `user_viewing_requests_${user.id}`;
       const userViewingRequests = data[cacheKey];
 
@@ -123,7 +135,7 @@ export default function Dashboard() {
 
   // Get current user applications from GlobalDataContext data
   useEffect(() => {
-    if (user?.id && userRole === "user") {
+    if (user?.id && isUser(userRole)) {
       const cacheKey = `user_applications_${user.id}`;
       const userApplications = data[cacheKey];
 
@@ -135,7 +147,7 @@ export default function Dashboard() {
 
   // Get current user favorites from GlobalDataContext data
   useEffect(() => {
-    if (user?.id && userRole === "user") {
+    if (user?.id && isUser(userRole)) {
       const cacheKey = `user_favorites_${user.id}`;
       const userFavorites = data[cacheKey];
 
@@ -150,7 +162,7 @@ export default function Dashboard() {
     if (!user?.id || !userRole) return;
 
     // Fetch data based on active tab and user role
-    if (userRole === "owner") {
+    if (isOwner(userRole)) {
       if (activeTab === "properties") {
         getOwnerProperties();
       } else if (activeTab === "viewings") {
@@ -158,7 +170,7 @@ export default function Dashboard() {
       } else if (activeTab === "applications") {
         getRentalApplications();
       }
-    } else if (userRole === "user") {
+    } else if (isUser(userRole)) {
       if (activeTab === "favorites") {
         getUserFavorites();
       } else if (activeTab === "applications") {
@@ -166,16 +178,145 @@ export default function Dashboard() {
       } else if (activeTab === "viewingRequests") {
         getUserViewingRequests();
       }
+    } else if (userRole === "admin") {
+      if (activeTab === "users") {
+        getAllUsers();
+      } else if (activeTab === "properties") {
+        getAllProperties();
+      } else if (activeTab === "analytics") {
+        getSystemAnalytics();
+      }
     }
   }, [activeTab, user?.id, userRole, mounted]);
 
+  // ----- ADMIN DATA FETCHING FUNCTIONS -----
+  const getAllUsers = async () => {
+    if (!user || userRole !== "admin") return [];
+    const cacheKey = "admin_all_users";
+    try {
+      const users = await fetchData(
+        {
+          table: "profiles",
+          select: "*",
+          orderBy: { column: "created_at", ascending: false },
+        },
+        {
+          useCache: true,
+          ttl: CACHE_TTL.ADMIN_DATA,
+          _cached_key: cacheKey,
+        }
+      );
+
+      return users;
+    } catch (error) {
+      console.error("Error fetching all users:", error);
+      return [];
+    }
+  };
+
+  const getAllProperties = async () => {
+    if (!user || userRole !== "admin") return [];
+    const cacheKey = "admin_all_properties";
+    try {
+      const properties = await fetchData(
+        {
+          table: "properties",
+          select: `
+        *,
+        profiles!properties_owner_id_fkey (
+          id,
+          full_name,
+          email
+        )
+      `,
+          orderBy: { column: "created_at", ascending: false },
+        },
+        {
+          useCache: true,
+          ttl: CACHE_TTL.ADMIN_DATA,
+          _cached_key: cacheKey,
+        }
+      );
+
+      return properties;
+    } catch (error) {
+      console.error("Error fetching all properties:", error);
+      return [];
+    }
+  };
+
+  const getSystemAnalytics = async () => {
+    if (!user || userRole !== "admin") return {};
+    const cacheKey = "admin_analytics";
+    try {
+      // Fetch multiple analytics data
+      const [
+        usersCount,
+        propertiesCount,
+        applicationsCount,
+        viewingRequestsCount,
+      ] = await Promise.all([
+        fetchData({ table: "profiles", select: "count", count: "exact" }),
+        fetchData({ table: "properties", select: "count", count: "exact" }),
+        fetchData({
+          table: "rental_applications",
+          select: "count",
+          count: "exact",
+        }),
+        fetchData({
+          table: "viewing_requests",
+          select: "count",
+          count: "exact",
+        }),
+      ]);
+
+      const analytics = {
+        totalUsers: usersCount?.count || 0,
+        totalProperties: propertiesCount?.count || 0,
+        totalApplications: applicationsCount?.count || 0,
+        totalViewingRequests: viewingRequestsCount?.count || 0,
+      };
+
+      // Cache the analytics
+      updateData(cacheKey, analytics);
+      return analytics;
+    } catch (error) {
+      console.error("Error fetching system analytics:", error);
+      return {};
+    }
+  };
+
+  // Admin role update function
+  const updateUserRole = async (userId, newRole) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          role: newRole,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", userId);
+      if (error) throw error;
+
+      // Invalidate admin cache
+      invalidateCache("admin_all_users");
+
+      toast.success(`User role updated to ${newRole} successfully!`);
+      return true;
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      toast.error("Failed to update user role");
+      return false;
+    }
+  };
+
   // Debug useEffect for user viewing requests
   useEffect(() => {
-    if (userRole === 'user' && user?.id) {
+    if (isUser(userRole) && user?.id) {
       const cacheKey = `user_viewing_requests_${user.id}`;
       const requestsData = data[cacheKey];
-      
-      console.log('Dashboard Debug - User Viewing Requests:', {
+
+      console.log("Dashboard Debug - User Viewing Requests:", {
         userRole,
         userId: user.id,
         activeTab,
@@ -184,18 +325,18 @@ export default function Dashboard() {
         dataLength: requestsData?.length,
         requestsData,
         allDataKeys: Object.keys(data),
-        loadingKeys: Object.keys(loading)
+        loadingKeys: Object.keys(loading),
       });
     }
   }, [userRole, user?.id, activeTab, data, loading]);
 
   // Debug useEffect for user applications
   useEffect(() => {
-    if (userRole === 'user' && user?.id) {
+    if (isUser(userRole) && user?.id) {
       const cacheKey = `user_applications_${user.id}`;
       const applicationsData = data[cacheKey];
-      
-      console.log('Dashboard Debug - User Applications:', {
+
+      console.log("Dashboard Debug - User Applications:", {
         userRole,
         userId: user.id,
         activeTab,
@@ -204,18 +345,18 @@ export default function Dashboard() {
         dataLength: applicationsData?.length,
         applicationsData,
         allDataKeys: Object.keys(data),
-        loadingKeys: Object.keys(loading)
+        loadingKeys: Object.keys(loading),
       });
     }
   }, [userRole, user?.id, activeTab, data, loading]);
 
   // Debug useEffect for user favorites
   useEffect(() => {
-    if (userRole === 'user' && user?.id) {
+    if (isUser(userRole) && user?.id) {
       const cacheKey = `user_favorites_${user.id}`;
       const favoritesData = data[cacheKey];
-      
-      console.log('Dashboard Debug - User Favorites:', {
+
+      console.log("Dashboard Debug - User Favorites:", {
         userRole,
         userId: user.id,
         activeTab,
@@ -224,7 +365,7 @@ export default function Dashboard() {
         dataLength: favoritesData?.length,
         favoritesData,
         allDataKeys: Object.keys(data),
-        loadingKeys: Object.keys(loading)
+        loadingKeys: Object.keys(loading),
       });
     }
   }, [userRole, user?.id, activeTab, data, loading]);
@@ -553,7 +694,10 @@ export default function Dashboard() {
         }
       );
 
-      console.log("Fetched user applications with properties:", userApplications);
+      console.log(
+        "Fetched user applications with properties:",
+        userApplications
+      );
 
       // Update current user applications
       if (Array.isArray(userApplications)) {
@@ -696,7 +840,6 @@ export default function Dashboard() {
   };
 
   // ----- PROPERTY MANAGEMENT FUNCTIONS -----
-
   const handleEditProperty = (propertyId) => {
     setEditPropertyId(propertyId);
     setShowAddPropertyModal(true);
@@ -760,7 +903,6 @@ export default function Dashboard() {
   };
 
   // ----- STATUS UPDATE FUNCTIONS -----
-
   const handleViewingRequestStatusUpdate = async (requestId, status) => {
     try {
       const { data, error } = await propertyService.updateViewingRequestStatus(
@@ -800,7 +942,6 @@ export default function Dashboard() {
   };
 
   // ----- USER FUNCTIONS -----
-
   const removeFavorite = async (favoriteId) => {
     try {
       const { error } = await supabase
@@ -823,28 +964,18 @@ export default function Dashboard() {
   // Function to handle user application updates
   const handleUserApplicationUpdate = (updatedApplications) => {
     setCurrentUserApplications(updatedApplications);
-    
+
     // Also update the cache
     const cacheKey = `user_applications_${user.id}`;
     updateData(cacheKey, updatedApplications);
   };
 
-  // Function to handle user favorites updates
-  const handleUserFavoritesUpdate = (updatedFavorites) => {
-    setCurrentUserFavorites(updatedFavorites);
-    
-    // Also update the cache
-    const cacheKey = `user_favorites_${user.id}`;
-    updateData(cacheKey, updatedFavorites);
-  };
-
   // ----- HELPER FUNCTIONS -----
-
   // Force refresh function
   const forceRefresh = () => {
     if (!user) return;
 
-    if (userRole === "owner") {
+    if (isOwner(userRole)) {
       invalidateCache(`owner_properties_${user.id}`);
       invalidateCache(`owner_viewing_requests_${user.id}`);
       invalidateCache(`owner_applications_${user.id}`);
@@ -863,7 +994,7 @@ export default function Dashboard() {
 
   // Get viewing requests data and loading state
   const getViewingRequestsData = () => {
-    if (!user?.id || userRole !== "owner") return { data: [], loading: false };
+    if (!user?.id || !isOwner(userRole)) return { data: [], loading: false };
 
     const cacheKey = `owner_viewing_requests_${user.id}`;
     const isLoading = loading[cacheKey];
@@ -882,26 +1013,30 @@ export default function Dashboard() {
 
   // Get applications data and loading state
   const getApplicationsData = () => {
-    if (!user?.id || userRole !== 'owner') return { data: [], loading: false };
-    
+    if (!user?.id || !isOwner(userRole)) return { data: [], loading: false };
+
     const cacheKey = `owner_applications_${user.id}`;
     const isLoading = loading[cacheKey];
     const applicationsData = data[cacheKey] || currentApplications;
-    
+
     // If no data and not loading, trigger fetch
-    if (!applicationsData?.length && !isLoading && activeTab === 'applications') {
+    if (
+      !applicationsData?.length &&
+      !isLoading &&
+      activeTab === "applications"
+    ) {
       getRentalApplications();
     }
-    
+
     return {
       data: Array.isArray(applicationsData) ? applicationsData : [],
-      loading: Boolean(isLoading)
+      loading: Boolean(isLoading),
     };
   };
 
   // Get user viewing requests data and loading state
   const getUserViewingRequestsData = () => {
-    if (!user?.id || userRole !== "user") return { data: [], loading: false };
+    if (!user?.id || !isUser(userRole)) return { data: [], loading: false };
 
     const cacheKey = `user_viewing_requests_${user.id}`;
     const isLoading = loading[cacheKey];
@@ -924,7 +1059,7 @@ export default function Dashboard() {
 
   // Get user applications data and loading state
   const getUserApplicationsData = () => {
-    if (!user?.id || userRole !== "user") return { data: [], loading: false };
+    if (!user?.id || !isUser(userRole)) return { data: [], loading: false };
 
     const cacheKey = `user_applications_${user.id}`;
     const isLoading = loading[cacheKey];
@@ -947,18 +1082,14 @@ export default function Dashboard() {
 
   // Get user favorites data and loading state
   const getUserFavoritesData = () => {
-    if (!user?.id || userRole !== "user") return { data: [], loading: false };
+    if (!user?.id || !isUser(userRole)) return { data: [], loading: false };
 
     const cacheKey = `user_favorites_${user.id}`;
     const isLoading = loading[cacheKey];
     const favoritesData = data[cacheKey] || currentUserFavorites;
 
     // If no data and not loading, trigger fetch
-    if (
-      !favoritesData?.length &&
-      !isLoading &&
-      activeTab === "favorites"
-    ) {
+    if (!favoritesData?.length && !isLoading && activeTab === "favorites") {
       getUserFavorites();
     }
 
@@ -1002,8 +1133,49 @@ export default function Dashboard() {
 
         {/* Main Content Area */}
         <div className="flex-1 overflow-y-auto bg-gray-100 py-20 sm:py-10 px-10">
+          {/* Admin Dashboard */}
+          {userRole === "admin" && (
+            <div>
+              {/* Users Management Tab */}
+              {activeTab === "users" && (
+                <AdminUsersTab
+                  onUpdateRole={updateUserRole}
+                  onRefresh={() => {
+                    invalidateCache("admin_all_users");
+                    getAllUsers();
+                  }}
+                />
+              )}
+
+              {/* All Properties Tab */}
+              {activeTab === "properties" && (
+                <AdminPropertiesTab
+                  onRefresh={() => {
+                    invalidateCache("admin_all_properties");
+                    getAllProperties();
+                  }}
+                />
+              )}
+
+              {/* System Analytics Tab */}
+              {activeTab === "analytics" && (
+                <AdminAnalyticsTab
+                  onRefresh={() => {
+                    invalidateCache("admin_analytics");
+                    getSystemAnalytics();
+                  }}
+                />
+              )}
+
+              {/* Settings Tab */}
+              {activeTab === "settings" && (
+                <SettingsTab user={user} profile={profile} />
+              )}
+            </div>
+          )}
+
           {/* Owner Dashboard */}
-          {userRole === "owner" && (
+          {isOwner(userRole) && (
             <div>
               {/* Properties Tab */}
               {activeTab === "properties" && (
@@ -1066,7 +1238,7 @@ export default function Dashboard() {
           )}
 
           {/* User Dashboard */}
-          {userRole === "user" && (
+          {isUser(userRole) && (
             <div>
               {/* Viewing Requests Tab */}
               {activeTab === "viewingRequests" && (
@@ -1116,7 +1288,7 @@ export default function Dashboard() {
       </div>
 
       {/* Add/Edit Property Modal */}
-      {userRole === "owner" && showAddPropertyModal && (
+      {isOwner(userRole) && showAddPropertyModal && (
         <AddEditPropertyModal
           isOpen={showAddPropertyModal}
           onClose={() => {

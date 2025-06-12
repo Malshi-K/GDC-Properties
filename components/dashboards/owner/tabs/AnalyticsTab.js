@@ -88,13 +88,13 @@ export default function AnalyticsTab({ onRefresh }) {
 
   // Fetch all analytics data using global context
   const fetchAnalyticsData = async () => {
-    if (!user?.id || userRole !== "owner") return;
+    if (!user?.id || userRole !== "property_owner") return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log("📊 Fetching analytics data for owner:", user.id);
+      console.log("📊 Fetching analytics data for property_owner:", user.id);
 
       // Fetch properties data
       const propertiesData = await fetchData(
@@ -196,7 +196,7 @@ export default function AnalyticsTab({ onRefresh }) {
 
   // Load data when component mounts or user changes
   useEffect(() => {
-    if (user?.id && userRole === "owner") {
+    if (user?.id && userRole === "property_owner") {
       fetchAnalyticsData();
     }
   }, [user?.id, userRole]);

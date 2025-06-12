@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation"; // Fixed import
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -13,12 +14,10 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
-  const [showPassword, setShowPassword] = useState(false); // Added state for password visibility
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
-
-  // Import useSearchParams inside the client component
-  const { useSearchParams } = require("next/navigation");
   const searchParams = useSearchParams();
+
   const resetSuccess = searchParams?.get("reset") === "success";
 
   useEffect(() => {
@@ -31,22 +30,18 @@ function LoginForm() {
 
   useEffect(() => {
     const checkSession = async () => {
-      // If we've just come from password reset, force sign out first
       const resetSuccess = searchParams?.get("reset") === "success";
 
       if (resetSuccess) {
-        // Force sign out to ensure no lingering session
         await supabase.auth.signOut();
         setMessage(
           "Your password has been successfully reset. Please log in with your new password."
         );
-        return; // Skip the redirect check when coming from password reset
+        return;
       }
 
-      // Only check for session and redirect if not coming from password reset
       const { data } = await supabase.auth.getSession();
       if (data?.session) {
-        // User is already logged in, redirect to unified dashboard
         router.push("/dashboard");
       }
     };
@@ -54,7 +49,6 @@ function LoginForm() {
     checkSession();
   }, [router, searchParams]);
 
-  // Toggle password visibility
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
@@ -65,34 +59,53 @@ function LoginForm() {
     setError(null);
 
     try {
+      console.log("Attempting to sign in with email:", email); // Debug log
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
-
-      // Get user role from profiles table
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", data.user.id)
-        .single();
-
-      if (profileError) {
-        console.error("Profile error:", profileError);
-        // Create profile if it doesn't exist
-        await supabase.from("profiles").upsert({
-          id: data.user.id,
-          role: data.user.user_metadata?.role || "user", // Use metadata or default to user
-          full_name: data.user.user_metadata?.full_name || "",
-        });
+      if (error) {
+        console.error("Auth error:", error); // Debug log
+        throw error;
       }
 
-      // Redirect to unified dashboard regardless of role
+      console.log("Sign in successful:", data); // Debug log
+
+      // Try to get user role, but don't fail if profile doesn't exist
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", data.user.id)
+          .single();
+
+        if (profileError && profileError.code !== 'PGRST116') { // PGRST116 is "not found"
+          console.error("Profile error:", profileError);
+          
+          // Try to create profile if it doesn't exist
+          const { error: upsertError } = await supabase.from("profiles").upsert({
+            id: data.user.id,
+            role: data.user.user_metadata?.role || "user",
+            full_name: data.user.user_metadata?.full_name || "",
+          });
+          
+          if (upsertError) {
+            console.error("Profile creation error:", upsertError);
+            // Continue anyway - don't fail login due to profile issues
+          }
+        }
+      } catch (profileError) {
+        console.error("Profile handling error:", profileError);
+        // Continue anyway - don't fail login due to profile issues
+      }
+
+      // Redirect to dashboard regardless of profile issues
       router.push("/dashboard");
     } catch (error) {
-      setError(error.message);
+      console.error("Login error:", error); // Debug log
+      setError(error.message || "An error occurred during login");
     } finally {
       setLoading(false);
     }
@@ -186,7 +199,6 @@ function LoginForm() {
               onClick={togglePasswordVisibility}
             >
               {showPassword ? (
-                // Eye-off icon (password visible)
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-5 w-5 text-gray-500"
@@ -202,7 +214,6 @@ function LoginForm() {
                   <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
                 </svg>
               ) : (
-                // Eye icon (password hidden)
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-5 w-5 text-gray-500"
@@ -261,7 +272,6 @@ function LoginFormLoading() {
 export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col bg-[#f3f4f6]">
-      {/* Minimal header with logo */}
       <div className="py-4 px-6 bg-white shadow-sm mb-8 flex justify-center">
         <Link href="/">
           <Image
@@ -280,7 +290,6 @@ export default function LoginPage() {
             Sign In
           </h2>
 
-          {/* Wrap the component using useSearchParams in Suspense */}
           <Suspense fallback={<LoginFormLoading />}>
             <LoginForm />
           </Suspense>

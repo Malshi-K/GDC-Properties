@@ -1,4 +1,7 @@
 // components/dashboards/user/ViewingRequestsTab.js
+// This component is designed for users with 'property_seeker' role
+// to view and manage their property viewing requests
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useMemo } from 'react';
@@ -7,16 +10,16 @@ import { useGlobalData } from '@/contexts/GlobalDataContext';
 import { formatDate } from '@/lib/utils/formatters';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'react-hot-toast';
-import { useImageLoader } from '@/lib/services/imageLoaderService'; // NEW: Import useImageLoader
+import { useImageLoader } from '@/lib/services/imageLoaderService';
 
 /**
- * ViewingRequestsTab component for user dashboard
- * This component shows viewing requests submitted by the user
+ * ViewingRequestsTab component for property_seeker dashboard
+ * This component shows viewing requests submitted by property seekers
  */
 const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading: propLoading = false, onRefresh }) => {
   const { user } = useAuth();
   const { loading, data, invalidateCache } = useGlobalData();
-  const { propertyImages, loadPropertyImage, isPropertyImageLoading, preloadPropertiesImages } = useImageLoader(); // NEW: Use imageLoader
+  const { propertyImages, loadPropertyImage, isPropertyImageLoading, preloadPropertiesImages } = useImageLoader();
   
   console.log('ViewingRequestsTab mounted for user:', user?.id);
   console.log('Props received:', { 
@@ -35,7 +38,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
     
   const requestsLoading = propLoading || getUserViewingRequestsDataFallback().loading;
 
-  // Fallback function to get data from global context (same as before)
+  // Fallback function to get data from global context
   function getUserViewingRequestsDataFallback() {
     if (!user?.id) return { data: [], loading: false };
     
@@ -93,7 +96,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
     });
   }, [propViewingRequests, propLoading, viewingRequests]);
 
-  // NEW: Enhanced properties data for image loading - extract properties from viewing requests
+  // Enhanced properties data for image loading - extract properties from viewing requests
   const propertiesForImageLoading = useMemo(() => {
     if (!Array.isArray(viewingRequests)) return [];
     
@@ -108,7 +111,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
       .filter(property => property.owner_id && property.images && property.images.length > 0);
   }, [viewingRequests]);
 
-  // NEW: Load property images using the imageLoader service
+  // Load property images using the imageLoader service
   useEffect(() => {
     if (!requestsLoading && propertiesForImageLoading.length > 0) {
       console.log('🖼️ Loading images for properties:', propertiesForImageLoading.map(p => p.id));
@@ -141,7 +144,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
     preloadPropertiesImages
   ]);
 
-  // NEW: Check if any images are still loading
+  // Check if any images are still loading
   const someImagesLoading = useMemo(() => {
     return propertiesForImageLoading.some(property => isPropertyImageLoading(property.id));
   }, [propertiesForImageLoading, isPropertyImageLoading]);
@@ -191,7 +194,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
     }
   };
 
-  // Handle cancellation of a viewing request
+  // Handle cancellation of a viewing request - available for property_seeker users
   const handleCancelRequest = async (requestId) => {
     try {
       setCancelingId(requestId);
@@ -215,7 +218,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
     }
   };
   
-  // Handle suggesting a new time
+  // Handle suggesting a new time - feature for property_seeker users
   const handleSuggestNewTime = (requestId) => {
     // This would open a modal to suggest a new time
     // For now we'll just show a toast
@@ -237,7 +240,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
     toast.info('Refreshing viewing requests...');
   };
 
-  // NEW: Updated loading state - combines parent loading and image loading
+  // Updated loading state - combines parent loading and image loading
   const isLoading = requestsLoading || someImagesLoading;
   
   console.log('Component state:', { 
@@ -340,7 +343,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
             const statusBadge = getStatusBadge(request.status);
             const isExpanded = expandedRequest === request.id;
             
-            // NEW: Get property image and loading state from imageLoader
+            // Get property image and loading state from imageLoader
             const propertyImage = propertyImages[request.property_id];
             const imageLoading = isPropertyImageLoading(request.property_id);
             
@@ -354,7 +357,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between">
                     <div className="flex items-center space-x-3 mb-2 sm:mb-0">
                       <div className="h-12 w-12 bg-gray-200 rounded-md overflow-hidden flex-shrink-0">
-                        {/* NEW: Enhanced image handling with loading state */}
+                        {/* Enhanced image handling with loading state */}
                         {imageLoading ? (
                           <div className="flex items-center justify-center h-full w-full">
                             <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-custom-red"></div>
@@ -411,7 +414,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
                       <div className="flex flex-col md:flex-row gap-6">
                         {/* Property Image - Larger in expanded view */}
                         <div className="w-full md:w-1/3 h-48 md:h-auto rounded-lg overflow-hidden bg-gray-100">
-                          {/* NEW: Enhanced large image handling with loading state */}
+                          {/* Enhanced large image handling with loading state */}
                           {imageLoading ? (
                             <div className="w-full h-48 md:h-64 flex items-center justify-center">
                               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
@@ -474,9 +477,9 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
                             </div>
                           )}
                           
-                          {/* Action buttons */}
+                          {/* Action buttons - Available for property_seeker users */}
                           <div className="flex flex-wrap justify-end gap-2 mt-4">
-                            {/* For users viewing their own requests */}
+                            {/* Cancel request - only available for pending requests */}
                             {request.status === 'pending' && (
                               <button 
                                 onClick={(e) => {
@@ -490,7 +493,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
                               </button>
                             )}
                             
-                            {/* For approved requests */}
+                            {/* Add to calendar - for approved requests */}
                             {request.status === 'approved' && (
                               <button 
                                 onClick={(e) => {
@@ -503,6 +506,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
                               </button>
                             )}
                             
+                            {/* View property - always available */}
                             <Link
                               href={`/properties/${request.property_id}`}
                               onClick={(e) => e.stopPropagation()}

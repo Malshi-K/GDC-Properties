@@ -1,11 +1,14 @@
 // components/dashboards/user/PropertyApplications.js
+// This component is designed for users with 'property_seeker' role
+// to view and manage their rental applications
+
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { formatPrice, formatDate } from "@/lib/utils/formatters";
 import { supabase } from "@/lib/supabase";
 import { toast } from "react-hot-toast";
-import { useImageLoader } from "@/lib/services/imageLoaderService"; // NEW: Import useImageLoader
+import { useImageLoader } from "@/lib/services/imageLoaderService";
 
 const PropertyApplications = ({
   applications = [],
@@ -15,7 +18,7 @@ const PropertyApplications = ({
 }) => {
   const [withdrawingId, setWithdrawingId] = useState(null);
   const [expandedApplication, setExpandedApplication] = useState(null);
-  const { propertyImages, loadPropertyImage, isPropertyImageLoading, preloadPropertiesImages } = useImageLoader(); // NEW: Use imageLoader
+  const { propertyImages, loadPropertyImage, isPropertyImageLoading, preloadPropertiesImages } = useImageLoader();
 
   // Enhanced applications data - add property info from joined data
   const enhancedApplications = useMemo(() => {
@@ -31,7 +34,7 @@ const PropertyApplications = ({
     }));
   }, [applications]);
 
-  // NEW: Enhanced properties data for image loading - extract properties from applications
+  // Enhanced properties data for image loading - extract properties from applications
   const propertiesForImageLoading = useMemo(() => {
     if (!Array.isArray(enhancedApplications)) return [];
     
@@ -46,7 +49,7 @@ const PropertyApplications = ({
       .filter(property => property.owner_id && property.images && property.images.length > 0);
   }, [enhancedApplications]);
 
-  // NEW: Load property images using the imageLoader service
+  // Load property images using the imageLoader service
   useEffect(() => {
     if (!loading && propertiesForImageLoading.length > 0) {
       console.log('🖼️ Loading images for application properties:', propertiesForImageLoading.map(p => p.id));
@@ -79,7 +82,7 @@ const PropertyApplications = ({
     preloadPropertiesImages
   ]);
 
-  // NEW: Check if any images are still loading
+  // Check if any images are still loading
   const someImagesLoading = useMemo(() => {
     return propertiesForImageLoading.some(property => isPropertyImageLoading(property.id));
   }, [propertiesForImageLoading, isPropertyImageLoading]);
@@ -124,7 +127,7 @@ const PropertyApplications = ({
     }
   };
 
-  // Handle application withdrawal
+  // Handle application withdrawal - available for property_seeker users
   const handleWithdraw = async (applicationId, e) => {
     if (e) e.stopPropagation();
 
@@ -163,7 +166,7 @@ const PropertyApplications = ({
     }
   };
 
-  // Handle editing an application
+  // Handle editing an application - available for property_seeker users
   const handleEditApplication = (applicationId, e) => {
     if (e) e.stopPropagation();
 
@@ -172,7 +175,7 @@ const PropertyApplications = ({
     toast.info("Feature coming soon: Edit Application");
   };
 
-  // NEW: Updated loading state - combines parent loading and image loading
+  // Updated loading state - combines parent loading and image loading
   const isLoading = loading || someImagesLoading;
 
   if (isLoading && (!enhancedApplications || enhancedApplications.length === 0)) {
@@ -280,7 +283,7 @@ const PropertyApplications = ({
             const statusBadge = getStatusBadge(application.status);
             const isExpanded = expandedApplication === application.id;
             
-            // NEW: Get property image and loading state from imageLoader
+            // Get property image and loading state from imageLoader
             const propertyImage = propertyImages[application.property_id];
             const imageLoading = isPropertyImageLoading(application.property_id);
 
@@ -297,7 +300,7 @@ const PropertyApplications = ({
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between">
                     <div className="flex items-center space-x-3 mb-2 sm:mb-0">
                       <div className="h-12 w-12 bg-gray-200 rounded-md overflow-hidden flex-shrink-0">
-                        {/* NEW: Enhanced image handling with loading state */}
+                        {/* Enhanced image handling with loading state */}
                         {imageLoading ? (
                           <div className="flex items-center justify-center h-full w-full">
                             <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-custom-red"></div>
@@ -378,7 +381,7 @@ const PropertyApplications = ({
                       <div className="flex flex-col md:flex-row gap-6">
                         {/* Property Image - Larger in expanded view */}
                         <div className="w-full md:w-1/3 h-48 md:h-auto rounded-lg overflow-hidden bg-gray-100">
-                          {/* NEW: Enhanced large image handling with loading state */}
+                          {/* Enhanced large image handling with loading state */}
                           {imageLoading ? (
                             <div className="w-full h-48 md:h-64 flex items-center justify-center">
                               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
@@ -553,7 +556,7 @@ const PropertyApplications = ({
                             </div>
                           </div>
 
-                          {/* Action buttons */}
+                          {/* Action buttons - Available for property_seeker users */}
                           <div className="flex flex-wrap justify-end gap-2 mt-4">
                             <Link
                               href={`/properties/${application.property_id}`}
@@ -563,6 +566,7 @@ const PropertyApplications = ({
                               View Property
                             </Link>
 
+                            {/* Only show edit/withdraw actions for pending applications */}
                             {application.status === "pending" && (
                               <>
                                 <button
