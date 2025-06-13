@@ -10,11 +10,14 @@ module.exports = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
-        'custom-red': '#c30011',
-        'custom-yellow': '#ffc536',
-        'custom-gray': '#585858',
+        "custom-red": "#c30011",
+        "custom-yellow": "#ffc536",
+        "custom-gray": "#585858",
       },
     },
+  },
+  fontFamily: {
+    sans: ['"Roboto"', "sans-serif"],
   },
   plugins: [],
 };

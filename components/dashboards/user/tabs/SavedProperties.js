@@ -385,7 +385,7 @@ const SavedProperties = ({
                       
                       <Link 
                         href={`/properties/${property.propertyId}`}
-                        className="block w-full text-center bg-custom-red hover:bg-red-700 text-white py-2 px-4 rounded-md transition-colors"
+                        className="block w-full text-center bg-custom-red hover:bg-red-700 text-white py-2 px-4 rounded-full transition-colors"
                       >
                         View Details
                       </Link>
@@ -522,7 +522,7 @@ const SavedProperties = ({
                           
                           <Link 
                             href={`/properties/${property.propertyId}`}
-                            className="inline-flex items-center justify-center bg-custom-red hover:bg-red-700 text-white py-2 px-4 rounded-md transition-colors"
+                            className="inline-flex items-center justify-center bg-custom-red hover:bg-red-700 text-white py-2 px-4 rounded-full transition-colors"
                           >
                             View Details
                           </Link>

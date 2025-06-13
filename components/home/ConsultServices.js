@@ -34,14 +34,14 @@ export default function ConsultServices() {
             <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mt-8">
               <Link
                 href="/search"
-                className="bg-custom-gray hover:bg-gray-700 text-white px-6 py-3 rounded-lg flex items-center justify-center transition duration-300"
+                className="bg-custom-gray hover:bg-gray-700 text-white px-6 py-3 rounded-full flex items-center justify-center transition duration-300"
               >
                 <span className="mr-2">View Properties</span>
               </Link>
 
               <Link
                 href="/contact"
-                className="bg-custom-red hover:bg-red-700 text-white px-6 py-3 rounded-lg flex items-center justify-center transition duration-300"
+                className="bg-custom-red hover:bg-red-700 text-white px-6 py-3 rounded-full flex items-center justify-center transition duration-300"
               >
                 <span className="mr-2">Contact Us</span>
                 <FaArrowRight className="text-white" />

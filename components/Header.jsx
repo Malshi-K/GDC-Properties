@@ -203,9 +203,6 @@ const Header = () => {
     return null;
   }
 
-  // Check if user should see Saved Properties option
-  const shouldShowSavedProperties = userRole !== "owner";
-
   return (
     <header
       className={`fixed top-0 z-50 transition-all duration-300 ${
@@ -219,19 +216,19 @@ const Header = () => {
           className={`${
             isScrolled
               ? "px-4 md:px-6"
-              : "bg-white rounded-full shadow-md px-4 md:px-6 mx-2 sm:mx-4"
+              : "bg-white/20 rounded-full shadow-md px-4 md:px-6 mx-2 sm:mx-4"
           } transition-all`}
         >
-          <div className="flex justify-between items-center py-2 md:py-0 px-0 sm:px-2 md:px-4 lg:px-24">
+          <div className="flex justify-between items-center py-3 md:py-0 px-0 sm:px-2 md:px-4 lg:px-6">
             {/* Logo */}
             <div className="flex items-center">
-              <div className="w-20 sm:w-24 md:w-32 h-12 sm:h-16 md:h-20 flex items-center justify-center overflow-hidden">
+              <div className="w-24 sm:w-28 md:w-36 h-16 sm:h-20 md:h-24 flex items-center justify-center overflow-hidden">
                 <Link href="/">
                   <Image
-                    src="/images/logo.png"
+                    src={isScrolled ? "/images/logo.png" : "/images/properties logo.png"}
                     alt="GDC Properties Logo"
-                    width={128}
-                    height={80}
+                    width={144}
+                    height={96}
                     className="w-full h-full object-contain"
                     priority
                   />
@@ -244,8 +241,12 @@ const Header = () => {
               <div className="flex items-center justify-center gap-1 sm:gap-2 lg:gap-6 w-full max-w-2xl">
                 <Link
                   href="/"
-                  className={`relative text-custom-gray hover:text-custom-red transition-colors px-1 lg:px-2 py-4 text-sm lg:text-base ${
-                    isActive("/") ? "text-custom-red" : ""
+                  className={`relative ${
+                    isScrolled 
+                      ? "text-custom-gray hover:text-custom-red" 
+                      : "text-white hover:text-custom-red"
+                  } transition-colors px-1 lg:px-2 py-6 text-sm lg:text-lg ${
+                    isActive("/") ? "!text-custom-red" : ""
                   }`}
                 >
                   {isActive("/") && (
@@ -256,8 +257,12 @@ const Header = () => {
 
                 <Link
                   href="/search"
-                  className={`relative text-custom-gray hover:text-custom-red transition-colors px-1 lg:px-3 py-4 text-sm lg:text-base ${
-                    isActive("/search") ? "text-custom-red" : ""
+                  className={`relative ${
+                    isScrolled 
+                      ? "text-custom-gray hover:text-custom-red" 
+                      : "text-white hover:text-custom-red"
+                  } transition-colors px-1 lg:px-3 py-6 text-sm lg:text-lg ${
+                    isActive("/search") ? "!text-custom-red" : ""
                   }`}
                 >
                   {isActive("/search") && (
@@ -268,8 +273,12 @@ const Header = () => {
 
                 <Link
                   href="/about"
-                  className={`relative text-custom-gray hover:text-custom-red transition-colors px-1 lg:px-3 py-4 text-sm lg:text-base ${
-                    isActive("/about") ? "text-custom-red" : ""
+                  className={`relative ${
+                    isScrolled 
+                      ? "text-custom-gray hover:text-custom-red" 
+                      : "text-white hover:text-custom-red"
+                  } transition-colors px-1 lg:px-3 py-6 text-sm lg:text-lg ${
+                    isActive("/about") ? "!text-custom-red" : ""
                   }`}
                 >
                   {isActive("/about") && (
@@ -280,8 +289,12 @@ const Header = () => {
 
                 <Link
                   href="/contact"
-                  className={`relative text-custom-gray hover:text-custom-red transition-colors px-1 lg:px-3 py-4 text-sm lg:text-base ${
-                    isActive("/contact") ? "text-custom-red" : ""
+                  className={`relative ${
+                    isScrolled 
+                      ? "text-custom-gray hover:text-custom-red" 
+                      : "text-white hover:text-custom-red"
+                  } transition-colors px-1 lg:px-3 py-6 text-sm lg:text-lg ${
+                    isActive("/contact") ? "!text-custom-red" : ""
                   }`}
                 >
                   {isActive("/contact") && (
@@ -302,7 +315,11 @@ const Header = () => {
                   onMouseLeave={handleMouseLeave}
                 >
                   <button
-                    className="flex items-center space-x-2 text-custom-gray hover:text-custom-red transition-colors duration-200"
+                    className={`flex items-center space-x-2 ${
+                      isScrolled 
+                        ? "text-custom-gray hover:text-custom-red" 
+                        : "text-white hover:text-custom-red"
+                    } transition-colors duration-200`}
                   >
                     <User size={24} />
                     <span className="text-sm">
@@ -340,7 +357,7 @@ const Header = () => {
               ) : (
                 <Link
                   href="/login"
-                  className="bg-custom-red text-white px-4 lg:px-6 py-2 rounded-full hover:bg-opacity-90 transition-colors text-sm lg:text-base whitespace-nowrap"
+                  className="bg-custom-red text-white px-4 lg:px-6 py-2 rounded-full hover:bg-opacity-90 transition-colors text-sm lg:text-lg whitespace-nowrap"
                 >
                   Sign In
                 </Link>
@@ -351,7 +368,11 @@ const Header = () => {
             <div className="md:hidden">
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="text-custom-gray hover:text-custom-red focus:outline-none p-1"
+                className={`${
+                  isScrolled 
+                    ? "text-custom-gray hover:text-custom-red" 
+                    : "text-white hover:text-custom-red"
+                } focus:outline-none p-1`}
                 aria-label={isMenuOpen ? "Close menu" : "Open menu"}
               >
                 {isMenuOpen ? <X size={24} /> : <Menu size={24} />}

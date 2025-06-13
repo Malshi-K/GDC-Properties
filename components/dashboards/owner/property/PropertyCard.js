@@ -341,7 +341,7 @@ export default function PropertyCard({
                 
                 <button
                   onClick={navigateToPropertyDetails}
-                  className="text-custom-red hover:text-red-700 font-medium border border-custom-red rounded-md px-4 py-2 transition-colors duration-300 hover:bg-red-50"
+                  className="text-custom-red hover:text-red-700 font-medium border border-custom-red rounded-full px-4 py-2 transition-colors duration-300 hover:bg-red-50"
                 >
                   View Details
                 </button>
