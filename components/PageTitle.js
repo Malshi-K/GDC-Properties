@@ -33,7 +33,7 @@ export const PageTitle = () => {
       title: "CONTACT",
       titleColored: " US",
       description:
-        "Reach out to our property specialists for viewings, valuations, or to list your property with our trusted agency.",
+        "Reach out to our property specialists for viewings, appraisals, or to list your property with our trusted agency.",
       backgroundImage: "/images/contact.jpg",
       altText: "Contact our agents"
     },    

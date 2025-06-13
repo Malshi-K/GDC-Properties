@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import Image from "next/image";
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
@@ -18,7 +18,6 @@ export default function ForgotPasswordPage() {
     setMessage(null);
 
     try {
-      // Send password reset email
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
@@ -34,94 +33,106 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f3f4f6]">
-      {/* Minimal header with logo */}
-      <div className="py-4 px-6 bg-white shadow-sm mb-8 flex justify-center">
-        <Link href="/">
-          <Image
-            src="/images/logo.png"
-            alt="GDC Properties"
-            width={128}
-            height={80}
-            className="h-12 w-auto object-contain"
-          />
-        </Link>
+    <div className="w-full max-w-md">
+      {/* Header */}
+      <div className="mb-8 text-center">
+        <h2 className="text-2xl font-bold text-custom-gray mb-4">
+          Forgot Your Password?
+        </h2>
+        <p className="text-gray-400">
+          Enter your email address and we'll send you instructions to reset your
+          password.
+        </p>
       </div>
 
-      <div className="flex-grow flex items-center justify-center px-4">
-        <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-8">
-          <h2 className="text-2xl font-bold mb-6 text-center text-custom-gray">
-            Forgot Your Password?
-          </h2>
-          
-          <p className="text-gray-600 mb-6 text-center">
-            Enter your email address and we'll send you instructions to reset your password.
-          </p>
-
-          {message && (
-            <div className="mb-6 p-4 bg-green-100 text-green-700 rounded flex items-center">
-              <svg className="h-5 w-5 text-green-500 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span>{message}</span>
-            </div>
-          )}
-
-          {error && (
-            <div className="mb-6 p-4 bg-red-100 text-red-700 rounded flex items-center">
-              <svg className="h-5 w-5 text-red-500 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-              <span>{error}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit}>
-            <div className="mb-6 text-gray-600">
-              <label
-                className="block text-gray-700 text-sm font-bold mb-2"
-                htmlFor="email"
-              >
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
-                required
-                disabled={loading}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-custom-red text-white py-2 px-4 rounded-full hover:bg-opacity-90 transition-colors disabled:opacity-50 flex justify-center items-center"
-            >
-              {loading ? (
-                <>
-                  <span className="mr-2">Sending Instructions</span>
-                  <span className="flex h-5 w-5">
-                    <span className="animate-pulse">...</span>
-                  </span>
-                </>
-              ) : (
-                "Send Reset Instructions"
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <Link
-              href="/login"
-              className="text-custom-red hover:underline"
-            >
-              Back to Sign In
-            </Link>
-          </div>
+      {message && (
+        <div className="mb-6 p-3 bg-green-100 text-green-700 rounded text-sm">
+          {message}
         </div>
+      )}
+
+      {error && (
+        <div className="mb-6 p-3 bg-red-100 text-red-700 rounded text-sm">
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label
+            className="block text-custom-gray text-sm mb-2"
+            htmlFor="email"
+          >
+            Email Address
+          </label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="your-email@gmail.com"
+            className="w-full px-3 py-3 bg-transparent border border-gray-600 rounded-full text-white placeholder-gray-500 focus:outline-none focus:border-custom-red"
+            required
+            disabled={loading}
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-custom-red text-white py-3 px-4 rounded-full font-medium hover:bg-opacity-90 transition-colors disabled:opacity-50 flex justify-center items-center"
+        >
+          {loading ? (
+            <>
+              <span className="mr-2">SENDING INSTRUCTIONS</span>
+              <span className="animate-pulse">...</span>
+            </>
+          ) : (
+            "SEND RESET INSTRUCTIONS"
+          )}
+        </button>
+      </form>
+
+      <div className="mt-8 text-center">
+        <Link href="/login" className="text-custom-red hover:underline">
+          Back to Sign In
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <div className="min-h-screen flex bg-custom-gray">
+      {/* Left side - Image */}
+      <div className="flex-1 relative">
+        <Image
+          src="/images/auth-bg.webp" // You'll need to add your background image here
+          alt="Forgot Password Background"
+          fill
+          className="object-cover"
+          priority
+        />
+        {/* Dark overlay */}
+        <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+      </div>
+
+      {/* Right side - Form */}
+      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white relative">
+        {/* Logo above form */}
+        <div className="mb-8">
+          <Link href="/">
+            <Image
+              src="/images/logo.png"
+              alt="GDC Properties"
+              width={200}
+              height={120}
+              className="h-20 w-auto object-contain"
+            />
+          </Link>
+        </div>
+        <ForgotPasswordForm />
       </div>
     </div>
   );

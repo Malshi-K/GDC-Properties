@@ -6,8 +6,21 @@ import Footer from "@/components/Footer";
 export default function ConditionalFooter() {
   const pathname = usePathname();
 
-  // Skip rendering footer on dashboard page
-  if (pathname?.startsWith("/dashboard")) {
+  // List of paths where footer should be hidden
+  const hideFooterPaths = [
+    "/dashboard",
+    "/login", 
+    "/signup",
+    "/forgot-password"
+  ];
+
+  // Check if current path should hide footer
+  const shouldHideFooter = hideFooterPaths.some(path => 
+    pathname?.startsWith(path)
+  );
+
+  // Skip rendering footer on specified pages
+  if (shouldHideFooter) {
     return null;
   }
 
