@@ -1,4 +1,4 @@
-// Enhanced AdminUsersTab with GlobalDataContext integration
+// Simplified AdminUsersTab - now email is in profiles table
 "use client";
 import { useState, useEffect } from 'react';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
@@ -15,165 +15,102 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Cache keys for different data types
-  const CACHE_KEYS = {
-    PROFILES: 'admin_users_profiles',
-    AUTH_USERS: 'admin_users_auth',
-    COMBINED_USERS: 'admin_users_combined'
-  };
+  // Cache key for users data
+  const CACHE_KEY = 'admin_users_with_email';
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
-  // Enhanced fetch users function using GlobalDataContext
+  // Simplified fetch users function - now email is in profiles table
   const fetchUsers = async () => {
     setIsLoading(true);
     setError(null);
     
     try {
-      console.log('=== FETCHING USERS WITH GLOBAL DATA CONTEXT ===');
+      console.log('=== FETCHING USERS FROM PROFILES WITH EMAIL ===');
       
-      // Try to get cached combined users first - FIX: Check the actual cached data structure
+      // Try to get cached users first
       let cachedUsers = null;
       try {
         cachedUsers = await fetchData(
-          { _cached_key: CACHE_KEYS.COMBINED_USERS },
+          { _cached_key: CACHE_KEY },
           { useCache: true }
         );
         
-        // Check if cached data is valid and not empty
         if (cachedUsers && Array.isArray(cachedUsers) && cachedUsers.length > 0) {
           console.log(`✅ Using cached users data: ${cachedUsers.length} users`);
           setUsers(cachedUsers);
           setIsLoading(false);
           return;
-        } else {
-          console.log('📦 Cached data is empty or invalid, fetching fresh data');
         }
       } catch (cacheError) {
         console.log('🔍 No cache found, proceeding with fresh fetch');
       }
 
-      // Fetch profiles data using GlobalDataContext
-      console.log('🔄 Fetching profiles from database...');
-      const profilesData = await fetchData({
+      // Fetch all user data from profiles table (now includes email)
+      console.log('🔄 Fetching users from profiles table...');
+      const usersData = await fetchData({
         table: 'profiles',
         select: '*',
-        filters: {}, // Empty filters object
+        filters: {},
         orderBy: { column: 'created_at', ascending: false }
       }, {
         useCache: true,
         ttl: 5 * 60 * 1000, // 5 minutes cache
         onError: (error) => {
-          console.error('Failed to fetch profiles:', error);
-          setError(`Failed to fetch profiles: ${error.message}`);
+          console.error('Failed to fetch users:', error);
+          setError(`Failed to fetch users: ${error.message}`);
         }
       });
 
-      console.log('📊 Profiles data received:', profilesData);
+      console.log('📊 Users data received:', usersData);
 
-      if (!profilesData || !Array.isArray(profilesData) || profilesData.length === 0) {
-        console.log('❌ No profiles found in database');
+      if (!usersData || !Array.isArray(usersData) || usersData.length === 0) {
+        console.log('❌ No users found in database');
         setUsers([]);
-        setError('No user profiles found in the database');
+        setError('No users found in the database');
         return;
       }
 
-      console.log(`✅ Found ${profilesData.length} profiles`);
+      // Transform the data to match your component's expected format
+      const processedUsers = usersData.map(profile => ({
+        id: profile.id,
+        email: profile.email || `user-${profile.id?.slice(0, 8)}@system.local`,
+        created_at: profile.created_at,
+        email_confirmed_at: null, // This would need to come from auth.users if needed
+        last_sign_in_at: null, // This would need to come from auth.users if needed
+        // Profile data
+        full_name: profile.full_name || null,
+        phone: profile.phone || null,
+        address: profile.address || null,
+        role: profile.role || 'property_seeker',
+        profile_image_url: profile.profile_image_url || null,
+        preferences: profile.preferences || null,
+        // Helper fields
+        has_profile: true, // Since we're getting data from profiles table
+        profile_created_at: profile.created_at,
+        updated_at: profile.updated_at || null,
+      }));
 
-      // Try to get auth users data (may not be available in all environments)
-      let authUsersData = null;
+      console.log(`🎯 Final processed users (${processedUsers.length}):`, processedUsers);
       
-      try {
-        console.log('🔐 Attempting to fetch auth users...');
-        const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
-        if (!authError && authData?.users) {
-          authUsersData = authData.users;
-          console.log(`✅ Successfully fetched ${authUsersData.length} auth users`);
-          
-          // Cache auth users data
-          updateData(CACHE_KEYS.AUTH_USERS, authUsersData);
-        } else {
-          console.log('⚠️ Auth admin query failed or not available:', authError);
-        }
-      } catch (authErr) {
-        console.log('⚠️ Auth.admin.listUsers not available:', authErr);
-      }
-
-      // Combine the data
-      let combinedUsers = [];
-
-      if (authUsersData && Array.isArray(authUsersData)) {
-        console.log('🔗 Combining auth and profile data...');
-        combinedUsers = authUsersData.map(authUser => {
-          const profile = profilesData.find(p => p.id === authUser.id);
-          
-          return {
-            id: authUser.id,
-            email: authUser.email,
-            created_at: authUser.created_at,
-            email_confirmed_at: authUser.email_confirmed_at,
-            last_sign_in_at: authUser.last_sign_in_at,
-            // Profile data
-            full_name: profile?.full_name || null,
-            phone: profile?.phone || null,
-            address: profile?.address || null,
-            role: profile?.role || 'property_seeker',
-            profile_image_url: profile?.profile_image_url || null,
-            preferences: profile?.preferences || null,
-            // Helper fields
-            has_profile: !!profile,
-            profile_created_at: profile?.created_at || null,
-            updated_at: profile?.updated_at || null,
-          };
-        });
-      } else {
-        console.log('📋 Using profiles data only (no auth data available)...');
-        combinedUsers = profilesData.map(profile => ({
-          id: profile.id,
-          email: profile.email || `user-${profile.id?.slice(0, 8)}@system.local`,
-          created_at: profile.created_at,
-          email_confirmed_at: null,
-          last_sign_in_at: null,
-          // Profile data
-          full_name: profile.full_name || null,
-          phone: profile.phone || null,
-          address: profile.address || null,
-          role: profile.role || 'property_seeker',
-          profile_image_url: profile.profile_image_url || null,
-          preferences: profile.preferences || null,
-          // Helper fields
-          has_profile: true,
-          profile_created_at: profile.created_at,
-          updated_at: profile.updated_at || null,
-        }));
-      }
-
-      console.log(`🎯 Final combined users (${combinedUsers.length}):`, combinedUsers);
+      // Cache the processed users data
+      updateData(CACHE_KEY, processedUsers);
       
-      // Cache the combined users data
-      updateData(CACHE_KEYS.COMBINED_USERS, combinedUsers);
-      updateData(CACHE_KEYS.PROFILES, profilesData);
-      
-      setUsers(combinedUsers);
-      
-      if (combinedUsers.length === 0) {
-        setError('No users found after combining data');
-      } else {
-        setError(null); // Clear any previous errors
-      }
+      setUsers(processedUsers);
+      setError(null);
       
     } catch (error) {
       console.error('💥 Error in fetchUsers:', error);
-      setError(`Unexpected error: ${error.message}`);
+      setError(`Failed to fetch users: ${error.message}`);
       setUsers([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Enhanced role update function with proper database persistence
+  // Enhanced role update function
   const handleRoleUpdate = async (userId, newRole) => {
     console.log(`🚀 Starting role update for user ${userId} to ${newRole}`);
     setUpdating(userId);
@@ -181,79 +118,22 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
     try {
       console.log(`🔄 Updating user ${userId} role to ${newRole}`);
       
-      // First, try to check if profile exists
-      const { data: existingProfile, error: selectError } = await supabase
+      // Update using direct Supabase query
+      const { data: updatedProfile, error: updateError } = await supabase
         .from('profiles')
-        .select('id, role, updated_at')
+        .update({ 
+          role: newRole,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', userId)
-        .maybeSingle();
-
-      console.log('📋 Existing profile check:', { existingProfile, selectError });
-
-      let updatedProfile = null;
-      let updateError = null;
-
-      if (existingProfile) {
-        // Profile exists, use UPDATE
-        console.log('📝 Profile exists, using UPDATE...');
-        const { data, error } = await supabase
-          .from('profiles')
-          .update({ 
-            role: newRole,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', userId)
-          .select()
-          .single();
-        
-        updatedProfile = data;
-        updateError = error;
-        console.log('📝 UPDATE result:', { data, error });
-      } else {
-        // Profile doesn't exist, use INSERT
-        console.log('➕ Profile doesn\'t exist, using INSERT...');
-        const { data, error } = await supabase
-          .from('profiles')
-          .insert({ 
-            id: userId, 
-            role: newRole,
-            updated_at: new Date().toISOString()
-          })
-          .select()
-          .single();
-        
-        updatedProfile = data;
-        updateError = error;
-        console.log('➕ INSERT result:', { data, error });
-      }
-
-      // If UPDATE/INSERT failed, try UPSERT as fallback with better configuration
-      if (updateError) {
-        console.log('⚠️ UPDATE/INSERT failed, trying UPSERT fallback:', updateError);
-        
-        const { data, error } = await supabase
-          .from('profiles')
-          .upsert({ 
-            id: userId, 
-            role: newRole,
-            updated_at: new Date().toISOString()
-          }, {
-            onConflict: 'id',
-            ignoreDuplicates: false
-          })
-          .select()
-          .single();
-        
-        updatedProfile = data;
-        updateError = error;
-        console.log('🔄 UPSERT result:', { data, error });
-      }
+        .select()
+        .single();
 
       if (updateError) {
-        console.error('💥 All database update methods failed:', updateError);
+        console.error('💥 Database update failed:', updateError);
         setError(`Database update failed: ${updateError.message}`);
         alert(`Failed to update user role: ${updateError.message}`);
-        return; // Exit early, setUpdating(null) will be called in finally
+        return;
       }
 
       console.log('✅ Database update successful:', updatedProfile);
@@ -262,8 +142,7 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
       const updatedUsers = users.map(u => 
         u.id === userId ? { 
           ...u, 
-          role: newRole, 
-          has_profile: true,
+          role: newRole,
           updated_at: updatedProfile?.updated_at || new Date().toISOString()
         } : u
       );
@@ -271,9 +150,9 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
       setUsers(updatedUsers);
 
       // Update cached data
-      updateData(CACHE_KEYS.COMBINED_USERS, updatedUsers);
+      updateData(CACHE_KEY, updatedUsers);
       
-      // Invalidate related cache entries to ensure fresh data on next fetch
+      // Invalidate related cache entries
       invalidateCache('profiles');
       invalidateCache('admin_users');
 
@@ -284,13 +163,10 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
           console.log('📞 onUpdateRole callback completed successfully');
         } catch (callbackError) {
           console.warn('⚠️ onUpdateRole callback failed:', callbackError);
-          // Don't throw here as the database update was successful
         }
       }
 
       console.log(`🎉 Successfully updated user ${userId} role to ${newRole}`);
-      
-      // Clear any previous errors
       setError(null);
       
     } catch (error) {
@@ -298,7 +174,6 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
       setError(`Failed to update user role: ${error.message}`);
       alert(`Failed to update user role: ${error.message}\n\nPlease check the console for more details.`);
     } finally {
-      // This is crucial - always clear the updating state
       console.log(`🔓 Clearing updating state for user ${userId}`);
       setUpdating(null);
     }
@@ -306,7 +181,7 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
 
   // Refresh function that clears cache and refetches
   const handleRefresh = async () => {
-    // Clear all user-related cache
+    // Clear cache
     invalidateCache('admin_users');
     invalidateCache('profiles');
     
@@ -319,68 +194,40 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
     await fetchUsers();
   };
 
-  // Test direct query function
-  const testDirectQuery = async () => {
-    console.log('=== TESTING DIRECT QUERY ===');
+  // Test function to check if email sync is working
+  const testEmailSync = async () => {
+    console.log('=== TESTING EMAIL SYNC ===');
     
     try {
-      const testData = await fetchData({
-        table: 'profiles',
-        select: 'id, full_name, role, created_at',
-        limit: 5
-      }, {
-        useCache: false // Force fresh data for testing
-      });
-        
-      console.log('Direct query test result:', testData);
-    } catch (err) {
-      console.error('Direct query test failed:', err);
-    }
-  };
-
-  // Simple test role update function for debugging
-  const testRoleUpdate = async () => {
-    console.log('=== TESTING ROLE UPDATE ===');
-    
-    if (!user?.id) {
-      console.error('No user ID available for testing');
-      return;
-    }
-
-    try {
-      console.log('Testing role update on current user:', user.id);
-      
-      // Get current role
-      const { data: currentProfile, error: selectError } = await supabase
+      // Check if profiles have email field
+      const { data: sampleProfiles, error } = await supabase
         .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+        .select('id, email, full_name')
+        .limit(3);
       
-      console.log('Current profile:', { currentProfile, selectError });
+      console.log('Sample profiles with email:', sampleProfiles);
       
-      if (selectError) {
-        console.error('Could not fetch current profile:', selectError);
+      if (error) {
+        console.error('Test failed:', error);
+        alert(`Test failed: ${error.message}`);
         return;
       }
 
-      // Try to update updated_at field (minimal change)
-      const { data: updateResult, error: updateError } = await supabase
-        .from('profiles')
-        .update({ 
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id)
-        .select();
+      const hasEmails = sampleProfiles?.some(p => p.email && !p.email.includes('@system.local'));
       
-      console.log('Update result:', { updateResult, updateError });
+      if (hasEmails) {
+        alert('✅ Email sync is working! Profiles have real email addresses.');
+      } else {
+        alert('⚠️ Email sync may not be working. Check if you ran the SQL scripts.');
+      }
       
     } catch (error) {
-      console.error('Test role update failed:', error);
+      console.error('Test email sync failed:', error);
+      alert(`Test failed: ${error.message}`);
     }
   };
 
-  // Helper function to get role badge styling - standardized roles only
+  // Helper functions remain the same...
   const getRoleBadgeColor = (role) => {
     switch (role) {
       case 'admin': 
@@ -394,7 +241,6 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
     }
   };
 
-  // Helper function to get role display name - standardized roles only
   const getRoleDisplayName = (role) => {
     switch (role) {
       case 'admin': 
@@ -408,15 +254,8 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
     }
   };
 
-  // Helper function to check if user is property owner
-  const isPropertyOwner = (role) => {
-    return role === 'property_owner';
-  };
-
-  // Helper function to check if user is property seeker
-  const isPropertySeeker = (role) => {
-    return role === 'property_seeker' || !role;
-  };
+  const isPropertyOwner = (role) => role === 'property_owner';
+  const isPropertySeeker = (role) => role === 'property_seeker' || !role;
 
   // Filter users based on search and role filter
   const filteredUsers = users.filter(userItem => {
@@ -439,7 +278,7 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
     return matchesSearch && matchesRole;
   });
 
-  // Role statistics using standardized roles only
+  // Role statistics
   const roleStats = {
     total: users.length,
     admin: users.filter(u => u.role === 'admin').length,
@@ -449,13 +288,33 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
 
   return (
     <div className="space-y-6 text-custom-gray">
-      {/* Header with Debug Tools */}
+      {/* Header with Actions */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Users Management</h1>
           <p className="text-gray-600">Manage user roles and permissions</p>
         </div>
+        
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error</h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>{error}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Search and Filter Controls */}
       <div className="bg-white p-4 rounded-lg shadow border">
@@ -605,8 +464,8 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
                       <div className="text-sm text-gray-900">
                         {userItem.email}
                       </div>
-                      {userItem.email_confirmed_at && (
-                        <div className="text-xs text-green-600">✓ Verified</div>
+                      {userItem.email && !userItem.email.includes('@system.local') && (
+                        <div className="text-xs text-green-600">✓ Real Email</div>
                       )}
                     </td>
                     
@@ -618,15 +477,9 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
 
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col">
-                        {userItem.has_profile ? (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            ✓ Profile Complete
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                            ⚠ No Profile
-                          </span>
-                        )}
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          ✓ Profile Complete
+                        </span>
                         {userItem.updated_at && (
                           <div className="text-xs text-gray-500 mt-1">
                             Updated: {new Date(userItem.updated_at).toLocaleDateString()}

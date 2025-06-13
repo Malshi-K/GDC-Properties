@@ -1,50 +1,383 @@
-// components/dashboards/admin/tabs/AdminPropertiesTab.js
+// AdminPropertiesTab with proper image loading and error handling
 "use client";
 import { useState, useEffect } from 'react';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+
+// Simple image component with fallback
+function PropertyImage({ property, className = "h-12 w-12 rounded-lg object-cover" }) {
+  const [imageUrl, setImageUrl] = useState(null);
+  const [imageError, setImageError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadImage = async () => {
+      setIsLoading(true);
+      setImageError(false);
+
+      // Check if property has images
+      if (!property?.images || !Array.isArray(property.images) || property.images.length === 0) {
+        setIsLoading(false);
+        setImageError(true);
+        return;
+      }
+
+      const firstImage = property.images[0];
+      
+      // If it's already a full URL (http/https), use it directly
+      if (firstImage.startsWith('http://') || firstImage.startsWith('https://')) {
+        setImageUrl(firstImage);
+        setIsLoading(false);
+        return;
+      }
+
+      // If it's a Supabase storage path, try to get signed URL
+      if (property.owner_id && firstImage) {
+        try {
+          // Normalize the path - ensure it includes the owner_id folder
+          const imagePath = firstImage.includes('/') ? firstImage : `${property.owner_id}/${firstImage}`;
+          
+          console.log(`Loading image for property ${property.id}: ${imagePath}`);
+          
+          // Try signed URL first
+          const { data: signedData, error: signedError } = await supabase.storage
+            .from('property-images')
+            .createSignedUrl(imagePath, 3600);
+
+          if (!signedError && signedData?.signedUrl) {
+            setImageUrl(signedData.signedUrl);
+            setIsLoading(false);
+            return;
+          }
+
+          // Fallback to public URL
+          const { data: publicData } = supabase.storage
+            .from('property-images')
+            .getPublicUrl(imagePath);
+
+          if (publicData?.publicUrl) {
+            setImageUrl(publicData.publicUrl);
+            setIsLoading(false);
+            return;
+          }
+
+          throw new Error('No valid image URL found');
+        } catch (error) {
+          console.error(`Failed to load image for property ${property.id}:`, error);
+          setImageError(true);
+          setIsLoading(false);
+        }
+      } else {
+        setImageError(true);
+        setIsLoading(false);
+      }
+    };
+
+    loadImage();
+  }, [property]);
+
+  if (isLoading) {
+    return (
+      <div className={`${className} bg-gray-200 flex items-center justify-center animate-pulse`}>
+        <svg className="h-4 w-4 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </div>
+    );
+  }
+
+  if (imageError || !imageUrl) {
+    return (
+      <div className={`${className} bg-gray-200 flex items-center justify-center`}>
+        <svg className="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt={property.title || 'Property image'}
+      className={className}
+      onError={() => setImageError(true)}
+      onLoad={() => setIsLoading(false)}
+    />
+  );
+}
 
 export default function AdminPropertiesTab({ onRefresh }) {
   const { user } = useAuth();
-  const { fetchData, data, loading } = useGlobalData();
+  const { fetchData, updateData, invalidateCache } = useGlobalData();
   const [properties, setProperties] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortBy, setSortBy] = useState('created_at');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [debugInfo, setDebugInfo] = useState(null);
 
   useEffect(() => {
     fetchProperties();
   }, []);
 
   const fetchProperties = async () => {
-    const cacheKey = 'admin_all_properties';
+    setIsLoading(true);
+    setError(null);
+    setDebugInfo(null);
     
     try {
-      const propertiesData = await fetchData(
-        {
-          table: "properties",
-          select: `
-            *,
-            profiles!properties_owner_id_fkey (
-              id,
-              full_name
-            )
-          `,
-          orderBy: { column: "created_at", ascending: false },
-        },
-        {
-          useCache: true,
-          ttl: 5 * 60 * 1000, // 5 minutes
-          _cached_key: cacheKey,
+      console.log('=== FETCHING PROPERTIES ===');
+      
+      // Try to get cached properties first
+      let cachedProperties = null;
+      try {
+        cachedProperties = await fetchData(
+          { _cached_key: 'admin_all_properties' },
+          { useCache: true }
+        );
+        
+        if (cachedProperties && Array.isArray(cachedProperties) && cachedProperties.length > 0) {
+          console.log(`✅ Using cached properties: ${cachedProperties.length} properties`);
+          setProperties(cachedProperties);
+          setIsLoading(false);
+          return;
         }
+      } catch (cacheError) {
+        console.log('🔍 No cache found, proceeding with fresh fetch');
+      }
+
+      // Fetch properties with owner information
+      const propertiesData = await fetchData({
+        table: 'properties',
+        select: `
+          *,
+          profiles!properties_owner_id_fkey (
+            id,
+            full_name,
+            email
+          )
+        `,
+        filters: {},
+        orderBy: { column: 'created_at', ascending: false }
+      }, {
+        useCache: true,
+        ttl: 5 * 60 * 1000,
+        onError: (error) => {
+          console.error('Properties query failed:', error);
+          setError(`Failed to fetch properties: ${error.message}`);
+        }
+      });
+
+      console.log('Properties data received:', propertiesData);
+      
+      if (!propertiesData || !Array.isArray(propertiesData)) {
+        // Try simple query without joins as fallback
+        console.log('Trying simple query without joins...');
+        const simplePropertiesData = await fetchData({
+          table: 'properties',
+          select: '*',
+          filters: {},
+          orderBy: { column: 'created_at', ascending: false }
+        }, {
+          useCache: false,
+          onError: (error) => {
+            console.error('Simple properties query failed:', error);
+            setError(`Failed to fetch properties: ${error.message}`);
+          }
+        });
+
+        if (simplePropertiesData && Array.isArray(simplePropertiesData)) {
+          setProperties(simplePropertiesData);
+          updateData('admin_all_properties', simplePropertiesData);
+          setDebugInfo({
+            message: `Loaded ${simplePropertiesData.length} properties (without owner details)`,
+            hasOwnerData: false,
+            propertiesCount: simplePropertiesData.length
+          });
+        } else {
+          setError('No properties data received from database');
+          setProperties([]);
+        }
+        return;
+      }
+
+      if (propertiesData.length === 0) {
+        console.log('No properties found in database');
+        setProperties([]);
+        setError(null);
+        setDebugInfo({
+          message: 'Database is accessible but contains no properties',
+          propertiesCount: 0,
+          hasOwnerData: false
+        });
+        return;
+      }
+
+      console.log(`✅ Successfully loaded ${propertiesData.length} properties`);
+      
+      setProperties(propertiesData);
+      setError(null);
+      setDebugInfo({
+        message: `Successfully loaded ${propertiesData.length} properties`,
+        propertiesCount: propertiesData.length,
+        hasOwnerData: propertiesData.some(p => p.profiles),
+        sampleProperty: propertiesData[0]
+      });
+
+      // Cache the successful result
+      updateData('admin_all_properties', propertiesData);
+
+    } catch (error) {
+      console.error('💥 Error in fetchProperties:', error);
+      setError(`Failed to fetch properties: ${error.message}`);
+      setProperties([]);
+      setDebugInfo({
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Test function to check database access and create sample data
+  const testDatabaseAndCreateSample = async () => {
+    console.log('=== TESTING DATABASE ACCESS ===');
+    
+    try {
+      // Test 1: Check if properties table exists and is accessible
+      const { data: testData, error: testError } = await supabase
+        .from('properties')
+        .select('*')
+        .limit(1);
+      
+      console.log('Properties table test:', { testData, testError });
+      
+      if (testError) {
+        alert(`Database access failed: ${testError.message}`);
+        return;
+      }
+
+      if (testData && testData.length > 0) {
+        alert(`✅ Database access works! Found ${testData.length} existing properties.`);
+        
+        // Log first property structure for debugging
+        console.log('Sample property structure:', testData[0]);
+        console.log('Images data:', testData[0]?.images);
+        
+        return;
+      }
+
+      // Test 3: If no properties exist, offer to create sample data
+      const createSample = window.confirm(
+        'No properties found in database. Would you like to create some sample properties for testing?'
       );
 
-      if (Array.isArray(propertiesData)) {
-        setProperties(propertiesData);
+      if (!createSample) return;
+
+      // Get current user to use as owner
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser?.user?.id) {
+        alert('No authenticated user found to create sample properties');
+        return;
       }
+
+      // Create sample properties with proper image arrays
+      const sampleProperties = [
+        {
+          title: 'Modern 2BR Apartment',
+          description: 'Beautiful modern apartment in the city center with stunning views',
+          location: 'Auckland CBD',
+          price: 650,
+          rent_type: 'per week',
+          bedrooms: 2,
+          bathrooms: 1,
+          property_type: 'apartment',
+          status: 'available',
+          owner_id: currentUser.user.id,
+          features: ['parking', 'balcony', 'gym', 'dishwasher'],
+          images: ['https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&h=300&fit=crop']
+        },
+        {
+          title: 'Family House with Garden',
+          description: 'Spacious family house with large garden and modern amenities',
+          location: 'Ponsonby',
+          price: 850,
+          rent_type: 'per week',
+          bedrooms: 3,
+          bathrooms: 2,
+          property_type: 'house',
+          status: 'available',
+          owner_id: currentUser.user.id,
+          features: ['garden', 'garage', 'dishwasher', 'heating'],
+          images: ['https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=400&h=300&fit=crop']
+        },
+        {
+          title: 'Studio Near University',
+          description: 'Cozy studio apartment perfect for students, fully furnished',
+          location: 'Mt Eden',
+          price: 400,
+          rent_type: 'per week',
+          bedrooms: 1,
+          bathrooms: 1,
+          property_type: 'studio',
+          status: 'rented',
+          owner_id: currentUser.user.id,
+          features: ['furnished', 'internet', 'heating'],
+          images: ['https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&h=300&fit=crop']
+        },
+        {
+          title: 'Luxury Penthouse',
+          description: 'Stunning penthouse with panoramic city views',
+          location: 'Viaduct Harbour',
+          price: 1200,
+          rent_type: 'per week',
+          bedrooms: 2,
+          bathrooms: 2,
+          property_type: 'apartment',
+          status: 'available',
+          owner_id: currentUser.user.id,
+          features: ['parking', 'balcony', 'gym', 'concierge', 'pool'],
+          images: ['https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&h=300&fit=crop']
+        }
+      ];
+
+      const { data: insertedProperties, error: insertError } = await supabase
+        .from('properties')
+        .insert(sampleProperties)
+        .select();
+
+      if (insertError) {
+        alert(`Failed to create sample properties: ${insertError.message}`);
+        console.error('Insert error:', insertError);
+        return;
+      }
+
+      alert(`✅ Successfully created ${insertedProperties.length} sample properties with images!`);
+      
+      // Refresh the properties list
+      await fetchProperties();
+
     } catch (error) {
-      console.error('Error fetching properties:', error);
+      console.error('Database test failed:', error);
+      alert(`Database test failed: ${error.message}`);
     }
+  };
+
+  // Clear cache and refresh
+  const handleRefresh = async () => {
+    invalidateCache('admin_all_properties');
+    invalidateCache('properties');
+    
+    if (onRefresh && typeof onRefresh === 'function') {
+      onRefresh();
+    }
+    
+    await fetchProperties();
   };
 
   const getStatusBadgeColor = (status) => {
@@ -72,7 +405,8 @@ export default function AdminPropertiesTab({ onRefresh }) {
       const matchesSearch = 
         property.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         property.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        property.profiles?.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
+        property.profiles?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        property.description?.toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesStatus = filterStatus === 'all' || property.status === filterStatus;
       
@@ -102,8 +436,6 @@ export default function AdminPropertiesTab({ onRefresh }) {
     pending: properties.filter(p => p.status === 'pending').length,
   };
 
-  const isLoading = loading['admin_all_properties'];
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -112,24 +444,54 @@ export default function AdminPropertiesTab({ onRefresh }) {
           <h1 className="text-2xl font-bold text-gray-900">All Properties</h1>
           <p className="text-gray-600">Overview of all properties in the system</p>
         </div>
-        <button
-          onClick={onRefresh}
-          disabled={isLoading}
-          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center"
-        >
-          {isLoading ? (
-            <>
-              <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Refreshing...
-            </>
-          ) : (
-            'Refresh'
-          )}
-        </button>
+        
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error</h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>{error}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Debug Info */}
+      {debugInfo && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-md">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-blue-800">Debug Info</h3>
+              <div className="mt-2 text-sm text-blue-700">
+                <p>{debugInfo.message}</p>
+                {debugInfo.sampleProperty && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer font-medium">Sample Property Data</summary>
+                    <pre className="text-xs bg-blue-100 p-2 rounded mt-1 overflow-x-auto">
+                      {JSON.stringify(debugInfo.sampleProperty, null, 2)}
+                    </pre>
+                  </details>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -273,8 +635,18 @@ export default function AdminPropertiesTab({ onRefresh }) {
             </svg>
             <h3 className="mt-2 text-sm font-medium text-gray-900">No properties found</h3>
             <p className="mt-1 text-sm text-gray-500">
-              {searchTerm || filterStatus !== 'all' ? 'Try adjusting your search or filter criteria.' : 'No properties have been added yet.'}
+              {properties.length === 0 
+                ? 'No properties have been added yet. Click "Test DB & Create Sample" to add some sample properties.' 
+                : 'Try adjusting your search or filter criteria.'}
             </p>
+            {properties.length === 0 && (
+              <button
+                onClick={testDatabaseAndCreateSample}
+                className="mt-4 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+              >
+                Create Sample Properties
+              </button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -294,18 +666,8 @@ export default function AdminPropertiesTab({ onRefresh }) {
                   <tr key={property.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <div className="h-12 w-12 rounded-lg bg-gray-200 flex items-center justify-center flex-shrink-0">
-                          {property.images && property.images.length > 0 ? (
-                            <img
-                              src={property.images[0]}
-                              alt={property.title}
-                              className="h-12 w-12 rounded-lg object-cover"
-                            />
-                          ) : (
-                            <svg className="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                            </svg>
-                          )}
+                        <div className="flex-shrink-0">
+                          <PropertyImage property={property} />
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">
@@ -314,6 +676,12 @@ export default function AdminPropertiesTab({ onRefresh }) {
                           <div className="text-sm text-gray-500">
                             {property.location || 'Location not specified'}
                           </div>
+                          {/* Show image info for debugging */}
+                          {property.images && property.images.length > 0 && (
+                            <div className="text-xs text-blue-600 mt-1">
+                              {property.images.length} image{property.images.length !== 1 ? 's' : ''}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>

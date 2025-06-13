@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { useGlobalData } from "@/contexts/GlobalDataContext";
 import { useImageLoader } from "@/lib/services/imageLoaderService";
 import ScheduleViewingModal from "@/components/property/ScheduleViewingModal";
 import PropertyApplicationModal from "@/components/property/PropertyApplicationModal";
@@ -16,6 +16,9 @@ export default function PropertyDetails() {
   const router = useRouter();
   const { user } = useAuth();
   const { id } = params;
+  
+  // Global data context
+  const { fetchData, loading: globalLoading } = useGlobalData();
   
   // Image loader context
   const { loadPropertyImage } = useImageLoader();
@@ -49,7 +52,7 @@ export default function PropertyDetails() {
     });
   }, []);
 
-  // Direct Supabase fetch for property details
+  // Fetch property details using global context
   const fetchPropertyDetails = useCallback(async () => {
     if (!id) return;
 
@@ -59,35 +62,36 @@ export default function PropertyDetails() {
 
       console.log("Fetching property with ID:", id);
 
-      // Direct Supabase query
-      const { data: propertyData, error: fetchError } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('id', id)
-        .single();
+      // Use global context to fetch property data
+      const propertyData = await fetchData({
+        table: 'properties',
+        select: '*',
+        filters: { id },
+        single: true,
+        _cached_key: `property_${id}` // Custom cache key for single property
+      });
 
-      console.log("Supabase response:", { propertyData, fetchError });
+      // Handle case where fetchData returns an array instead of single object
+      const singleProperty = Array.isArray(propertyData) ? propertyData[0] : propertyData;
 
-      if (fetchError) {
-        console.error("Supabase error:", fetchError);
-        throw fetchError;
-      }
+      console.log("Property data from global context:", propertyData);
+      console.log("Single property:", singleProperty);
 
-      if (!propertyData) {
+      if (!singleProperty) {
         setError("Property not found");
         return;
       }
 
-      console.log("Property data loaded:", propertyData);
-      setProperty(propertyData);
+      console.log("Property data loaded:", singleProperty);
+      setProperty(singleProperty);
       
       // Load images
-      if (propertyData.images && propertyData.images.length > 0) {
-        console.log("Loading images:", propertyData.images);
-        loadPropertyImages(propertyData);
+      if (singleProperty.images && singleProperty.images.length > 0) {
+        console.log("Loading images:", singleProperty.images);
+        loadPropertyImages(singleProperty);
       } else {
         console.log("No images found for property");
-        setImageUrls([]); // Clear any existing URLs
+        setImageUrls([]);
       }
 
     } catch (err) {
@@ -96,7 +100,30 @@ export default function PropertyDetails() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, fetchData]);
+
+  // Fetch user role using global context
+  const fetchUserRole = useCallback(async () => {
+    if (!user) {
+      setUserRole(null);
+      return;
+    }
+
+    try {
+      const profileData = await fetchData({
+        table: 'profiles',
+        select: 'role',
+        filters: { id: user.id },
+        single: true,
+        _cached_key: `user_role_${user.id}`
+      });
+
+      setUserRole(profileData?.role || null);
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+      setUserRole(null);
+    }
+  }, [user, fetchData]);
 
   // Load property images - FIXED VERSION
   const loadPropertyImages = useCallback(async (propertyData) => {
@@ -143,32 +170,6 @@ export default function PropertyDetails() {
       setImageUrls([]);
     }
   }, [loadPropertyImage]);
-
-  // Fetch user role
-  const fetchUserRole = useCallback(async () => {
-    if (!user) {
-      setUserRole(null);
-      return;
-    }
-
-    try {
-      const { data: profileData, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        console.error("Error fetching user role:", error);
-        return;
-      }
-
-      setUserRole(profileData?.role || null);
-    } catch (error) {
-      console.error("Error fetching user role:", error);
-      setUserRole(null);
-    }
-  }, [user]);
 
   // Effects
   useEffect(() => {
@@ -262,6 +263,9 @@ export default function PropertyDetails() {
     return userRole !== "owner";
   }, [userRole]);
 
+  // Check loading state - combine local and global loading
+  const isLoading = loading || globalLoading[`property_${id}`];
+
   // Amenity icon component
   const AmenityIcon = ({ amenity }) => {
     const getAmenityIcon = (amenityType) => {
@@ -319,17 +323,18 @@ export default function PropertyDetails() {
 
   // Debug information
   console.log("Render state:", {
-    loading,
+    loading: isLoading,
     error,
     property: property ? "loaded" : "null",
     totalImages: allImageUrls.length,
     mainImageUrl: mainImageUrl ? "available" : "null",
     activeImageIndex: activeImage,
-    id
+    id,
+    globalLoading: globalLoading[`property_${id}`]
   });
 
   // Show skeleton while loading
-  if (loading && !property) {
+  if (isLoading && !property) {
     return <PropertyDetailsSkeleton />;
   }
 

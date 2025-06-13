@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Image from 'next/image';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Bed, Bath, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
 import { useImageLoader } from '@/lib/services/imageLoaderService';
@@ -29,7 +29,7 @@ const FeaturedProperties = () => {
       
       const fetchParams = {
         table: 'properties',
-        select: 'id, title, price, location, bedrooms, bathrooms, square_footage, owner_id, images, created_at',
+        select: 'id, title, description, price, location, address, bedrooms, bathrooms, square_footage, owner_id, images, created_at, available_from, status',
         orderBy: { column: 'created_at', ascending: false },
         pagination: { page: 1, pageSize: BATCH_SIZE }
       };
@@ -127,7 +127,7 @@ const FeaturedProperties = () => {
     router.push(`/property/${propertyId}`);
   };
 
-  // PropertyCard component
+  // PropertyCard component with new design
   const PropertyCard = ({ property }) => {
     const [imageError, setImageError] = useState(false);
     const imageUrl = propertyImages[property.id] || '';
@@ -142,10 +142,11 @@ const FeaturedProperties = () => {
     return (
       <div 
         key={property.id} 
-        className="min-w-[calc(33.333%-16px)] sm:min-w-[calc(50%-12px)] md:min-w-[calc(33.333%-16px)] flex-shrink-0 bg-custom-red rounded-lg overflow-hidden cursor-pointer shadow-lg transition-transform duration-300"
+        className="min-w-[calc(33.333%-16px)] sm:min-w-[calc(50%-12px)] md:min-w-[calc(33.333%-16px)] flex-shrink-0 bg-white rounded-2xl overflow-hidden cursor-pointer shadow-lg transition-all duration-300 hover:shadow-xl"
         onClick={() => handlePropertyClick(property.id)}
       >
-        <div className="relative h-60 w-full">
+        {/* Image Section */}
+        <div className="relative h-64 w-full">
           {imageUrl && !imageError ? (
             <Image 
               src={imageUrl} 
@@ -159,8 +160,8 @@ const FeaturedProperties = () => {
               onError={() => setImageError(true)}
             />
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-700 text-white text-center p-4">
-              <span>
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-200 text-gray-500 text-center p-4">
+              <span className="text-sm">
                 {imageError 
                   ? "Image failed to load" 
                   : property.images?.length 
@@ -170,25 +171,57 @@ const FeaturedProperties = () => {
               </span>
             </div>
           )}
-        </div>
-        <div className="p-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-xl font-semibold truncate">
-              {property.title || 'Untitled Property'}
-            </h3>
-            <p className="text-right font-bold whitespace-nowrap">
-              {formatPrice(property.price || 0)}
-            </p>
+          
+          {/* Price Badge */}
+          <div className="absolute top-4 right-4 bg-custom-red text-white px-3 py-1 rounded-full text-sm font-bold">
+            {formatPrice(property.price || 0)}/pw
           </div>
-          <p className="text-sm text-gray-200 mt-1 truncate">
-            {property.location || 'Location unavailable'}
-          </p>
-          <div className="flex space-x-4 mt-2 text-sm">
-            <span>{property.bedrooms || 0} Beds</span>
-            <span>{property.bathrooms || 0} Baths</span>
-            {property.square_footage && (
-              <span>{property.square_footage} sq ft</span>
+          
+          {/* Status Badge */}
+          {property.status && (
+            <div className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium capitalize">
+              {property.status}
+            </div>
+          )}
+        </div>
+
+        {/* Content Section */}
+        <div className="p-6">
+          {/* Location */}
+          <div className="flex items-center text-gray-600 text-sm mb-2">
+            <MapPin size={14} className="mr-1" />
+            <span className="truncate">
+              {property.location || 'Location unavailable'}
+            </span>
+          </div>
+          
+          {/* Property Details */}
+          <div className="mb-3">
+            <p className="text-gray-500 text-sm">
+              {property.location || 'N/A'}
+            </p>
+            {property.available_from && (
+              <p className="text-gray-500 text-sm">
+                Available {new Date(property.available_from).toLocaleDateString()}
+              </p>
             )}
+          </div>
+          
+          {/* Description */}
+          <h3 className="text-lg font-medium text-gray-800 mb-4 line-clamp-2">
+            {property.title || 'Luxury, space, and convenience all in one'}
+          </h3>
+          
+          {/* Property Features */}
+          <div className="flex items-center space-x-6 text-gray-700">
+            <div className="flex items-center space-x-2">
+              <Bed size={18} className="text-gray-500" />
+              <span className="text-sm font-medium">{property.bedrooms || 0}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Bath size={18} className="text-gray-500" />
+              <span className="text-sm font-medium">{property.bathrooms || 0}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -197,15 +230,16 @@ const FeaturedProperties = () => {
 
   // Loading skeleton
   const PropertySkeleton = () => (
-    <div className="min-w-[calc(33.333%-16px)] sm:min-w-[calc(50%-12px)] md:min-w-[calc(33.333%-16px)] flex-shrink-0 bg-gray-700 rounded-lg overflow-hidden animate-pulse shadow-lg">
-      <div className="h-60 w-full bg-gray-600"></div>
-      <div className="p-4">
-        <div className="h-6 bg-gray-600 rounded mb-2"></div>
-        <div className="h-4 bg-gray-600 rounded w-2/3 mb-4"></div>
-        <div className="flex space-x-4">
-          <div className="h-4 bg-gray-600 rounded w-16"></div>
-          <div className="h-4 bg-gray-600 rounded w-16"></div>
-          <div className="h-4 bg-gray-600 rounded w-16"></div>
+    <div className="min-w-[calc(33.333%-16px)] sm:min-w-[calc(50%-12px)] md:min-w-[calc(33.333%-16px)] flex-shrink-0 bg-white rounded-2xl overflow-hidden animate-pulse shadow-lg">
+      <div className="h-64 w-full bg-gray-300"></div>
+      <div className="p-6">
+        <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
+        <div className="h-3 bg-gray-300 rounded w-1/2 mb-2"></div>
+        <div className="h-3 bg-gray-300 rounded w-1/3 mb-4"></div>
+        <div className="h-4 bg-gray-300 rounded w-full mb-4"></div>
+        <div className="flex space-x-6">
+          <div className="h-4 bg-gray-300 rounded w-12"></div>
+          <div className="h-4 bg-gray-300 rounded w-12"></div>
         </div>
       </div>
     </div>
@@ -227,7 +261,7 @@ const FeaturedProperties = () => {
   // Get loading state from the cache key
   const cacheKey = JSON.stringify({
     table: 'properties',
-    select: 'id, title, price, location, bedrooms, bathrooms, square_footage, owner_id, images, created_at',
+    select: 'id, title, description, price, location, address, bedrooms, bathrooms, square_footage, owner_id, images, created_at, available_from, status',
     orderBy: { column: 'created_at', ascending: false },
     pagination: { page: 1, pageSize: BATCH_SIZE }
   });
@@ -235,29 +269,29 @@ const FeaturedProperties = () => {
   const isLoading = loading[cacheKey] || false;
 
   return (
-    <section className="py-16 md:py-24 bg-custom-gray text-white">
+    <section className="py-16 md:py-24 bg-gray-50">
       <div className="w-full max-w-7xl container mx-auto px-4 sm:px-6">
         <div className="flex justify-between items-end mb-8">
           <div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-2">Featured Properties</h2>
-            <p className="text-gray-300">Explore our latest properties</p>
+            <h2 className="text-3xl md:text-4xl font-bold mb-2 text-gray-900">Featured Properties</h2>
+            <p className="text-gray-600">Explore our latest properties</p>
           </div>
           <div className="flex space-x-2">
             <button 
               onClick={scrollPrev} 
-              className="rounded-full border border-white p-4 hover:bg-white hover:text-black transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-full border border-gray-300 p-3 hover:bg-gray-100 hover:border-gray-400 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={currentIndex === 0 || isLoading}
               aria-label="Previous properties"
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={20} className="text-gray-600" />
             </button>
             <button 
               onClick={scrollNext} 
-              className="rounded-full border border-white p-4 hover:bg-white hover:text-black transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-full border border-gray-300 p-3 hover:bg-gray-100 hover:border-gray-400 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={currentIndex >= properties.length - visibleItems || isLoading}
               aria-label="Next properties"
             >
-              <ChevronRight size={20} />
+              <ChevronRight size={20} className="text-gray-600" />
             </button>
           </div>
         </div>
@@ -272,7 +306,7 @@ const FeaturedProperties = () => {
           </div>
         ) : properties.length === 0 ? (
           <div className="text-center py-10">
-            <p>No properties available at the moment.</p>
+            <p className="text-gray-600">No properties available at the moment.</p>
           </div>
         ) : (
           <div 

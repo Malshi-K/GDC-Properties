@@ -25,6 +25,8 @@ import AddEditPropertyModal from "@/components/dashboards/owner/property/AddEdit
 import UserViewingRequestsTab from "@/components/dashboards/user/tabs/ViewingRequestsTab";
 import PropertyApplications from "@/components/dashboards/user/tabs/PropertyApplications";
 import SavedProperties from "@/components/dashboards/user/tabs/SavedProperties";
+
+// Import admin components
 import AdminUsersTab from "@/components/dashboards/admin/tabs/AdminUsersTab";
 import AdminPropertiesTab from "@/components/dashboards/admin/tabs/AdminPropertiesTab";
 import AdminAnalyticsTab from "@/components/dashboards/admin/tabs/AdminAnalyticsTab";

@@ -27,6 +27,9 @@ const Header = () => {
   const dropdownRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
 
+  // Check if we're on a property detail page
+  const isPropertyDetailPage = pathname.startsWith("/property/");
+
   // Check for authenticated user on load
   useEffect(() => {
     const {
@@ -203,18 +206,21 @@ const Header = () => {
     return null;
   }
 
+  // Determine header styling based on page type and scroll state
+  const shouldShowSolidHeader = isPropertyDetailPage || isScrolled;
+
   return (
     <header
       className={`fixed top-0 z-50 transition-all duration-300 ${
-        isScrolled
+        shouldShowSolidHeader
           ? "bg-white shadow-md py-0 left-0 right-0"
           : "top-4 left-24 right-24"
       }`}
     >
-      <div className={`${isScrolled ? "w-full" : "container mx-auto"}`}>
+      <div className={`${shouldShowSolidHeader ? "w-full" : "container mx-auto"}`}>
         <div
           className={`${
-            isScrolled
+            shouldShowSolidHeader
               ? "px-4 md:px-6"
               : "bg-white/20 rounded-full shadow-md px-4 md:px-6 mx-2 sm:mx-4"
           } transition-all`}
@@ -225,7 +231,7 @@ const Header = () => {
               <div className="w-24 sm:w-28 md:w-36 h-16 sm:h-20 md:h-24 flex items-center justify-center overflow-hidden">
                 <Link href="/">
                   <Image
-                    src={isScrolled ? "/images/logo.png" : "/images/properties logo.png"}
+                    src={shouldShowSolidHeader ? "/images/logo.png" : "/images/properties logo.png"}
                     alt="GDC Properties Logo"
                     width={144}
                     height={96}
@@ -242,7 +248,7 @@ const Header = () => {
                 <Link
                   href="/"
                   className={`relative ${
-                    isScrolled 
+                    shouldShowSolidHeader 
                       ? "text-custom-gray hover:text-custom-red" 
                       : "text-white hover:text-custom-red"
                   } transition-colors px-1 lg:px-2 py-6 text-sm lg:text-lg ${
@@ -258,7 +264,7 @@ const Header = () => {
                 <Link
                   href="/search"
                   className={`relative ${
-                    isScrolled 
+                    shouldShowSolidHeader 
                       ? "text-custom-gray hover:text-custom-red" 
                       : "text-white hover:text-custom-red"
                   } transition-colors px-1 lg:px-3 py-6 text-sm lg:text-lg ${
@@ -274,7 +280,7 @@ const Header = () => {
                 <Link
                   href="/about"
                   className={`relative ${
-                    isScrolled 
+                    shouldShowSolidHeader 
                       ? "text-custom-gray hover:text-custom-red" 
                       : "text-white hover:text-custom-red"
                   } transition-colors px-1 lg:px-3 py-6 text-sm lg:text-lg ${
@@ -290,7 +296,7 @@ const Header = () => {
                 <Link
                   href="/contact"
                   className={`relative ${
-                    isScrolled 
+                    shouldShowSolidHeader 
                       ? "text-custom-gray hover:text-custom-red" 
                       : "text-white hover:text-custom-red"
                   } transition-colors px-1 lg:px-3 py-6 text-sm lg:text-lg ${
@@ -316,7 +322,7 @@ const Header = () => {
                 >
                   <button
                     className={`flex items-center space-x-2 ${
-                      isScrolled 
+                      shouldShowSolidHeader 
                         ? "text-custom-gray hover:text-custom-red" 
                         : "text-white hover:text-custom-red"
                     } transition-colors duration-200`}
@@ -369,7 +375,7 @@ const Header = () => {
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className={`${
-                  isScrolled 
+                  shouldShowSolidHeader 
                     ? "text-custom-gray hover:text-custom-red" 
                     : "text-white hover:text-custom-red"
                 } focus:outline-none p-1`}

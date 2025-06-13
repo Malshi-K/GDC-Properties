@@ -109,7 +109,7 @@ export function GlobalDataProvider({ children }) {
     }
   }, []);
 
-  // Enhanced fetchData function
+  // Enhanced fetchData function with proper single parameter handling
   const fetchData = useCallback(async (params, options = {}) => {
     const { 
       useCache = true, 
@@ -120,10 +120,15 @@ export function GlobalDataProvider({ children }) {
 
     // Handle special cached keys
     if (params._cached_key) {
-      return data[params._cached_key] || null;
+      const cachedResult = data[params._cached_key];
+      if (cachedResult) {
+        console.log(`Cache HIT for cached key: ${params._cached_key}`);
+        onSuccess(cachedResult);
+        return cachedResult;
+      }
     }
 
-    const cacheKey = generateCacheKey(params);
+    const cacheKey = params._cached_key || generateCacheKey(params);
 
     // Return cached data if available and not forcing refresh
     if (useCache && data[cacheKey]) {
@@ -143,16 +148,27 @@ export function GlobalDataProvider({ children }) {
 
     try {
       console.log(`Cache MISS: ${cacheKey} - Fetching from Supabase`);
+      console.log("Fetch params:", params);
+      
       const result = await fetchSupabaseData(params);
+      
+      console.log("Raw result from fetchSupabaseData:", result);
+      
+      // Handle single parameter properly
+      let processedResult = result;
+      if (params.single && Array.isArray(result)) {
+        processedResult = result.length > 0 ? result[0] : null;
+        console.log("Processed single result:", processedResult);
+      }
 
       // Update data state
-      setData(prev => ({ ...prev, [cacheKey]: result }));
+      setData(prev => ({ ...prev, [cacheKey]: processedResult }));
 
       // Cache in sessionStorage
       if (typeof window !== 'undefined') {
         try {
           const cacheData = {
-            data: result,
+            data: processedResult,
             expiry: Date.now() + ttl,
             timestamp: Date.now()
           };
@@ -162,8 +178,8 @@ export function GlobalDataProvider({ children }) {
         }
       }
 
-      onSuccess(result);
-      return result;
+      onSuccess(processedResult);
+      return processedResult;
     } catch (error) {
       console.error(`Error fetching ${cacheKey}:`, error);
       onError(error);
