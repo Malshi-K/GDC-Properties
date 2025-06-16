@@ -4,14 +4,14 @@ import Link from "next/link";
 
 const Footer = () => {
   return (
-    <footer className="bg-white border-t border-gray-200 py-8 md:py-12">
+    <footer className="bg-custom-gray border-t border-gray-200 py-8 md:py-12">
       <div className="container w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
           {/* Logo and Contact */}
           <div className="flex flex-col space-y-4 items-center sm:items-start">
             <div className="mb-2">
               <Image
-                src="/images/logo.png"
+                src="/images/properties logo.png"
                 alt="JustRent Logo"
                 width={180}
                 height={60}
@@ -22,12 +22,12 @@ const Footer = () => {
 
           {/* Quick Link */}
           <div className="mt-4 sm:mt-0 flex flex-col items-center sm:items-start">
-            <h3 className="font-medium text-custom-red mb-4 text-lg">Quick Link</h3>
+            <h3 className="font-bold text-custom-red mb-4 text-xl">Quick Link</h3>
             <ul className="space-y-2 text-center sm:text-left">
               <li>
                 <Link
                   href="/"
-                  className="text-gray-600 hover:text-custom-yellow transition-colors duration-200"
+                  className="text-white hover:text-custom-yellow transition-colors duration-200"
                 >
                   Home
                 </Link>
@@ -36,7 +36,7 @@ const Footer = () => {
               <li>
                 <Link
                   href="/search"
-                  className="text-gray-600 hover:text-custom-yellow transition-colors duration-200"
+                  className="text-white hover:text-custom-yellow transition-colors duration-200"
                 >
                   Search
                 </Link>
@@ -44,7 +44,7 @@ const Footer = () => {
               <li>
                 <Link
                   href="/about"
-                  className="text-gray-600 hover:text-custom-yellow transition-colors duration-200"
+                  className="text-white hover:text-custom-yellow transition-colors duration-200"
                 >
                   About
                 </Link>
@@ -54,23 +54,23 @@ const Footer = () => {
 
           {/* Categories */}
           <div className="mt-4 sm:mt-0 flex flex-col items-center sm:items-start">
-            <h3 className="font-medium text-custom-red mb-4 text-lg">Property Types</h3>
+            <h3 className="font-bold text-custom-red mb-4 text-xl">Property Types</h3>
             <ul className="space-y-2 text-center sm:text-left">
               <li>
-                <p className="text-gray-600 hover:text-custom-yellow cursor-pointer transition-colors duration-200">
+                <p className="text-white hover:text-custom-yellow cursor-pointer transition-colors duration-200">
                   Apartments
                 </p>
               </li>
               <li>
-                <p className="text-gray-600 hover:text-custom-yellow cursor-pointer transition-colors duration-200">Houses</p>
+                <p className="text-white hover:text-custom-yellow cursor-pointer transition-colors duration-200">Houses</p>
               </li>
               <li>
-                <p className="text-gray-600 hover:text-custom-yellow cursor-pointer transition-colors duration-200">
+                <p className="text-white hover:text-custom-yellow cursor-pointer transition-colors duration-200">
                   Town Houses
                 </p>
               </li>
               <li>
-                <p className="text-gray-600 hover:text-custom-yellow cursor-pointer transition-colors duration-200">Unit</p>
+                <p className="text-white hover:text-custom-yellow cursor-pointer transition-colors duration-200">Unit</p>
               </li>
             </ul>
           </div>
@@ -78,14 +78,14 @@ const Footer = () => {
           {/* Getting Started and Support */}
           <div className="space-y-6 mt-4 sm:mt-0 flex flex-col items-center sm:items-start">
             <div className="flex flex-col items-center sm:items-start">
-              <h3 className="font-medium text-custom-red mb-4 text-lg">
+              <h3 className="font-bold text-custom-red mb-4 text-xl">
                 Getting Started
               </h3>
               <ul className="space-y-2 text-center sm:text-left">
                 <li>
                   <Link
                     href="/signup"
-                    className="text-gray-600 hover:text-custom-yellow transition-colors duration-200"
+                    className="text-white hover:text-custom-yellow transition-colors duration-200"
                   >
                     Sign-in
                   </Link>
@@ -94,11 +94,11 @@ const Footer = () => {
             </div>
 
             <div className="flex flex-col items-center sm:items-start">
-              <h3 className="font-medium text-custom-red mb-4 text-lg">Get in touch</h3>
+              <h3 className="font-bold text-custom-red mb-4 text-xl">Get in touch</h3>
               <ul className="space-y-3">
                 <li className="flex items-center justify-center sm:justify-start">
                   <svg
-                    className="w-4 h-4 mr-2 text-gray-500 flex-shrink-0"
+                    className="w-4 h-4 mr-2 text-text-white flex-shrink-0"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                     xmlns="http://www.w3.org/2000/svg"
@@ -108,14 +108,14 @@ const Footer = () => {
                   </svg>
                   <a
                     href="mailto:info@gdcdigital.net"
-                    className="text-gray-600 hover:text-custom-yellow transition-colors duration-200 break-all"
+                    className="text-white hover:text-custom-yellow transition-colors duration-200 break-all"
                   >
                     info@gdcdigital.net
                   </a>
                 </li>
                 <li className="flex items-center justify-center sm:justify-start">
                   <svg
-                    className="w-4 h-4 mr-2 text-gray-500 flex-shrink-0"
+                    className="w-4 h-4 mr-2 text-text-white flex-shrink-0"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                     xmlns="http://www.w3.org/2000/svg"
@@ -124,14 +124,14 @@ const Footer = () => {
                   </svg>
                   <a
                     href="tel:+6478380090"
-                    className="text-gray-600 hover:text-custom-yellow transition-colors duration-200"
+                    className="text-white hover:text-custom-yellow transition-colors duration-200"
                   >
                     +64 7 838 0090
                   </a>
                 </li>
                 <li className="flex items-start justify-center sm:justify-start">
                   <svg
-                    className="w-4 h-4 mr-2 text-gray-500 flex-shrink-0 mt-1"
+                    className="w-4 h-4 mr-2 text-text-white flex-shrink-0 mt-1"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                     xmlns="http://www.w3.org/2000/svg"
@@ -142,7 +142,7 @@ const Footer = () => {
                       clipRule="evenodd"
                     ></path>
                   </svg>
-                  <p className="text-gray-600 hover:text-custom-yellow transition-colors duration-200 break-words">
+                  <p className="text-white hover:text-custom-yellow transition-colors duration-200 break-words">
                     89 Church Road, Pukete, Hamilton 3200
                   </p>
                 </li>
@@ -215,11 +215,11 @@ const Footer = () => {
         </div>
 
         {/* Copyright */}
-        <div className="border-t border-gray-200 mt-8 md:mt-12 pt-6 md:pt-8 text-center text-sm text-gray-500">
+        <div className="border-t border-gray-200 mt-8 md:mt-12 pt-6 md:pt-8 text-center text-sm text-text-white">
           © {new Date().getFullYear()}{" "}
           <Link
             href="https://www.gdcdigital.net/"
-            className="text-gray-600 hover:text-custom-yellow transition-colors duration-200"
+            className="text-white hover:text-custom-yellow transition-colors duration-200"
           >
             GDC Digital Solutions.
           </Link>{" "}

@@ -22,8 +22,8 @@ const PropertyTypesOverview = () => {
   ];
 
   return (
-    <section className="py-5 md:py-10 bg-gray-50">
-      <div className="container mx-auto px-4 sm:px-6">
+    <section className="py-5 md:py-10 bg-custom-red px-20">
+      <div className="container mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12">
           {propertyTypes.map((type, index) => (
             <div key={index} className="text-center">
@@ -37,7 +37,7 @@ const PropertyTypesOverview = () => {
                   />
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">
+              <h3 className="text-xl font-bold text-white mb-2">
                 {type.title}
               </h3>
             </div>

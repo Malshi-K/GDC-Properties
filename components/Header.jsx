@@ -221,7 +221,7 @@ const Header = () => {
         <div
           className={`${
             shouldShowSolidHeader
-              ? "px-4 md:px-6"
+              ? "px-10 md:px-20"
               : "bg-white/20 rounded-full shadow-md px-4 md:px-6 mx-2 sm:mx-4"
           } transition-all`}
         >
