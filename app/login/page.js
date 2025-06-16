@@ -30,24 +30,46 @@ function LoginForm() {
   }, [resetSuccess]);
 
   useEffect(() => {
-    const checkSession = async () => {
+    const clearStaleData = async () => {
       const resetSuccess = searchParams?.get("reset") === "success";
+      const clearFlag = searchParams?.get("clear") === "true";
 
       if (resetSuccess) {
-        await supabase.auth.signOut();
+        console.log("Password reset detected, clearing all auth state...");
+        
+        // Clear any existing session completely
+        try {
+          await supabase.auth.signOut({ scope: 'global' });
+          
+          // Additional cleanup if clear flag is present
+          if (clearFlag) {
+            // Clear all Supabase related storage
+            const supabaseKeys = Object.keys(localStorage).filter(key => 
+              key.startsWith('sb-') || key.includes('supabase')
+            );
+            supabaseKeys.forEach(key => localStorage.removeItem(key));
+            
+            // Wait a moment for cleanup to complete
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        } catch (error) {
+          console.warn("Cleanup error:", error);
+        }
+        
         setMessage(
           "Your password has been successfully reset. Please log in with your new password."
         );
         return;
       }
 
+      // Normal session check
       const { data } = await supabase.auth.getSession();
       if (data?.session) {
         router.push("/dashboard");
       }
     };
 
-    checkSession();
+    clearStaleData();
   }, [router, searchParams]);
 
   const togglePasswordVisibility = () => {
@@ -61,7 +83,7 @@ function LoginForm() {
 
     try {
       console.log("Attempting to sign in with email:", email);
-
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -82,18 +104,16 @@ function LoginForm() {
           .eq("id", data.user.id)
           .single();
 
-        if (profileError && profileError.code !== "PGRST116") {
+        if (profileError && profileError.code !== 'PGRST116') {
           console.error("Profile error:", profileError);
-
+          
           // Try to create profile if it doesn't exist
-          const { error: upsertError } = await supabase
-            .from("profiles")
-            .upsert({
-              id: data.user.id,
-              role: data.user.user_metadata?.role || "user",
-              full_name: data.user.user_metadata?.full_name || "",
-            });
-
+          const { error: upsertError } = await supabase.from("profiles").upsert({
+            id: data.user.id,
+            role: data.user.user_metadata?.role || "user",
+            full_name: data.user.user_metadata?.full_name || "",
+          });
+          
           if (upsertError) {
             console.error("Profile creation error:", upsertError);
           }
@@ -112,16 +132,13 @@ function LoginForm() {
   }
 
   return (
-    <div className="w-full max-w-md">
+    <div className="w-full max-w-sm text-black">
       {/* Tab Headers */}
       <div className="flex mb-8">
         <button className="flex-1 pb-2 text-custom-gray border-b-2 border-custom-red font-medium">
           Sign In
         </button>
-        <Link
-          href="/signup"
-          className="flex-1 pb-2 text-gray-400 border-b border-gray-600 font-medium text-center"
-        >
+        <Link href="/signup" className="flex-1 pb-2 text-gray-400 border-b border-gray-600 font-medium text-center">
           Sign Up
         </Link>
       </div>
@@ -138,12 +155,9 @@ function LoginForm() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6 text-black">
         <div>
-          <label
-            className="block text-custom-gray text-sm mb-2"
-            htmlFor="email"
-          >
+          <label className="block text-custom-gray text-sm mb-2" htmlFor="email">
             Your email
           </label>
           <input
@@ -151,7 +165,7 @@ function LoginForm() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="your-email@gmail.com"
+            placeholder="bob.888@gmail.com"
             className="w-full px-3 py-3 bg-transparent border border-gray-600 rounded-full text-custom-gray placeholder-gray-500 focus:outline-none focus:border-custom-red"
             required
             disabled={loading}
@@ -159,10 +173,7 @@ function LoginForm() {
         </div>
 
         <div>
-          <label
-            className="block text-custom-gray text-sm mb-2"
-            htmlFor="password"
-          >
+          <label className="block text-custom-gray text-sm mb-2" htmlFor="password">
             Your password
           </label>
           <div className="relative">
@@ -222,7 +233,7 @@ function LoginForm() {
               onChange={(e) => setKeepLoggedIn(e.target.checked)}
               className="mr-2 rounded"
             />
-            <span className="text-custom-gray text-sm">Keep me logged in</span>
+            <span className="text-gray-500 text-sm">Keep me logged in</span>
           </label>
           <Link
             href="/forgot-password"
@@ -246,16 +257,18 @@ function LoginForm() {
             "SIGN IN"
           )}
         </button>
+
+        
       </form>
+
+      
     </div>
   );
 }
 
 // Loading fallback for Suspense
 function LoginFormLoading() {
-  return (
-    <div className="p-4 text-center text-white">Loading login form...</div>
-  );
+  return <div className="p-4 text-center text-white">Loading login form...</div>;
 }
 
 // Main page component
@@ -279,17 +292,15 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white relative">
         {/* Logo above form */}
         <div className="mb-8">
-          <Link href="/">
-            <Image
-              src="/images/logo.png"
-              alt="GDC Properties"
-              width={200}
-              height={120}
-              className="h-20 w-auto object-contain"
-            />
-          </Link>
+          <Image
+            src="/images/logo.png"
+            alt="GDC Properties"
+            width={200}
+            height={120}
+            className="h-20 w-auto object-contain"
+          />
         </div>
-
+        
         <Suspense fallback={<LoginFormLoading />}>
           <LoginForm />
         </Suspense>
