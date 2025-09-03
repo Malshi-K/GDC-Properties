@@ -1,6 +1,7 @@
 // components/dashboards/user/ViewingRequestsTab.js
 // This component is designed for users with 'property_seeker' role
 // to view and manage their property viewing requests
+'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
