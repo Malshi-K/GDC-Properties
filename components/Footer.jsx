@@ -38,7 +38,7 @@ const Footer = () => {
                   href="/search"
                   className="text-white hover:text-custom-yellow transition-colors duration-200"
                 >
-                  Search
+                  For Rent
                 </Link>
               </li>
               <li>
@@ -87,7 +87,7 @@ const Footer = () => {
                     href="/signup"
                     className="text-white hover:text-custom-yellow transition-colors duration-200"
                   >
-                    Sign-in
+                    Sign Up for Tenant Portal
                   </Link>
                 </li>
               </ul>

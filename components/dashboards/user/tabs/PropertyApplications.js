@@ -1,10 +1,8 @@
-// components/dashboards/user/PropertyApplications.js
-// This component is designed for users with 'property_seeker' role
-// to view and manage their rental applications
-
+// components/dashboards/user/tabs/PropertyApplications.js
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { formatPrice, formatDate } from "@/lib/utils/formatters";
 import { supabase } from "@/lib/supabase";
 import { toast } from "react-hot-toast";
@@ -14,8 +12,9 @@ const PropertyApplications = ({
   applications = [],
   setApplications,
   loading = false,
-  onRefresh, // Add onRefresh prop for triggering data refresh
+  onRefresh,
 }) => {
+  const router = useRouter();
   const [withdrawingId, setWithdrawingId] = useState(null);
   const [expandedApplication, setExpandedApplication] = useState(null);
   const { propertyImages, loadPropertyImage, isPropertyImageLoading, preloadPropertiesImages } = useImageLoader();
@@ -26,7 +25,6 @@ const PropertyApplications = ({
     
     return applications.map(application => ({
       ...application,
-      // Handle both direct property data and nested property object
       property_title: application.properties?.title || application.property_title || 'Unknown Property',
       property_location: application.properties?.location || application.property_location || 'Unknown Location',
       property_price: application.properties?.price || application.property_price || 0,
@@ -34,7 +32,7 @@ const PropertyApplications = ({
     }));
   }, [applications]);
 
-  // Enhanced properties data for image loading - extract properties from applications
+  // Properties data for image loading
   const propertiesForImageLoading = useMemo(() => {
     if (!Array.isArray(enhancedApplications)) return [];
     
@@ -49,46 +47,34 @@ const PropertyApplications = ({
       .filter(property => property.owner_id && property.images && property.images.length > 0);
   }, [enhancedApplications]);
 
-  // Load property images using the imageLoader service
+  // Load property images
   useEffect(() => {
     if (!loading && propertiesForImageLoading.length > 0) {
-      console.log('🖼️ Loading images for application properties:', propertiesForImageLoading.map(p => p.id));
-      
-      // Load individual images for properties that need them
       propertiesForImageLoading.forEach(property => {
         if (!propertyImages[property.id] && !isPropertyImageLoading(property.id)) {
           loadPropertyImage(property.id, property.owner_id, property.images[0]);
         }
       });
-      
-      // Optional: Preload remaining images in batches for better UX
-      const unloadedProperties = propertiesForImageLoading.filter(
-        property => !propertyImages[property.id] && !isPropertyImageLoading(property.id)
-      );
-      
-      if (unloadedProperties.length > 0) {
-        // Small delay to avoid overwhelming the system
-        setTimeout(() => {
-          preloadPropertiesImages(unloadedProperties);
-        }, 100);
-      }
     }
-  }, [
-    loading,
-    propertiesForImageLoading,
-    propertyImages,
-    isPropertyImageLoading,
-    loadPropertyImage,
-    preloadPropertiesImages
-  ]);
+  }, [loading, propertiesForImageLoading, propertyImages, isPropertyImageLoading, loadPropertyImage]);
 
-  // Check if any images are still loading
-  const someImagesLoading = useMemo(() => {
-    return propertiesForImageLoading.some(property => isPropertyImageLoading(property.id));
-  }, [propertiesForImageLoading, isPropertyImageLoading]);
+  // Enhanced status badge that includes payment status
+  const getStatusBadge = (status, paymentStatus) => {
+    // Handle payment-specific statuses
+    if (status === 'payment_pending') {
+      return {
+        className: "bg-blue-100 text-blue-800",
+        text: "Payment Pending",
+      };
+    }
+    
+    if (status === 'completed') {
+      return {
+        className: "bg-green-100 text-green-800",
+        text: "Completed",
+      };
+    }
 
-  // Get the appropriate status badge based on the status
-  const getStatusBadge = (status) => {
     switch (status) {
       case "approved":
         return {
@@ -118,16 +104,17 @@ const PropertyApplications = ({
     }
   };
 
-  // Toggle expanded view for an application
-  const toggleExpand = (applicationId) => {
-    if (expandedApplication === applicationId) {
-      setExpandedApplication(null);
-    } else {
-      setExpandedApplication(applicationId);
-    }
+  // Handle payment navigation
+  const handleProceedToPayment = (applicationId) => {
+    router.push(`/payment/${applicationId}`);
   };
 
-  // Handle application withdrawal - available for property_seeker users
+  // Toggle expanded view
+  const toggleExpand = (applicationId) => {
+    setExpandedApplication(expandedApplication === applicationId ? null : applicationId);
+  };
+
+  // Handle application withdrawal
   const handleWithdraw = async (applicationId, e) => {
     if (e) e.stopPropagation();
 
@@ -141,7 +128,6 @@ const PropertyApplications = ({
 
       if (error) throw error;
 
-      // Update the local state if setApplications is provided
       if (setApplications) {
         setApplications(
           applications.map((application) =>
@@ -152,11 +138,7 @@ const PropertyApplications = ({
         );
       }
 
-      // Call onRefresh if provided to refresh data from global context
-      if (onRefresh) {
-        onRefresh();
-      }
-
+      if (onRefresh) onRefresh();
       toast.success("Application withdrawn successfully");
     } catch (error) {
       console.error("Error withdrawing application:", error);
@@ -166,43 +148,25 @@ const PropertyApplications = ({
     }
   };
 
-  // Handle editing an application - available for property_seeker users
-  const handleEditApplication = (applicationId, e) => {
-    if (e) e.stopPropagation();
+  const someImagesLoading = useMemo(() => {
+    return propertiesForImageLoading.some(property => isPropertyImageLoading(property.id));
+  }, [propertiesForImageLoading, isPropertyImageLoading]);
 
-    // This would navigate to an edit page or open a modal
-    // For now we'll just show a toast
-    toast.info("Feature coming soon: Edit Application");
-  };
-
-  // Updated loading state - combines parent loading and image loading
   const isLoading = loading || someImagesLoading;
 
   if (isLoading && (!enhancedApplications || enhancedApplications.length === 0)) {
     return (
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">
-            My Property Applications
-          </h2>
+          <h2 className="text-2xl font-bold text-gray-900">My Property Applications</h2>
           {onRefresh && (
             <button
               onClick={onRefresh}
               disabled={loading}
               className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red disabled:opacity-50"
             >
-              <svg
-                className={`-ml-0.5 mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
+              <svg className={`-ml-0.5 mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
               Refresh
             </button>
@@ -218,27 +182,15 @@ const PropertyApplications = ({
   return (
     <div className="max-w-6xl mx-auto text-gray-600">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">
-          My Property Applications
-        </h2>
+        <h2 className="text-2xl font-bold text-gray-900">My Property Applications</h2>
         {onRefresh && (
           <button
             onClick={onRefresh}
             disabled={loading}
             className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red disabled:opacity-50"
           >
-            <svg
-              className={`-ml-0.5 mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
+            <svg className={`-ml-0.5 mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
             Refresh
           </button>
@@ -248,31 +200,12 @@ const PropertyApplications = ({
       {!enhancedApplications || enhancedApplications.length === 0 ? (
         <div className="bg-white shadow rounded-lg p-8 text-center">
           <div className="flex flex-col items-center">
-            <div className="mb-4">
-              <svg
-                className="h-12 w-12 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.5"
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-1">
-              No applications
-            </h3>
-            <p className="text-gray-500 mb-4">
-              You haven't applied for any properties yet.
-            </p>
-            <Link
-              href="/search"
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-red hover:bg-red-700"
-            >
+            <svg className="h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <h3 className="text-lg font-medium text-gray-900 mb-1">No applications</h3>
+            <p className="text-gray-500 mb-4">You haven't applied for any properties yet.</p>
+            <Link href="/search" className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-red hover:bg-red-700">
               Browse Properties
             </Link>
           </div>
@@ -280,95 +213,127 @@ const PropertyApplications = ({
       ) : (
         <div className="space-y-4">
           {enhancedApplications.map((application) => {
-            const statusBadge = getStatusBadge(application.status);
+            const statusBadge = getStatusBadge(application.status, application.payment_status);
             const isExpanded = expandedApplication === application.id;
-            
-            // Get property image and loading state from imageLoader
             const propertyImage = propertyImages[application.property_id];
             const imageLoading = isPropertyImageLoading(application.property_id);
 
             return (
-              <div
-                key={application.id}
-                className="bg-white shadow rounded-lg overflow-hidden border border-gray-200"
-              >
-                {/* Compact View - Always visible */}
-                <div
-                  className="p-4 cursor-pointer hover:bg-gray-50 transition-colors duration-150"
-                  onClick={() => toggleExpand(application.id)}
-                >
+              <div key={application.id} className="bg-white shadow rounded-lg overflow-hidden border border-gray-200">
+                {/* Payment Success/Pending/Approved Banners */}
+                {application.status === "approved" && application.payment_status !== "completed" && (
+                  <div className="bg-green-50 border-l-4 border-green-400 p-4">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3 flex-1">
+                        <h3 className="text-sm font-medium text-green-800">Application Approved! 🎉</h3>
+                        <div className="mt-2 text-sm text-green-700">
+                          <p>Congratulations! Your application has been approved. Complete the payment process to secure your rental.</p>
+                        </div>
+                        <div className="mt-4">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleProceedToPayment(application.id);
+                            }}
+                            className="bg-green-100 px-4 py-2 rounded-md text-sm font-medium text-green-800 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                          >
+                            Proceed to Payment
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {application.status === "payment_pending" && (
+                  <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-blue-800">Payment in Progress 💳</h3>
+                        <div className="mt-2 text-sm text-blue-700">
+                          <p>Your payment is being processed. You will receive a confirmation once completed.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {application.status === "completed" && application.payment_status === "completed" && (
+                  <div className="bg-green-50 border-l-4 border-green-400 p-4">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-green-800">Payment Completed Successfully! ✅</h3>
+                        <div className="mt-2 text-sm text-green-700">
+                          <p>Your rental application has been completed and payment processed. Welcome to your new home!</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Compact View */}
+                <div className="p-4 cursor-pointer hover:bg-gray-50 transition-colors duration-150" onClick={() => toggleExpand(application.id)}>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between">
                     <div className="flex items-center space-x-3 mb-2 sm:mb-0">
                       <div className="h-12 w-12 bg-gray-200 rounded-md overflow-hidden flex-shrink-0">
-                        {/* Enhanced image handling with loading state */}
                         {imageLoading ? (
                           <div className="flex items-center justify-center h-full w-full">
                             <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-custom-red"></div>
                           </div>
                         ) : propertyImage ? (
                           <div className="relative h-full w-full">
-                            <Image
-                              src={propertyImage}
-                              alt={application.property_title || "Property"}
-                              fill
-                              className="object-cover"
-                              sizes="48px"
-                              priority={false}
-                              loading="lazy"
-                            />
+                            <Image src={propertyImage} alt={application.property_title || "Property"} fill className="object-cover" sizes="48px" priority={false} loading="lazy" />
                           </div>
                         ) : (
                           <div className="flex items-center justify-center h-full w-full">
-                            <svg
-                              className="h-6 w-6 text-gray-400"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                              />
+                            <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                             </svg>
                           </div>
                         )}
                       </div>
                       <div>
-                        <h3 className="font-medium text-gray-900">
-                          {application.property_title}
-                        </h3>
+                        <h3 className="font-medium text-gray-900">{application.property_title}</h3>
                         <p className="text-sm text-gray-500">
-                          Applied on{" "}
-                          {formatDate
-                            ? formatDate(application.created_at)
-                            : new Date(
-                                application.created_at
-                              ).toLocaleDateString()}
+                          Applied on {formatDate ? formatDate(application.created_at) : new Date(application.created_at).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-4">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadge.className}`}
-                      >
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadge.className}`}>
                         {statusBadge.text}
                       </span>
-                      <svg
-                        className={`h-5 w-5 text-gray-400 transform transition-transform duration-200 ${
-                          isExpanded ? "rotate-180" : "rotate-0"
-                        }`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M19 9l-7 7-7-7"
-                        />
+                      
+                      {/* Payment button for approved applications */}
+                      {application.status === "approved" && application.payment_status !== "completed" && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleProceedToPayment(application.id);
+                          }}
+                          className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700"
+                        >
+                          Pay Now
+                        </button>
+                      )}
+
+                      <svg className={`h-5 w-5 text-gray-400 transform transition-transform duration-200 ${isExpanded ? "rotate-180" : "rotate-0"}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                       </svg>
                     </div>
                   </div>
@@ -379,46 +344,22 @@ const PropertyApplications = ({
                   <div className="border-t border-gray-200">
                     <div className="p-4">
                       <div className="flex flex-col md:flex-row gap-6">
-                        {/* Property Image - Larger in expanded view */}
+                        {/* Property Image */}
                         <div className="w-full md:w-1/3 h-48 md:h-auto rounded-lg overflow-hidden bg-gray-100">
-                          {/* Enhanced large image handling with loading state */}
                           {imageLoading ? (
                             <div className="w-full h-48 md:h-64 flex items-center justify-center">
                               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
                             </div>
                           ) : propertyImage ? (
                             <div className="relative w-full h-48 md:h-64">
-                              <Image
-                                src={propertyImage}
-                                alt={application.property_title || "Property Image"}
-                                fill
-                                className="object-cover"
-                                sizes="(max-width: 768px) 100vw, 33vw"
-                                priority={false}
-                                loading="lazy"
-                              />
+                              <Image src={propertyImage} alt={application.property_title || "Property Image"} fill className="object-cover" sizes="(max-width: 768px) 100vw, 33vw" priority={false} loading="lazy" />
                             </div>
                           ) : (
                             <div className="w-full h-48 md:h-64 flex items-center justify-center bg-gray-200 text-gray-400">
                               <div className="text-center">
-                                <svg
-                                  className="h-12 w-12 mx-auto mb-2"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="1"
-                                    d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                                  />
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="1"
-                                    d="M9 22V12h6v10"
-                                  />
+                                <svg className="h-12 w-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 22V12h6v10" />
                                 </svg>
                                 <p className="text-sm">No image available</p>
                               </div>
@@ -430,133 +371,62 @@ const PropertyApplications = ({
                         <div className="w-full md:w-2/3">
                           <div className="mb-4">
                             <h3 className="text-xl font-semibold text-gray-900 mb-1">
-                              <Link
-                                href={`/properties/${application.property_id}`}
-                                className="hover:text-custom-red"
-                              >
+                              <Link href={`/properties/${application.property_id}`} className="hover:text-custom-red">
                                 {application.property_title}
                               </Link>
                             </h3>
-                            <p className="text-gray-600 mb-2">
-                              {application.property_location}
-                            </p>
+                            <p className="text-gray-600 mb-2">{application.property_location}</p>
                             <p className="text-custom-red font-bold">
-                              {typeof formatPrice === "function"
-                                ? formatPrice(application.property_price)
-                                : `$${
-                                    application.property_price?.toLocaleString() ||
-                                    "Price not available"
-                                  }`}
+                              {typeof formatPrice === "function" ? formatPrice(application.property_price) : `$${application.property_price?.toLocaleString() || "Price not available"}`}
                             </p>
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                             <div>
-                              <p className="text-sm font-medium text-gray-500">
-                                Employment Status
-                              </p>
-                              <p className="font-medium">
-                                {application.employment_status}
-                              </p>
+                              <p className="text-sm font-medium text-gray-500">Employment Status</p>
+                              <p className="font-medium">{application.employment_status}</p>
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-gray-500">
-                                Annual Income
-                              </p>
-                              <p className="font-medium">
-                                ${parseInt(application.income).toLocaleString()}
-                              </p>
+                              <p className="text-sm font-medium text-gray-500">Annual Income</p>
+                              <p className="font-medium">${parseInt(application.income).toLocaleString()}</p>
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-gray-500">
-                                Credit Score
-                              </p>
-                              <p className="font-medium">
-                                {application.credit_score}
-                              </p>
+                              <p className="text-sm font-medium text-gray-500">Credit Score</p>
+                              <p className="font-medium">{application.credit_score}</p>
                             </div>
                           </div>
 
                           {application.message && (
                             <div className="mb-4">
-                              <p className="text-sm font-medium text-gray-500">
-                                Your Message
-                              </p>
-                              <p className="mt-1 p-3 bg-gray-50 rounded-md">
-                                {application.message}
-                              </p>
+                              <p className="text-sm font-medium text-gray-500">Your Message</p>
+                              <p className="mt-1 p-3 bg-gray-50 rounded-md">{application.message}</p>
                             </div>
                           )}
 
-                          <div className="border-t border-gray-100 pt-4 mt-4">
-                            <div className="mb-4">
-                              <p className="text-sm font-medium text-gray-500">
-                                Application Timeline
-                              </p>
-                              <div className="mt-2 space-y-2">
-                                <div className="flex items-center">
-                                  <div className="w-8 flex-shrink-0 text-gray-400">
-                                    <svg
-                                      className="h-5 w-5"
-                                      fill="none"
-                                      viewBox="0 0 24 24"
-                                      stroke="currentColor"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                      />
+                          {/* Payment Status Section */}
+                          {(application.payment_status && application.payment_status !== 'not_required') && (
+                            <div className="mb-4 p-3 bg-gray-50 rounded-md">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <p className="text-sm font-medium text-gray-500">Payment Status</p>
+                                  <p className="font-medium">
+                                    {application.payment_status === 'completed' ? 'Payment Completed' : 
+                                     application.payment_status === 'pending' ? 'Payment Pending' : 
+                                     application.payment_status.charAt(0).toUpperCase() + application.payment_status.slice(1)}
+                                  </p>
+                                </div>
+                                {application.payment_status === 'completed' && (
+                                  <div className="text-green-600">
+                                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                   </div>
-                                  <div>
-                                    <p className="text-sm text-gray-600">
-                                      Applied on{" "}
-                                      {formatDate
-                                        ? formatDate(application.created_at)
-                                        : new Date(
-                                            application.created_at
-                                          ).toLocaleDateString()}
-                                    </p>
-                                  </div>
-                                </div>
-                                {application.updated_at &&
-                                  application.updated_at !==
-                                    application.created_at && (
-                                    <div className="flex items-center">
-                                      <div className="w-8 flex-shrink-0 text-gray-400">
-                                        <svg
-                                          className="h-5 w-5"
-                                          fill="none"
-                                          viewBox="0 0 24 24"
-                                          stroke="currentColor"
-                                        >
-                                          <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth="2"
-                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                          />
-                                        </svg>
-                                      </div>
-                                      <div>
-                                        <p className="text-sm text-gray-600">
-                                          Last updated on{" "}
-                                          {formatDate
-                                            ? formatDate(application.updated_at)
-                                            : new Date(
-                                                application.updated_at
-                                              ).toLocaleDateString()}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  )}
+                                )}
                               </div>
                             </div>
-                          </div>
+                          )}
 
-                          {/* Action buttons - Available for property_seeker users */}
+                          {/* Action buttons */}
                           <div className="flex flex-wrap justify-end gap-2 mt-4">
                             <Link
                               href={`/properties/${application.property_id}`}
@@ -566,29 +436,35 @@ const PropertyApplications = ({
                               View Property
                             </Link>
 
-                            {/* Only show edit/withdraw actions for pending applications */}
+                            {/* Payment button for approved applications */}
+                            {application.status === "approved" && application.payment_status !== "completed" && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleProceedToPayment(application.id);
+                                }}
+                                className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700"
+                              >
+                                Pay Now
+                              </button>
+                            )}
+
+                            {/* Show withdraw button only for pending applications */}
                             {application.status === "pending" && (
-                              <>
-                                <button
-                                  onClick={(e) =>
-                                    handleEditApplication(application.id, e)
-                                  }
-                                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                                >
-                                  Edit Application
-                                </button>
-                                <button
-                                  onClick={(e) =>
-                                    handleWithdraw(application.id, e)
-                                  }
-                                  disabled={withdrawingId === application.id}
-                                  className="px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50 disabled:opacity-50"
-                                >
-                                  {withdrawingId === application.id
-                                    ? "Withdrawing..."
-                                    : "Withdraw"}
-                                </button>
-                              </>
+                              <button
+                                onClick={(e) => handleWithdraw(application.id, e)}
+                                disabled={withdrawingId === application.id}
+                                className="px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50 disabled:opacity-50"
+                              >
+                                {withdrawingId === application.id ? "Withdrawing..." : "Withdraw"}
+                              </button>
+                            )}
+
+                            {/* Show completion status for completed applications */}
+                            {application.status === "completed" && (
+                              <div className="px-4 py-2 bg-green-100 text-green-800 rounded-md text-sm font-medium">
+                                ✓ Rental Complete
+                              </div>
                             )}
                           </div>
                         </div>

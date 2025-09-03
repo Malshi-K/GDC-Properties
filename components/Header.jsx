@@ -201,7 +201,8 @@ const Header = () => {
     pathname.startsWith("/signup") ||
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password") ||
-    pathname.startsWith("/dashboard")
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/payment/")
   ) {
     return null;
   }
@@ -274,7 +275,7 @@ const Header = () => {
                   {isActive("/search") && (
                     <div className="absolute top-0 left-0 right-0 h-1 bg-custom-red rounded-b-sm"></div>
                   )}
-                  Search
+                  For Rent
                 </Link>
 
                 <Link
@@ -365,7 +366,7 @@ const Header = () => {
                   href="/login"
                   className="bg-custom-red text-white px-4 lg:px-6 py-2 rounded-full hover:bg-opacity-90 transition-colors text-sm lg:text-lg whitespace-nowrap"
                 >
-                  Sign In
+                  Tenant Portal
                 </Link>
               )}
             </div>
@@ -411,7 +412,7 @@ const Header = () => {
                   }`}
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Search
+                  For Rent
                 </Link>
 
                 <Link
@@ -472,7 +473,7 @@ const Header = () => {
                       className="block w-full text-center bg-custom-red text-white px-6 py-2 rounded-full hover:bg-opacity-90 transition-colors"
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      Sign In
+                      Tenant Portal
                     </Link>
                   )}
                 </div>

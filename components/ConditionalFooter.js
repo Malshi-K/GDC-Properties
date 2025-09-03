@@ -11,7 +11,8 @@ export default function ConditionalFooter() {
     "/dashboard",
     "/login", 
     "/signup",
-    "/forgot-password"
+    "/forgot-password",
+    "/payment/"
   ];
 
   // Check if current path should hide footer

@@ -30,6 +30,7 @@ import SavedProperties from "@/components/dashboards/user/tabs/SavedProperties";
 import AdminUsersTab from "@/components/dashboards/admin/tabs/AdminUsersTab";
 import AdminPropertiesTab from "@/components/dashboards/admin/tabs/AdminPropertiesTab";
 import AdminAnalyticsTab from "@/components/dashboards/admin/tabs/AdminAnalyticsTab";
+import PaymentsTab from "@/components/dashboards/owner/tabs/PaymentsTab";
 
 // Cache TTL constants
 const CACHE_TTL = {
@@ -78,7 +79,9 @@ export default function Dashboard() {
   const [currentProperties, setCurrentProperties] = useState([]);
   const [currentViewingRequests, setCurrentViewingRequests] = useState([]);
   const [currentApplications, setCurrentApplications] = useState([]);
-  const [currentUserViewingRequests, setCurrentUserViewingRequests] = useState([]);
+  const [currentUserViewingRequests, setCurrentUserViewingRequests] = useState(
+    []
+  );
   const [currentUserApplications, setCurrentUserApplications] = useState([]);
   const [currentUserFavorites, setCurrentUserFavorites] = useState([]);
 
@@ -1218,6 +1221,14 @@ export default function Dashboard() {
                   onRefresh={() => {
                     invalidateCache(`owner_applications_${user.id}`);
                     getRentalApplications();
+                  }}
+                />
+              )}
+
+              {activeTab === "payments" && (
+                <PaymentsTab
+                  onRefresh={() => {
+                    invalidateCache(`owner_payments_${user.id}`);
                   }}
                 />
               )}

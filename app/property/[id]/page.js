@@ -903,7 +903,7 @@ export default function PropertyDetails() {
                   className="w-full bg-custom-red hover:bg-red-700 text-white font-medium py-2 px-4 rounded-full transition-colors duration-300 mb-3"
                   disabled={property.status !== "available"}
                 >
-                  Schedule a Tour
+                  Book Viewing
                 </button>
 
                 <button

@@ -25,31 +25,20 @@ export default function ConsultServices() {
         <div className="relative z-10 flex items-center justify-center min-h-[500px] p-8 md:p-16">
           <div className="text-center max-w-4xl">
             <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white">
-              Find your dream property <br />
-              <span className="text-custom-red">with us today!</span>
+              What's your property worth?<br />              
             </h2>
 
             <p className="text-white/90 mb-10 text-lg md:text-xl leading-relaxed max-w-3xl mx-auto">
-              At GDC Properties, we understand that buying or selling a home is
-              one of life's biggest decisions. Our experienced agents are
-              dedicated to providing exceptional service tailored to your unique
-              needs and preferences.
+              Our appraisals are free and can be carried out in person or virtually.
             </p>
 
             {/* Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link
-                href="/search"
-                className="bg-white hover:bg-gray-100 text-custom-gray px-8 py-4 rounded-full flex items-center justify-center transition duration-300 font-semibold text-lg min-w-[200px]"
-              >
-                <span>View Properties</span>
-              </Link>
-
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">              
               <Link
                 href="/contact"
                 className="bg-custom-red hover:bg-red-700 text-white px-8 py-4 rounded-full flex items-center justify-center transition duration-300 font-semibold text-lg min-w-[200px]"
               >
-                <span className="mr-2">Contact Us</span>
+                <span className="mr-2">Book Appraisal</span>
                 <FaArrowRight className="text-white" />
               </Link>
             </div>
