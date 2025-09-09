@@ -1,27 +1,22 @@
-"use client";
+// components/Header.js
+'use client';
 
 import React, { useState, useEffect, useRef } from "react";
-import { Menu, X, ChevronDown, ChevronUp, User } from "lucide-react";
+import { Menu, X, ChevronDown, User } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Header = () => {
   const pathname = usePathname();
   const router = useRouter();
+  const { user, profile: userProfile, userRole, signOut } = useAuth();
+  
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileDropdownOpen, setIsMobileDropdownOpen] = useState(false);
-  const [windowWidth, setWindowWidth] = useState(
-    typeof window !== "undefined" ? window.innerWidth : 0
-  );
-
-  // Authentication states
-  const [user, setUser] = useState(null);
-  const [userRole, setUserRole] = useState(null);
+  const [windowWidth, setWindowWidth] = useState(0);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [userProfile, setUserProfile] = useState(null);
 
   // Ref for the dropdown container to handle hover events
   const dropdownRef = useRef(null);
@@ -30,79 +25,9 @@ const Header = () => {
   // Check if we're on a property detail page
   const isPropertyDetailPage = pathname.startsWith("/property/");
 
-  // Check for authenticated user on load
-  useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        setUser(session.user);
-        await getUserRole(session.user.id);
-        await getUserProfile(session.user.id);
-      } else {
-        setUser(null);
-        setUserRole(null);
-        setUserProfile(null);
-      }
-    });
-
-    // Get initial session
-    const getInitialSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser(session.user);
-        await getUserRole(session.user.id);
-        await getUserProfile(session.user.id);
-      }
-    };
-
-    getInitialSession();
-
-    return () => {
-      subscription?.unsubscribe();
-    };
-  }, []);
-
-  // Get user role from profiles table
-  const getUserRole = async (userId) => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", userId)
-        .single();
-
-      if (error) throw error;
-
-      setUserRole(data.role);
-      console.log("User role retrieved:", data.role);
-    } catch (error) {
-      console.error("Error fetching user role:", error);
-    }
-  };
-
-  // Get user profile data
-  const getUserProfile = async (userId) => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
-
-      if (error) throw error;
-
-      setUserProfile(data);
-    } catch (error) {
-      console.error("Error fetching user profile:", error);
-    }
-  };
-
   // Handle sign out
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     setUserMenuOpen(false);
     router.push("/");
   };
@@ -115,7 +40,6 @@ const Header = () => {
 
   // Hover handlers for dropdown
   const handleMouseEnter = () => {
-    // Clear any existing timeout
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);
       hoverTimeoutRef.current = null;
@@ -124,10 +48,9 @@ const Header = () => {
   };
 
   const handleMouseLeave = () => {
-    // Add a small delay before closing to prevent flickering
     hoverTimeoutRef.current = setTimeout(() => {
       setUserMenuOpen(false);
-    }, 150); // 150ms delay - adjust as needed
+    }, 150);
   };
 
   // Clean up timeout on unmount
@@ -151,13 +74,11 @@ const Header = () => {
     if (typeof window !== "undefined") {
       setWindowWidth(window.innerWidth);
       window.addEventListener("resize", handleResize);
-    }
-
-    return () => {
-      if (typeof window !== "undefined") {
+      
+      return () => {
         window.removeEventListener("resize", handleResize);
-      }
-    };
+      };
+    }
   }, []);
 
   useEffect(() => {
@@ -171,19 +92,16 @@ const Header = () => {
     if (typeof window !== "undefined") {
       window.addEventListener("scroll", handleScroll);
       handleScroll();
-    }
-
-    return () => {
-      if (typeof window !== "undefined") {
+      
+      return () => {
         window.removeEventListener("scroll", handleScroll);
-      }
-    };
+      };
+    }
   }, []);
 
   // Close mobile menu when navigating to a new page
   useEffect(() => {
     setIsMenuOpen(false);
-    setIsMobileDropdownOpen(false);
     setUserMenuOpen(false);
   }, [pathname]);
 
@@ -330,7 +248,7 @@ const Header = () => {
                   >
                     <User size={24} />
                     <span className="text-sm">
-                      {userProfile?.full_name || user.email.split("@")[0]}
+                      {userProfile?.full_name || user.email?.split("@")[0] || "User"}
                     </span>
                     <div className={`transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : 'rotate-0'}`}>
                       <ChevronDown size={16} />
@@ -445,7 +363,7 @@ const Header = () => {
                       <div className="px-3 py-2 text-sm text-gray-700 border-b">
                         Signed in as{" "}
                         <span className="font-medium">
-                          {userProfile?.full_name || user.email}
+                          {userProfile?.full_name || user.email || "User"}
                         </span>
                       </div>
                       <button
