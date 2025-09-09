@@ -269,6 +269,42 @@ export function AuthProvider({ children }) {
     }
   };
 
+  
+
+  // Sign in with email + password
+  const signIn = async (email, password) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      // Ensure profile exists
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
+
+      if (profileError && profileError.code === "PGRST116") {
+        // Profile not found → create it
+        const { error: upsertError } = await supabase.from("profiles").upsert({
+          id: data.user.id,
+          role: data.user.user_metadata?.role || "user",
+          full_name: data.user.user_metadata?.full_name || "",
+        });
+        if (upsertError) throw upsertError;
+      }
+
+      return { user: data.user, error: null };
+    } catch (err) {
+      console.error("Sign in error:", err);
+      return { user: null, error: err };
+    }
+  };
+
   // Sign out function
   const signOut = async () => {
     try {
@@ -341,12 +377,53 @@ export function AuthProvider({ children }) {
     return userRole === role;
   };
 
+  // Update a user's role
+  const updateUserRole = async (userId, newRole) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          role: newRole,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      // If the role change is for the current logged-in user, update state
+      if (user?.id === userId) {
+        setUserRole(newRole);
+        setProfile((prev) => (prev ? { ...prev, role: newRole } : prev));
+      }
+
+      return { success: true, error: null };
+    } catch (err) {
+      console.error("Error updating user role:", err.message);
+      return { success: false, error: err };
+    }
+  };
+
+  // Reset password for a given email
+  const resetPassword = async (email) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      return { success: true, error: null };
+    } catch (err) {
+      console.error("Error resetting password:", err.message);
+      return { success: false, error: err };
+    }
+  };
+
   // Provide context values
   const value = {
     user,
     profile,
     userRole,
     isLoading,
+    signIn,
     signOut,
     refreshProfile,
     updateProfile,
@@ -354,6 +431,8 @@ export function AuthProvider({ children }) {
     navigateToDashboard,
     hasRole,
     getProfileImageUrl,
+    updateUserRole,
+    resetPassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

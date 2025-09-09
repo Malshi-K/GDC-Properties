@@ -386,6 +386,27 @@ export function GlobalDataProvider({ children }) {
     console.log("Cleared all cache");
   }, []);
 
+    // Remove favorite helper
+  const removeFavorite = async (favoriteId) => {
+    try {
+      const { error } = await supabase
+        .from("favorites")
+        .delete()
+        .eq("id", favoriteId);
+
+      if (error) throw error;
+
+      // Invalidate any cached favorites so fresh fetch happens
+      invalidateCache("favorites");
+
+      return { success: true, error: null };
+    } catch (err) {
+      console.error("Error removing favorite:", err.message);
+      return { success: false, error: err };
+    }
+  };
+
+
   const value = {
     data,
     loading,
@@ -398,6 +419,7 @@ export function GlobalDataProvider({ children }) {
     getProfileImageUrl,
     isProfileImageLoading,
     invalidateProfileImageCache,
+    removeFavorite,
   };
 
   return (

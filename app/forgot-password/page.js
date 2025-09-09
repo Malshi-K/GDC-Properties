@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -10,6 +9,7 @@ function ForgotPasswordForm() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
+  const { resetPassword } = useAuth(); 
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -17,19 +17,15 @@ function ForgotPasswordForm() {
     setError(null);
     setMessage(null);
 
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
+    const { success, error } = await resetPassword(email);
 
-      if (error) throw error;
-
+    if (success) {
       setMessage("Password reset instructions sent to your email!");
-    } catch (error) {
+    } else {
       setError(error.message);
-    } finally {
-      setLoading(false);
     }
+
+    setLoading(false);
   }
 
   return (

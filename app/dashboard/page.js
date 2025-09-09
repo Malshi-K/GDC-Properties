@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useGlobalData } from "@/contexts/GlobalDataContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { toast } from "react-hot-toast";
-import { supabase } from "@/lib/supabase";
 
 // Import services
 import { propertyService } from "@/lib/services/propertyService";
@@ -66,6 +65,8 @@ const isUser = (role) => {
 };
 
 export default function Dashboard() {
+  const { updateUserRole } = useAuth();
+  const { removeFavorite } = useGlobalData();
   const { user, profile, userRole } = useAuth();
   const { fetchData, updateData, invalidateCache, loading, data } =
     useGlobalData();
@@ -292,27 +293,31 @@ export default function Dashboard() {
   };
 
   // Admin role update function
-  const updateUserRole = async (userId, newRole) => {
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          role: newRole,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", userId);
-      if (error) throw error;
+  // const updateUserRole = async (userId, newRole) => {
+  //   try {
+  //     const { error } = await supabase
+  //       .from("profiles")
+  //       .update({
+  //         role: newRole,
+  //         updated_at: new Date().toISOString(),
+  //       })
+  //       .eq("id", userId);
+  //     if (error) throw error;
 
-      // Invalidate admin cache
-      invalidateCache("admin_all_users");
+  //     // Invalidate admin cache
+  //     invalidateCache("admin_all_users");
 
-      toast.success(`User role updated to ${newRole} successfully!`);
-      return true;
-    } catch (error) {
-      console.error("Error updating user role:", error);
-      toast.error("Failed to update user role");
-      return false;
-    }
+  //     toast.success(`User role updated to ${newRole} successfully!`);
+  //     return true;
+  //   } catch (error) {
+  //     console.error("Error updating user role:", error);
+  //     toast.error("Failed to update user role");
+  //     return false;
+  //   }
+  // };
+  const handleRoleChange = async () => {
+    const result = await updateUserRole("user-id-here", "admin");
+    if (result.success) console.log("Role updated");
   };
 
   // Debug useEffect for user viewing requests
@@ -376,7 +381,7 @@ export default function Dashboard() {
   }, [userRole, user?.id, activeTab, data, loading]);
 
   // ----- DATA FETCHING FUNCTIONS USING GLOBAL CONTEXT -----
-
+  
   // Owner data functions
   const getOwnerProperties = async () => {
     if (!user) return [];
@@ -947,23 +952,27 @@ export default function Dashboard() {
   };
 
   // ----- USER FUNCTIONS -----
-  const removeFavorite = async (favoriteId) => {
-    try {
-      const { error } = await supabase
-        .from("favorites")
-        .delete()
-        .eq("id", favoriteId);
+  // const removeFavorite = async (favoriteId) => {
+  //   try {
+  //     const { error } = await supabase
+  //       .from("favorites")
+  //       .delete()
+  //       .eq("id", favoriteId);
 
-      if (error) throw error;
+  //     if (error) throw error;
 
-      // Invalidate cache
-      invalidateCache(`user_favorites_${user.id}`);
+  //     // Invalidate cache
+  //     invalidateCache(`user_favorites_${user.id}`);
 
-      toast.success("Property removed from favorites");
-    } catch (error) {
-      console.error("Error removing favorite:", error);
-      toast.error("Failed to remove property from favorites");
-    }
+  //     toast.success("Property removed from favorites");
+  //   } catch (error) {
+  //     console.error("Error removing favorite:", error);
+  //     toast.error("Failed to remove property from favorites");
+  //   }
+  // };
+  const handleRemoveFavorite = async () => {
+    const result = await removeFavorite("favorite-id-here");
+    if (result.success) console.log("Favorite removed");
   };
 
   // Function to handle user application updates
@@ -1144,7 +1153,7 @@ export default function Dashboard() {
               {/* Users Management Tab */}
               {activeTab === "users" && (
                 <AdminUsersTab
-                  onUpdateRole={updateUserRole}
+                  onUpdateRole={handleRoleChange}
                   onRefresh={() => {
                     invalidateCache("admin_all_users");
                     getAllUsers();
@@ -1283,7 +1292,7 @@ export default function Dashboard() {
                 <SavedProperties
                   favorites={getUserFavoritesData().data}
                   loadingFavorites={getUserFavoritesData().loading}
-                  onRemoveFavorite={removeFavorite}
+                  onRemoveFavorite={handleRemoveFavorite}
                   onRefresh={() => {
                     invalidateCache(`user_favorites_${user.id}`);
                     getUserFavorites();

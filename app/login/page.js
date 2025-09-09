@@ -2,13 +2,14 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { useAuth } from "@/context/AuthContext";
 
 // Create a client component that safely uses useSearchParams
 function LoginForm() {
+  const { signIn, signOut, session } = useAuth();  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,54 +24,17 @@ function LoginForm() {
 
   useEffect(() => {
     if (resetSuccess) {
-      setMessage(
-        "Your password has been successfully reset. Please log in with your new password."
-      );
+      // Clear any old session if user just reset password
+      signOut?.();
+      setMessage("Your password has been successfully reset. Please log in with your new password.");
     }
-  }, [resetSuccess]);
+  }, [resetSuccess, signOut]);
 
   useEffect(() => {
-    const clearStaleData = async () => {
-      const resetSuccess = searchParams?.get("reset") === "success";
-      const clearFlag = searchParams?.get("clear") === "true";
-
-      if (resetSuccess) {
-        console.log("Password reset detected, clearing all auth state...");
-        
-        // Clear any existing session completely
-        try {
-          await supabase.auth.signOut({ scope: 'global' });
-          
-          // Additional cleanup if clear flag is present
-          if (clearFlag) {
-            // Clear all Supabase related storage
-            const supabaseKeys = Object.keys(localStorage).filter(key => 
-              key.startsWith('sb-') || key.includes('supabase')
-            );
-            supabaseKeys.forEach(key => localStorage.removeItem(key));
-            
-            // Wait a moment for cleanup to complete
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-        } catch (error) {
-          console.warn("Cleanup error:", error);
-        }
-        
-        setMessage(
-          "Your password has been successfully reset. Please log in with your new password."
-        );
-        return;
-      }
-
-      // Normal session check
-      const { data } = await supabase.auth.getSession();
-      if (data?.session) {
-        router.push("/dashboard");
-      }
-    };
-
-    clearStaleData();
-  }, [router, searchParams]);
+    if (session) {
+      router.push("/dashboard");
+    }
+  }, [session, router]);
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -81,54 +45,15 @@ function LoginForm() {
     setLoading(true);
     setError(null);
 
-    try {
-      console.log("Attempting to sign in with email:", email);
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    const { user, error } = await signIn(email, password);
 
-      if (error) {
-        console.error("Auth error:", error);
-        throw error;
-      }
-
-      console.log("Sign in successful:", data);
-
-      // Try to get user role, but don't fail if profile doesn't exist
-      try {
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", data.user.id)
-          .single();
-
-        if (profileError && profileError.code !== 'PGRST116') {
-          console.error("Profile error:", profileError);
-          
-          // Try to create profile if it doesn't exist
-          const { error: upsertError } = await supabase.from("profiles").upsert({
-            id: data.user.id,
-            role: data.user.user_metadata?.role || "user",
-            full_name: data.user.user_metadata?.full_name || "",
-          });
-          
-          if (upsertError) {
-            console.error("Profile creation error:", upsertError);
-          }
-        }
-      } catch (profileError) {
-        console.error("Profile handling error:", profileError);
-      }
-
+    if (error) {
+      setError(error.message || "Failed to sign in");
+    } else if (user) {
       router.push("/dashboard");
-    } catch (error) {
-      console.error("Login error:", error);
-      setError(error.message || "An error occurred during login");
-    } finally {
-      setLoading(false);
     }
+
+    setLoading(false);
   }
 
   return (
@@ -138,7 +63,10 @@ function LoginForm() {
         <button className="flex-1 pb-2 text-custom-gray border-b-2 border-custom-red font-medium">
           Sign In
         </button>
-        <Link href="/signup" className="flex-1 pb-2 text-gray-400 border-b border-gray-600 font-medium text-center">
+        <Link
+          href="/signup"
+          className="flex-1 pb-2 text-gray-400 border-b border-gray-600 font-medium text-center"
+        >
           Sign Up
         </Link>
       </div>
@@ -192,35 +120,7 @@ function LoginForm() {
               className="absolute inset-y-0 right-0 pr-3 flex items-center"
               onClick={togglePasswordVisibility}
             >
-              {showPassword ? (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-gray-500"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z"
-                    clipRule="evenodd"
-                  />
-                  <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
-                </svg>
-              ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-gray-500"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                  <path
-                    fillRule="evenodd"
-                    d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              )}
+              {showPassword ? "🙈" : "👁️"}
             </button>
           </div>
         </div>
@@ -257,11 +157,7 @@ function LoginForm() {
             "SIGN IN"
           )}
         </button>
-
-        
       </form>
-
-      
     </div>
   );
 }
@@ -278,19 +174,17 @@ export default function LoginPage() {
       {/* Left side - Image */}
       <div className="flex-1 relative">
         <Image
-          src="/images/auth-bg.webp" // You'll need to add your background image here
+          src="/images/auth-bg.webp"
           alt="Login Background"
           fill
           className="object-cover"
           priority
         />
-        {/* Dark overlay */}
         <div className="absolute inset-0 bg-black bg-opacity-40"></div>
       </div>
 
       {/* Right side - Form */}
       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white relative">
-        {/* Logo above form */}
         <div className="mb-8">
           <Image
             src="/images/logo.png"
@@ -300,7 +194,7 @@ export default function LoginPage() {
             className="h-20 w-auto object-contain"
           />
         </div>
-        
+
         <Suspense fallback={<LoginFormLoading />}>
           <LoginForm />
         </Suspense>
