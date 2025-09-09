@@ -19,19 +19,9 @@ const Header = () => {
   const [windowWidth, setWindowWidth] = useState(0);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return <LoadingFallback />;
-  }
-
   // Ref for the dropdown container to handle hover events
   const dropdownRef = useRef(null);
-  const hoverTimeoutRef = useRef(null);
+  const hoverTimeoutRef = useRef(null);  
 
   // Check if we're on a property detail page
   const isPropertyDetailPage = pathname.startsWith("/property/");

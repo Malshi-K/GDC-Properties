@@ -39,16 +39,6 @@ export default function SearchResults() {
 
   const [isLoadingFormOptions, setIsLoadingFormOptions] = useState(true);
 
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return <LoadingFallback />;
-  }
-
   // FIXED: Derive form data directly from searchParams - single source of truth
   const formData = useMemo(() => {
     return propertySearchService.searchParamsToFormData(searchParams);
