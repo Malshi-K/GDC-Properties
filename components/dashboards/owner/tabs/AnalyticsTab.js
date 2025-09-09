@@ -18,7 +18,6 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import LoadingFallback from "@/components/LoadingFallback";
 
 // Cache TTL constants
 const CACHE_TTL = {
@@ -39,16 +38,6 @@ export default function AnalyticsTab({ onRefresh }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeView, setActiveView] = useState("overview");
-
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return <LoadingFallback />;
-  }
 
   // Use the custom colors
   const customRed = "#c30011";

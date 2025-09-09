@@ -30,7 +30,6 @@ import AdminPropertiesTab from "@/components/dashboards/admin/tabs/AdminProperti
 import AdminAnalyticsTab from "@/components/dashboards/admin/tabs/AdminAnalyticsTab";
 import PaymentsTab from "@/components/dashboards/owner/tabs/PaymentsTab";
 import { useAuth } from "@/contexts/AuthContext";
-import LoadingFallback from "@/components/LoadingFallback";
 
 // Cache TTL constants
 const CACHE_TTL = {
@@ -90,14 +89,6 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState(() => {
     return getDefaultTab(userRole);
   });
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return <LoadingFallback />;
-  }
 
   // Handle localStorage for tab persistence
   useEffect(() => {

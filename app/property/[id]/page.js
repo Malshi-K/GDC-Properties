@@ -10,7 +10,6 @@ import { useImageLoader } from "@/lib/services/imageLoaderService";
 import ScheduleViewingModal from "@/components/property/ScheduleViewingModal";
 import PropertyApplicationModal from "@/components/property/PropertyApplicationModal";
 import { toast } from "react-hot-toast";
-import LoadingFallback from "@/components/LoadingFallback";
 
 export default function PropertyDetails() {
   const params = useParams();
@@ -32,16 +31,6 @@ export default function PropertyDetails() {
   const [showViewingModal, setShowViewingModal] = useState(false);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [userRole, setUserRole] = useState(null);
-
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return <LoadingFallback />;
-  }
 
   // Memoize formatters
   const formatPrice = useCallback((price) => {

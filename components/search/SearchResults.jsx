@@ -9,7 +9,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useGlobalData } from "@/contexts/GlobalDataContext";
 import { useImageLoader } from "@/lib/services/imageLoaderService";
 import { propertySearchService, PROPERTY_TYPES, CACHE_TTL } from "@/lib/utils/searchUtils";
-import LoadingFallback from "../LoadingFallback";
 
 export default function SearchResults() {
   const searchParams = useSearchParams();

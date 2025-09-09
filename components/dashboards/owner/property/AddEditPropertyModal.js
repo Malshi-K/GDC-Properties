@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { v4 as uuidv4 } from "uuid";
-import LoadingFallback from "@/components/LoadingFallback";
 
 export default function AddEditPropertyModal({
   isOpen,
@@ -39,16 +38,6 @@ export default function AddEditPropertyModal({
   });
 
   const [imagePreviews, setImagePreviews] = useState([]);
-
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return <LoadingFallback />;
-  }
 
   // Define the list of New Zealand locations for the dropdown
   const nzLocations = [

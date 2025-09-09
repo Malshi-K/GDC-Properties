@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGlobalData } from "@/contexts/GlobalDataContext";
 import { toast } from "react-hot-toast";
-import LoadingFallback from "@/components/LoadingFallback";
 
 export default function PaymentsTab({ onRefresh }) {
   const { user } = useAuth();
@@ -14,16 +13,6 @@ export default function PaymentsTab({ onRefresh }) {
   const [payments, setPayments] = useState([]);
   const [summary, setSummary] = useState({});
   const [selectedPeriod, setSelectedPeriod] = useState("all");
-
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return <LoadingFallback />;
-  }
 
   useEffect(() => {
     if (user?.id) {

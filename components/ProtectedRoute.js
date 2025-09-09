@@ -2,23 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import LoadingFallback from "./LoadingFallback";
 
 export default function ProtectedRoute({ children, allowedRoles = [] }) {
   const { user, userRole, isLoading } = useAuth();
   const [redirectAttempted, setRedirectAttempted] = useState(false);
   const [startTime] = useState(Date.now());
   const [authChecked, setAuthChecked] = useState(false);
-
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return <LoadingFallback />;
-  }
 
   // Primary authentication check and redirection
   useEffect(() => {

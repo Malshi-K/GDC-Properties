@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useGlobalData } from "@/contexts/GlobalDataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import PropertyCard from "../property/PropertyCard";
-import LoadingFallback from "@/components/LoadingFallback";
 
 // Cache TTL constants
 const CACHE_TTL = {
@@ -33,16 +32,6 @@ export default function PropertiesTab({
   // Loading and error states
   const [isLoading, setIsLoading] = useState(true);
   const [processingError, setProcessingError] = useState(null);
-
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return <LoadingFallback />;
-  }
 
   // Generate cache keys
   const getCacheKeys = () => {
