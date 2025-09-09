@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext"; // Use your AuthContext
 import { supabase } from "@/lib/supabase";
+import LoadingFallback from "@/components/LoadingFallback";
 
 function SignupForm() {
   const router = useRouter();
@@ -19,6 +20,16 @@ function SignupForm() {
   const [error, setError] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <LoadingFallback />;
+  }
 
   // Check if user is already logged in using the context
   useEffect(() => {

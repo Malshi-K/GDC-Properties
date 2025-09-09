@@ -7,6 +7,7 @@ import { toast } from "react-hot-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImageLoader } from "@/lib/services/imageLoaderService"; // NEW: Import useImageLoader
 import { supabase } from "@/lib/supabase";
+import LoadingFallback from "@/components/LoadingFallback";
 
 export default function ProfileEditModal({ isOpen, onClose }) {
   const { user, profile, updateProfile, refreshProfile } = useAuth();
@@ -27,6 +28,16 @@ export default function ProfileEditModal({ isOpen, onClose }) {
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <LoadingFallback />;
+  }
 
   // NEW: Get profile image URL and loading state from imageLoader
   const profileImageUrl = profileImages[user?.id];

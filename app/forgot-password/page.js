@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
+import LoadingFallback from "@/components/LoadingFallback";
 
 function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
@@ -11,6 +12,16 @@ function ForgotPasswordForm() {
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
   const { resetPassword } = useAuth(); 
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <LoadingFallback />;
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();

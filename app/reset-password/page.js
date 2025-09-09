@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext"; // Use your AuthContext
 import Link from "next/link";
 import Image from "next/image";
+import LoadingFallback from "@/components/LoadingFallback";
 
 export default function ResetPasswordPage() {
   const { user } = useAuth(); // Use the context for user state
@@ -18,6 +19,16 @@ export default function ResetPasswordPage() {
   const [redirectCountdown, setRedirectCountdown] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <LoadingFallback />;
+  }
 
   // Immediately capture the hash on component mount
   useEffect(() => {

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useGlobalData } from "@/contexts/GlobalDataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
+import LoadingFallback from "@/components/LoadingFallback";
 
 export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
   const { user } = useAuth();
@@ -14,6 +15,16 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
   const [filterRole, setFilterRole] = useState("all");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <LoadingFallback />;
+  }
 
   // Cache key for users data
   const CACHE_KEY = "admin_users_with_email";

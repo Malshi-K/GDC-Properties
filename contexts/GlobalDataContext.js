@@ -28,10 +28,16 @@ export function GlobalDataProvider({ children }) {
   const [loading, setLoading] = useState({});
   const [profileImages, setProfileImages] = useState({});
   const [profileImageLoading, setProfileImageLoading] = useState({});
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Add mounted check for SSR
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Load cache from sessionStorage on mount
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !isMounted) return;
     
     try {
       const cachedData = {};
@@ -88,10 +94,12 @@ export function GlobalDataProvider({ children }) {
     } catch (error) {
       console.error("Error loading cache:", error);
     }
-  }, []);
+  }, [isMounted]);
 
   // Function to update data directly
   const updateData = useCallback((key, newData) => {
+    if (!isMounted) return;
+    
     setData(prev => ({ ...prev, [key]: newData }));
     
     // Also update cache
@@ -107,10 +115,14 @@ export function GlobalDataProvider({ children }) {
         console.warn("Failed to cache updated data:", error);
       }
     }
-  }, []);
+  }, [isMounted]);
 
   // Enhanced fetchData function with proper single parameter handling
   const fetchData = useCallback(async (params, options = {}) => {
+    if (!isMounted) {
+      return null;
+    }
+
     const { 
       useCache = true, 
       ttl = DEFAULT_TTL,
@@ -192,11 +204,11 @@ export function GlobalDataProvider({ children }) {
         return newLoading;
       });
     }
-  }, [data, loading]);
+  }, [data, loading, isMounted]);
 
   // Profile image loading function
   const loadProfileImage = useCallback(async (userId, imagePath = null) => {
-    if (!userId) return null;
+    if (!userId || !isMounted) return null;
 
     // Return cached image if available
     if (profileImages[userId]) {
@@ -294,19 +306,23 @@ export function GlobalDataProvider({ children }) {
         return newLoading;
       });
     }
-  }, [profileImages, profileImageLoading]);
+  }, [profileImages, profileImageLoading, isMounted]);
 
   // Get profile image URL
   const getProfileImageUrl = useCallback((userId) => {
+    if (!isMounted) return null;
     return profileImages[userId] || null;
-  }, [profileImages]);
+  }, [profileImages, isMounted]);
 
   // Check if profile image is loading
   const isProfileImageLoading = useCallback((userId) => {
+    if (!isMounted) return false;
     return Boolean(profileImageLoading[userId]);
-  }, [profileImageLoading]);
+  }, [profileImageLoading, isMounted]);
 
   const invalidateCache = useCallback((pattern) => {
+    if (!isMounted) return;
+    
     // Update memory cache
     setData(prev => {
       const newData = { ...prev };
@@ -343,30 +359,32 @@ export function GlobalDataProvider({ children }) {
     }
 
     console.log(`Invalidated cache for pattern: ${pattern}`);
-  }, []);
+  }, [isMounted]);
 
   // Invalidate profile image cache
   const invalidateProfileImageCache = useCallback((userId) => {
-    if (userId) {
-      setProfileImages(prev => {
-        const newImages = { ...prev };
-        delete newImages[userId];
-        return newImages;
-      });
-      
-      if (typeof window !== 'undefined') {
-        try {
-          sessionStorage.removeItem(`${PROFILE_IMAGE_PREFIX}${userId}`);
-        } catch (error) {
-          console.error("Error invalidating profile image cache:", error);
-        }
+    if (!isMounted || !userId) return;
+    
+    setProfileImages(prev => {
+      const newImages = { ...prev };
+      delete newImages[userId];
+      return newImages;
+    });
+    
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.removeItem(`${PROFILE_IMAGE_PREFIX}${userId}`);
+      } catch (error) {
+        console.error("Error invalidating profile image cache:", error);
       }
-      
-      console.log(`Invalidated profile image cache for user: ${userId}`);
     }
-  }, []);
+    
+    console.log(`Invalidated profile image cache for user: ${userId}`);
+  }, [isMounted]);
 
   const clearCache = useCallback(() => {
+    if (!isMounted) return;
+    
     setData({});
     setProfileImages({});
     
@@ -384,10 +402,12 @@ export function GlobalDataProvider({ children }) {
     }
 
     console.log("Cleared all cache");
-  }, []);
+  }, [isMounted]);
 
-    // Remove favorite helper
+  // Remove favorite helper
   const removeFavorite = async (favoriteId) => {
+    if (!isMounted) return { success: false, error: new Error("Not mounted") };
+    
     try {
       const { error } = await supabase
         .from("favorites")
@@ -406,6 +426,27 @@ export function GlobalDataProvider({ children }) {
     }
   };
 
+  // Don't render until mounted to prevent SSR issues
+  if (!isMounted) {
+    return (
+      <GlobalDataContext.Provider value={{
+        data: {},
+        loading: {},
+        profileImages: {},
+        fetchData: async () => null,
+        updateData: () => {},
+        invalidateCache: () => {},
+        clearCache: () => {},
+        loadProfileImage: async () => null,
+        getProfileImageUrl: () => null,
+        isProfileImageLoading: () => false,
+        invalidateProfileImageCache: () => {},
+        removeFavorite: async () => ({ success: false, error: new Error("Not mounted") }),
+      }}>
+        {children}
+      </GlobalDataContext.Provider>
+    );
+  }
 
   const value = {
     data,
@@ -430,5 +471,23 @@ export function GlobalDataProvider({ children }) {
 }
 
 export function useGlobalData() {
-  return useContext(GlobalDataContext);
+  const context = useContext(GlobalDataContext);
+  if (!context) {
+    // Return safe defaults during SSR
+    return {
+      data: {},
+      loading: {},
+      profileImages: {},
+      fetchData: async () => null,
+      updateData: () => {},
+      invalidateCache: () => {},
+      clearCache: () => {},
+      loadProfileImage: async () => null,
+      getProfileImageUrl: () => null,
+      isProfileImageLoading: () => false,
+      invalidateProfileImageCache: () => {},
+      removeFavorite: async () => ({ success: false, error: new Error("Context not available") }),
+    };
+  }
+  return context;
 }

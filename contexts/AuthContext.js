@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase"; // Make sure path is correct
+import { supabase } from "@/lib/supabase";
 
 // Create context with expanded functionality
 const AuthContext = createContext({
@@ -24,10 +24,18 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
+
+  // Add mounted check for SSR
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Get user profile data
   const fetchProfile = async (userId) => {
+    if (!isMounted) return null;
+    
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -49,7 +57,7 @@ export function AuthProvider({ children }) {
 
   // Function to refresh user profile data with retry logic
   const refreshProfile = async () => {
-    if (!user) return { error: new Error("No authenticated user") };
+    if (!user || !isMounted) return { error: new Error("No authenticated user or not mounted") };
 
     try {
       const { data, error } = await supabase
@@ -86,8 +94,8 @@ export function AuthProvider({ children }) {
 
   // Update profile information
   const updateProfile = async (profileData) => {
-    if (!user) {
-      return { error: new Error("No authenticated user") };
+    if (!user || !isMounted) {
+      return { error: new Error("No authenticated user or not mounted") };
     }
 
     try {
@@ -132,8 +140,8 @@ export function AuthProvider({ children }) {
 
   // Updated updateProfilePhoto function with better error handling and database updates
   const updateProfilePhoto = async (photoData, isBase64 = false) => {
-    if (!user) {
-      return { error: new Error("No authenticated user") };
+    if (!user || !isMounted) {
+      return { error: new Error("No authenticated user or not mounted") };
     }
 
     try {
@@ -219,6 +227,8 @@ export function AuthProvider({ children }) {
 
   // Updated getProfileImageUrl function
   const getProfileImageUrl = async () => {
+    if (!isMounted) return null;
+    
     // Debug what values are available
     console.log("Profile data in getProfileImageUrl:", profile);
 
@@ -269,10 +279,10 @@ export function AuthProvider({ children }) {
     }
   };
 
-  
-
   // Sign in with email + password
   const signIn = async (email, password) => {
+    if (!isMounted) return { user: null, error: new Error("Not mounted") };
+    
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -307,6 +317,8 @@ export function AuthProvider({ children }) {
 
   // Sign out function
   const signOut = async () => {
+    if (!isMounted) return;
+    
     try {
       await supabase.auth.signOut();
       router.push("/");
@@ -317,6 +329,8 @@ export function AuthProvider({ children }) {
 
   // Initial load and auth state changes
   useEffect(() => {
+    if (!isMounted) return;
+    
     const setupUser = async () => {
       setIsLoading(true);
 
@@ -361,10 +375,12 @@ export function AuthProvider({ children }) {
     return () => {
       subscription?.unsubscribe();
     };
-  }, [router]);
+  }, [isMounted]);
 
   // Navigate to dashboard based on role
   const navigateToDashboard = () => {
+    if (!isMounted) return;
+    
     if (userRole === "owner") {
       router.push("/dashboard/owner");
     } else {
@@ -379,6 +395,8 @@ export function AuthProvider({ children }) {
 
   // Update a user's role
   const updateUserRole = async (userId, newRole) => {
+    if (!isMounted) return { success: false, error: new Error("Not mounted") };
+    
     try {
       const { error } = await supabase
         .from("profiles")
@@ -405,6 +423,8 @@ export function AuthProvider({ children }) {
 
   // Reset password for a given email
   const resetPassword = async (email) => {
+    if (!isMounted) return { success: false, error: new Error("Not mounted") };
+    
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
@@ -416,6 +436,30 @@ export function AuthProvider({ children }) {
       return { success: false, error: err };
     }
   };
+
+  // Don't render until mounted to prevent SSR issues
+  if (!isMounted) {
+    return (
+      <AuthContext.Provider value={{
+        user: null,
+        profile: null,
+        userRole: null,
+        isLoading: true,
+        signIn: async () => ({ user: null, error: new Error("Not mounted") }),
+        signOut: async () => {},
+        refreshProfile: async () => ({ error: new Error("Not mounted") }),
+        updateProfile: async () => ({ error: new Error("Not mounted") }),
+        updateProfilePhoto: async () => ({ error: new Error("Not mounted") }),
+        navigateToDashboard: () => {},
+        hasRole: () => false,
+        getProfileImageUrl: () => null,
+        updateUserRole: async () => ({ success: false, error: new Error("Not mounted") }),
+        resetPassword: async () => ({ success: false, error: new Error("Not mounted") }),
+      }}>
+        {children}
+      </AuthContext.Provider>
+    );
+  }
 
   // Provide context values
   const value = {
@@ -438,7 +482,27 @@ export function AuthProvider({ children }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// Custom hook to use the auth context
+// Custom hook to use the auth context with SSR protection
 export function useAuth() {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+  if (!context) {
+    // Return safe defaults during SSR
+    return {
+      user: null,
+      profile: null,
+      userRole: null,
+      isLoading: true,
+      signIn: async () => ({ user: null, error: new Error("Context not available") }),
+      signOut: async () => {},
+      refreshProfile: async () => ({ error: new Error("Context not available") }),
+      updateProfile: async () => ({ error: new Error("Context not available") }),
+      updateProfilePhoto: async () => ({ error: new Error("Context not available") }),
+      navigateToDashboard: () => {},
+      hasRole: () => false,
+      getProfileImageUrl: () => null,
+      updateUserRole: async () => ({ success: false, error: new Error("Context not available") }),
+      resetPassword: async () => ({ success: false, error: new Error("Context not available") }),
+    };
+  }
+  return context;
 }

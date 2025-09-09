@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useGlobalData } from "@/contexts/GlobalDataContext";
 import { useImageLoader } from "@/lib/services/imageLoaderService";
 import { propertySearchService, PROPERTY_TYPES, CACHE_TTL } from "@/lib/utils/searchUtils";
+import LoadingFallback from "../LoadingFallback";
 
 export default function SearchResults() {
   const searchParams = useSearchParams();
@@ -37,6 +38,16 @@ export default function SearchResults() {
   });
 
   const [isLoadingFormOptions, setIsLoadingFormOptions] = useState(true);
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <LoadingFallback />;
+  }
 
   // FIXED: Derive form data directly from searchParams - single source of truth
   const formData = useMemo(() => {

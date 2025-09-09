@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
+import LoadingFallback from "./LoadingFallback";
 
 const Header = () => {
   const pathname = usePathname();
@@ -17,6 +18,16 @@ const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [windowWidth, setWindowWidth] = useState(0);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <LoadingFallback />;
+  }
 
   // Ref for the dropdown container to handle hover events
   const dropdownRef = useRef(null);

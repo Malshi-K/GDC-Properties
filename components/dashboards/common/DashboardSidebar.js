@@ -18,6 +18,7 @@ import { useImageLoader } from "@/lib/services/imageLoaderService";
 import ProfileEditModal from "./ProfileEditModal";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import LoadingFallback from "@/components/LoadingFallback";
 
 const DashboardSidebar = ({ activeTab, setActiveTab }) => {
   const [showEditModal, setShowEditModal] = useState(false);
@@ -26,6 +27,16 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
   const [showFallback, setShowFallback] = useState(false);
   const sidebarRef = useRef(null);
   const router = useRouter();
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <LoadingFallback />;
+  }
 
   // Use centralized image loader service
   const { profileImages, loadProfileImage, isProfileImageLoading } =
