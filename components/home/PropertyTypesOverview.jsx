@@ -25,7 +25,7 @@ const PropertyTypesOverview = () => {
     <section className="py-5 md:py-10 bg-custom-red px-20">
       <div className="container mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12">
-          {propertyTypes.map((type, index) => (
+          {propertyTypes?.map((type, index) => (
             <div key={index} className="text-center">
               <div className="flex justify-center mb-4">
                 <div className="w-40 h-40 relative">
@@ -41,7 +41,7 @@ const PropertyTypesOverview = () => {
                 {type.title}
               </h3>
             </div>
-          ))}
+          )) || <div>No property types available</div>}
         </div>
       </div>
     </section>

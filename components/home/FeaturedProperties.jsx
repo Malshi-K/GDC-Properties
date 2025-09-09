@@ -356,9 +356,9 @@ const FeaturedProperties = () => {
             ref={scrollRef}
             className="flex space-x-6 overflow-x-hidden scroll-smooth"
           >
-            {properties.map((property) => (
+            {properties?.map((property) => (
               <PropertyCard key={property.id} property={property} />
-            ))}
+            )) || <p className="text-gray-500">No properties available.</p>}
           </div>
         )}
       </div>
