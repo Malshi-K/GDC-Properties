@@ -1,4 +1,5 @@
 // page.js
+export const dynamic = 'force-dynamic'
 import React from 'react';
 import ContactForm from '@/components/contact/ContactForm';
 import ContactMap from '@/components/contact/ContactMap';
