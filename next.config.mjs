@@ -4,6 +4,14 @@ const nextConfig = {
   images: {
     domains: ["kfzgnrxnyxiuankcmyth.supabase.co"],
   },
+  // Completely disable static optimization
+  experimental: {
+    forceSwcTransforms: true,
+  },
+  // Force all pages to be server-rendered
+  async rewrites() {
+    return []
+  }
 };
 
 export default nextConfig;
