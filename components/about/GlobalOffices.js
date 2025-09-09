@@ -41,7 +41,7 @@ export default function GlobalOffices() {
             </p>
             
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-              {officeLocations.map((office, index) => (
+              {officeLocations?.map((office, index) => (
                 <div 
                   key={index} 
                   className="bg-custom-gray text-white p-10 rounded-lg text-center flex flex-col items-center"
@@ -56,7 +56,7 @@ export default function GlobalOffices() {
                     <p className="text-gray-300">{office.description}</p>
                   </div>
                 </div>
-              ))}
+              )) || <p className="text-gray-500">No office locations available.</p>}
             </div>
           </div>
         </div>

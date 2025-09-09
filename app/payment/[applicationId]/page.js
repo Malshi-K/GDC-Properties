@@ -189,7 +189,7 @@ export default function PaymentPage() {
                         ${item.amount.toLocaleString()}
                       </span>
                     </div>
-                  ))}
+                  )) || <p className="text-gray-500">No payment items found.</p>} 
                   <div className="border-t pt-3">
                     <div className="flex justify-between font-bold text-lg text-gray-400">
                       <span>Total Amount</span>

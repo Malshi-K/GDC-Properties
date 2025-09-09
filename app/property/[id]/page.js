@@ -153,7 +153,7 @@ export default function PropertyDetails() {
         setImageUrls([]);
 
         // Load all images sequentially to maintain order
-        const imagePromises = propertyData.images.map(
+        const imagePromises = propertyData?.images.map(
           async (imagePath, index) => {
             const imageUrl = await loadPropertyImage(
               `${propertyData.id}_image_${index}`, // More unique key for each image
@@ -162,7 +162,7 @@ export default function PropertyDetails() {
             );
             return { url: imageUrl, originalPath: imagePath };
           }
-        );
+        ) || [];
 
         const imageResults = await Promise.all(imagePromises);
 
@@ -481,7 +481,7 @@ export default function PropertyDetails() {
               {/* Layout for 2 images */}
               {allImageUrls.length === 2 && (
                 <div className="grid grid-cols-2 gap-2">
-                  {allImageUrls.map((imageUrl, index) => (
+                  {allImageUrls?.map((imageUrl, index) => (
                     <div
                       key={index}
                       className="relative aspect-[4/3] rounded-lg overflow-hidden"
@@ -497,7 +497,7 @@ export default function PropertyDetails() {
                         sizes="50vw"
                       />
                     </div>
-                  ))}
+                  )) || <div>No images available</div>}
                 </div>
               )}
 

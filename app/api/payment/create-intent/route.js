@@ -218,7 +218,7 @@ export async function POST(request) {
     });
 
     // Create enhanced payment records
-    const paymentRecords = paymentItems.map(item => ({
+    const paymentRecords = paymentItems?.map(item => ({
       application_id: applicationId,
       payment_type: item.type,
       amount: item.amount,
@@ -232,7 +232,7 @@ export async function POST(request) {
       email_verified: !!verificationId,
       verified_email: email || null,
       created_at: new Date().toISOString()
-    }));
+    })) || [];
 
     console.log('Creating payment records:', paymentRecords);
 

@@ -37,7 +37,7 @@ export default function ContactForm() {
             
             {/* Contact Info Cards */}
             <div className="space-y-4">
-              {contactInfo.map((item, index) => (
+              {contactInfo?.map((item, index) => (
                 <div
                   key={index}
                   className="flex items-center p-4 sm:p-6"
@@ -52,7 +52,7 @@ export default function ContactForm() {
                     </p>
                   </div>
                 </div>
-              ))}
+              )) || <p className="text-gray-500">No contact information available.</p>}
             </div>
           </div>
 
