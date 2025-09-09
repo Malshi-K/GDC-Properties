@@ -1,6 +1,7 @@
 // app/layout.js (keep as server component)
 import "./globals.css";
 import ClientProviders from "./ClientProviders";
+import { Html } from "next/document";
 
 export const metadata = {
   title: "GDC Properties",
@@ -9,10 +10,10 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <Html lang="en">
       <body>
         <ClientProviders>{children}</ClientProviders>
       </body>
-    </html>
+    </Html>
   );
 }
