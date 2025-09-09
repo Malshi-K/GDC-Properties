@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { useAuth } from "@/contexts/AuthContext"; // Use your AuthContext
+import { supabase } from "@/lib/supabase";
 
 function SignupForm() {
   const router = useRouter();
+  const { user, signIn } = useAuth(); // Use the context
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -18,17 +20,12 @@ function SignupForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Check if user is already logged in
+  // Check if user is already logged in using the context
   useEffect(() => {
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data?.session) {
-        router.push("/dashboard");
-      }
-    };
-
-    checkSession();
-  }, [router]);
+    if (user) {
+      router.push("/dashboard");
+    }
+  }, [user, router]);
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -329,7 +326,7 @@ export default function SignupPage() {
       {/* Left side - Image */}
       <div className="flex-1 relative">
         <Image
-          src="/images/auth-bg.webp" // You'll need to add your background image here
+          src="/images/auth-bg.webp"
           alt="Signup Background"
           fill
           className="object-cover"

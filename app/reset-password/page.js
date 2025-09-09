@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext"; // Use your AuthContext
 import Link from "next/link";
 import Image from "next/image";
 
 export default function ResetPasswordPage() {
+  const { user } = useAuth(); // Use the context for user state
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -128,6 +130,14 @@ export default function ResetPasswordPage() {
       // localStorage.removeItem('resetRefreshToken');
     };
   }, []);
+
+  // Check if user is already logged in (from context) and redirect
+  useEffect(() => {
+    if (user && !tokenProcessing && !tokenValid) {
+      // User is logged in but not through reset token - redirect to dashboard
+      window.location.replace("/dashboard");
+    }
+  }, [user, tokenProcessing, tokenValid]);
 
   // Second useEffect: Handle countdown and redirect
   useEffect(() => {
