@@ -7,7 +7,6 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import { toast } from "react-hot-toast";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import PaymentForm from "@/components/payment/PaymentForm";
 import EmailVerificationPaymentForm from "@/components/payment/EmailVerificationPaymentForm";
 
 const stripePromise = loadStripe(

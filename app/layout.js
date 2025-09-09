@@ -1,9 +1,6 @@
+// app/layout.js (keep as server component)
 import "./globals.css";
-import Header from "@/components/Header";
-import { AuthProvider } from "@/contexts/AuthContext";
-import ConditionalFooter from "@/components/ConditionalFooter";
-import { GlobalDataProvider } from "@/contexts/GlobalDataContext";
-import { ImageLoadingProvider } from "@/lib/services/imageLoaderService";
+import ClientProviders from "./ClientProviders";
 
 export const metadata = {
   title: "GDC Properties",
@@ -14,15 +11,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <AuthProvider>
-          <GlobalDataProvider>
-            <ImageLoadingProvider>
-              <Header />
-              {children}
-              <ConditionalFooter />
-            </ImageLoadingProvider>
-          </GlobalDataProvider>
-        </AuthProvider>
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   );
