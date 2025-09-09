@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
 import { useGlobalData } from "@/contexts/GlobalDataContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { toast } from "react-hot-toast";
@@ -30,6 +29,7 @@ import AdminUsersTab from "@/components/dashboards/admin/tabs/AdminUsersTab";
 import AdminPropertiesTab from "@/components/dashboards/admin/tabs/AdminPropertiesTab";
 import AdminAnalyticsTab from "@/components/dashboards/admin/tabs/AdminAnalyticsTab";
 import PaymentsTab from "@/components/dashboards/owner/tabs/PaymentsTab";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Cache TTL constants
 const CACHE_TTL = {
@@ -65,9 +65,8 @@ const isUser = (role) => {
 };
 
 export default function Dashboard() {
-  const { updateUserRole } = useAuth();
   const { removeFavorite } = useGlobalData();
-  const { user, profile, userRole } = useAuth();
+  const { user, profile, userRole, updateUserRole } = useAuth();
   const { fetchData, updateData, invalidateCache, loading, data } =
     useGlobalData();
 

@@ -2,11 +2,9 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { useGlobalData } from '@/contexts/GlobalDataContext';
-import { useAuth } from '@/contexts/AuthContext';
 
 export default function AdminAnalyticsTab({ onRefresh }) {
-  const { user } = useAuth();
-  const { fetchData, data, loading } = useGlobalData();
+  const { fetchData, loading } = useGlobalData();
   const [analytics, setAnalytics] = useState({
     totalUsers: 0,
     totalProperties: 0,
@@ -73,10 +71,6 @@ export default function AdminAnalyticsTab({ onRefresh }) {
     }).format(price);
   };
 
-  const getGrowthPercentage = (current, previous) => {
-    if (previous === 0) return current > 0 ? 100 : 0;
-    return Math.round(((current - previous) / previous) * 100);
-  };
 
   // Helper function to get role display name
   const getRoleDisplayName = (role) => {
