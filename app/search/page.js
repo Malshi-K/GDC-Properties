@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 import { Suspense } from "react";
 import SearchResults from "@/components/search/SearchResults";
 import { PageTitle } from "@/components/PageTitle";

@@ -1,5 +1,5 @@
 // page.js
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 import AboutSection from "@/components/about/AboutSection";
 import GlobalOffices from "@/components/about/GlobalOffices";
 import { PageTitle } from "@/components/PageTitle";

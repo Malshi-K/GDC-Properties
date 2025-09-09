@@ -1,6 +1,6 @@
 // app/ClientProviders.js (new file)
 'use client';
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 import { AuthProvider } from "@/contexts/AuthContext";
 import ConditionalFooter from "@/components/ConditionalFooter";
 import { GlobalDataProvider } from "@/contexts/GlobalDataContext";
