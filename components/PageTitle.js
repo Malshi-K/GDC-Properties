@@ -46,7 +46,7 @@ export const PageTitle = () => {
   return (
     <div className="relative w-full h-[60vh] sm:h-[70vh] md:h-[80vh] lg:h-screen bg-gray-900 overflow-hidden">
       {/* Background overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-custom-gray to-transparent z-10"></div>
+      <div className="absolute inset-0 bg-gradient-to-r from-custom-blue to-transparent z-10"></div>
 
       {/* Background image - dynamically set based on the current page */}
       <div className="absolute inset-0 z-0">
@@ -68,7 +68,7 @@ export const PageTitle = () => {
           <div className="relative border-l-2 border-t-2 border-white pl-4 sm:pl-6 md:pl-10 pt-4 sm:pt-6 md:pt-10">
             <h1 className="text-white text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight">
               {title}
-              <span className="text-custom-red">{titleColored}</span>
+              <span className="text-custom-orange">{titleColored}</span>
               <br />
             </h1>
 
@@ -79,10 +79,10 @@ export const PageTitle = () => {
             {/* CTA Button */}
             <div className="mt-6 sm:mt-8 md:mt-10">
               <Link href="/signup">
-                <button className="bg-custom-red hover:bg-custom-gray text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full flex items-center transition duration-300 group text-sm sm:text-base">
+                <button className="bg-custom-orange hover:bg-custom-blue text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full flex items-center transition duration-300 group text-sm sm:text-base">
                   <span className="mr-2">Get Started Now</span>
                   <span className="bg-white p-1 rounded-full transform transition-transform group-hover:translate-x-1">
-                    <FaArrowRight className="text-custom-red text-xs sm:text-sm" />
+                    <FaArrowRight className="text-custom-orange text-xs sm:text-sm" />
                   </span>
                 </button>
               </Link>

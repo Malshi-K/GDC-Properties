@@ -156,7 +156,7 @@ export default function PropertyLocationMap() {
             const customIcon = window.L.divIcon({
               html: `
                 <div style="
-                  background-color: #dc2626;
+                  background-color: #f96929;
                   width: 30px;
                   height: 30px;
                   border-radius: 50%;
@@ -235,7 +235,7 @@ export default function PropertyLocationMap() {
                     ? `<p style="margin: 0 0 8px 0; font-size: 12px; color: #6b7280;">${features}</p>`
                     : ""
                 }
-                <p style="margin: 0; font-size: 18px; font-weight: 600; color: #dc2626;">
+                <p style="margin: 0; font-size: 18px; font-weight: 600; color: #f96929;">
                   ${price}
                 </p>
                 ${

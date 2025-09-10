@@ -445,7 +445,7 @@ export default function SearchResults() {
       <div className="max-w-7xl mx-auto">
         {/* Search filters - Refine Your Search */}
         <div className="bg-white p-6 rounded-2xl shadow-md mb-8">
-          <h2 className="text-2xl font-bold text-center text-gray-800 mb-4">
+          <h2 className="text-2xl font-bold text-center text-custom-blue mb-4">
             Refine Your Search
           </h2>
 
@@ -467,7 +467,7 @@ export default function SearchResults() {
                     name="location"
                     value={localFormData.location}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-orange text-gray-700 bg-white appearance-none"
                   >
                     <option value="">Any location</option>
                     {formOptions.locations.map((location) => (
@@ -491,7 +491,7 @@ export default function SearchResults() {
                     name="property_type"
                     value={localFormData.property_type}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-orange text-gray-700 bg-white appearance-none"
                   >
                     <option value="">Any type</option>
                     {PROPERTY_TYPES.map((type) => (
@@ -517,7 +517,7 @@ export default function SearchResults() {
                       name="bedrooms"
                       value={localFormData.bedrooms}
                       onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-orange text-gray-700 bg-white appearance-none"
                     >
                       <option value="">Any</option>
                       {formOptions.bedroomOptions.map((value) => (
@@ -541,7 +541,7 @@ export default function SearchResults() {
                       name="bathrooms"
                       value={localFormData.bathrooms}
                       onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-orange text-gray-700 bg-white appearance-none"
                     >
                       <option value="">Any</option>
                       {formOptions.bathroomOptions.map((value) => (
@@ -571,7 +571,7 @@ export default function SearchResults() {
                       name="minPrice"
                       value={localFormData.minPrice}
                       onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-orange text-gray-700 bg-white appearance-none"
                     >
                       <option value="">No min</option>
                       {formOptions.priceRanges.minPrices.map((price) => (
@@ -595,7 +595,7 @@ export default function SearchResults() {
                       name="maxPrice"
                       value={localFormData.maxPrice}
                       onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-700 bg-white appearance-none"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-orange text-gray-700 bg-white appearance-none"
                     >
                       <option value="">No max</option>
                       {formOptions.priceRanges.maxPrices.map((price) => (
@@ -611,7 +611,7 @@ export default function SearchResults() {
                 <div className="flex items-end">
                   <button
                     type="submit"
-                    className="w-full bg-custom-red hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full transition-colors duration-300 disabled:opacity-50"
+                    className="w-full bg-custom-orange hover:bg-custom-yellow text-white font-bold py-2 px-4 rounded-full transition-colors duration-300 disabled:opacity-50"
                     disabled={loadingProperties}
                   >
                     {loadingProperties ? 'Searching...' : 'Update Search'}
@@ -740,7 +740,7 @@ export default function SearchResults() {
 
                   <div className="p-4">
                     <h3
-                      className="text-xl font-bold text-gray-800 mb-2 cursor-pointer hover:text-custom-red transition-colors"
+                      className="text-xl font-bold text-gray-800 mb-2 cursor-pointer hover:text-custom-orange transition-colors"
                       onClick={() =>
                         router.push(`/property/${property.id}`)
                       }
@@ -751,7 +751,7 @@ export default function SearchResults() {
                       {property.description}
                     </p>
                     <div className="flex justify-between mb-4">
-                      <span className="text-custom-red font-bold text-lg">
+                      <span className="text-custom-orange font-bold text-lg">
                         {propertySearchService.formatPrice(property.price)}
                       </span>
                       <div className="text-gray-700">
@@ -768,7 +768,7 @@ export default function SearchResults() {
                       onClick={() =>
                         router.push(`/property/${property.id}`)
                       }
-                      className="w-full bg-custom-red hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full transition-colors duration-300"
+                      className="w-full bg-custom-orange hover:bg-custom-yellow text-white font-bold py-2 px-4 rounded-full transition-colors duration-300"
                     >
                       View Details
                     </button>

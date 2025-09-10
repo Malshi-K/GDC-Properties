@@ -110,7 +110,7 @@ const ScheduleViewingModal = ({ property, isOpen, onClose, onSuccess }) => {
           </div>
           
           {error && (
-            <div className="bg-red-50 text-red-700 p-3 rounded-md mb-4">
+            <div className="bg-orange-50 text-orange-700 p-3 rounded-md mb-4">
               {error}
             </div>
           )}
@@ -120,7 +120,7 @@ const ScheduleViewingModal = ({ property, isOpen, onClose, onSuccess }) => {
               <p className="mb-4">You need to be logged in to schedule a viewing.</p>
               <a 
                 href="/login" 
-                className="bg-custom-red hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300 inline-block"
+                className="bg-custom-orange hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300 inline-block"
               >
                 Log In / Sign Up
               </a>
@@ -138,7 +138,7 @@ const ScheduleViewingModal = ({ property, isOpen, onClose, onSuccess }) => {
                   required
                   value={formData.proposedDate}
                   onChange={handleChange}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
                 />
               </div>
               
@@ -154,7 +154,7 @@ const ScheduleViewingModal = ({ property, isOpen, onClose, onSuccess }) => {
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="Enter your phone number"
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
                 />
               </div>
               
@@ -169,7 +169,7 @@ const ScheduleViewingModal = ({ property, isOpen, onClose, onSuccess }) => {
                   value={formData.message}
                   onChange={handleChange}
                   placeholder="Any questions or specific details about your visit"
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
                 ></textarea>
               </div>
               
@@ -184,7 +184,7 @@ const ScheduleViewingModal = ({ property, isOpen, onClose, onSuccess }) => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-red hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red"
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-orange hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-orange"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? 'Submitting...' : 'Schedule Viewing'}

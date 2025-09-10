@@ -37,7 +37,7 @@ const CardBrandOption = ({ brand, selected, onClick, disabled = false }) => {
           />
         </div>
       ),
-      color: "blue",
+      color: "gray",
     },
     mastercard: {
       name: "Mastercard",
@@ -308,7 +308,7 @@ export default function PaymentForm({
 
           {/* Card Element */}
           <div className="relative">
-            <div className="p-4 border border-gray-300 rounded-lg focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
+            <div className="p-4 border border-gray-300 rounded-lg focus-within:border-gray-500 focus-within:ring-1 focus-within:ring-gray-500">
               <CardElement
                 options={CARD_ELEMENT_OPTIONS}
                 onChange={handleCardChange}
@@ -345,10 +345,10 @@ export default function PaymentForm({
           </div>
 
           {/* Security Features */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
             <div className="flex items-start">
               <svg
-                className="h-5 w-5 text-blue-400 mt-0.5 mr-3"
+                className="h-5 w-5 text-gray-400 mt-0.5 mr-3"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -361,10 +361,10 @@ export default function PaymentForm({
                 />
               </svg>
               <div>
-                <h4 className="text-sm font-medium text-blue-800">
+                <h4 className="text-sm font-medium text-gray-800">
                   Secure Payment Processing
                 </h4>
-                <p className="text-xs text-blue-600 mt-1">
+                <p className="text-xs text-gray-600 mt-1">
                   Your card information is protected by 256-bit SSL encryption and PCI compliance standards.
                 </p>
               </div>
@@ -375,10 +375,10 @@ export default function PaymentForm({
 
       {/* Error Messages */}
       {(errorMessage || stripeError) && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div className="p-4 bg-orange-50 border border-red-200 rounded-lg">
           <div className="flex items-start">
             <svg
-              className="h-5 w-5 text-red-400 mt-0.5 mr-3"
+              className="h-5 w-5 text-orange-400 mt-0.5 mr-3"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -390,7 +390,7 @@ export default function PaymentForm({
                 d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <p className="text-sm text-red-600">{errorMessage || stripeError}</p>
+            <p className="text-sm text-orange-600">{errorMessage || stripeError}</p>
           </div>
         </div>
       )}
@@ -402,7 +402,7 @@ export default function PaymentForm({
         className={`w-full py-4 px-6 border border-transparent rounded-lg shadow-lg text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 ${
           processing || !stripe || !cardComplete || !selectedCardType || !!stripeError
             ? "bg-gray-400 cursor-not-allowed"
-            : "bg-red-600 hover:bg-red-700 transform hover:scale-[1.02] hover:shadow-xl"
+            : "bg-orange-600 hover:bg-orange-700 transform hover:scale-[1.02] hover:shadow-xl"
         }`}
       >
         {processing ? (

@@ -144,7 +144,7 @@ export default function PropertySearchForm() {
   return (
     <div className="w-full lg:w-4/12 mt-8 lg:mt-0">
       <div className="bg-white p-4 sm:p-6 md:p-8 rounded-2xl shadow-lg max-w-md mx-auto lg:mx-0">
-        <h2 className="text-xl sm:text-2xl font-bold text-center text-gray-800 mb-1">Find Your Dream Home</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-center text-custom-blue mb-1">Find Your Dream Home</h2>
         <p className="text-center text-gray-600 text-sm mb-4 sm:mb-6">Filter properties to match your needs</p>
         
         {/* Display database stats if available
@@ -162,7 +162,7 @@ export default function PropertySearchForm() {
         )}
         
         {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-md text-sm">
+          <div className="mb-4 p-3 bg-orange-100 border border-red-400 text-orange-700 rounded-md text-sm">
             {error}
           </div>
         )} */}
@@ -174,7 +174,7 @@ export default function PropertySearchForm() {
               name="location"
               value={formData.location}
               onChange={handleChange}
-              className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-500 bg-white appearance-none text-sm sm:text-base"
+              className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-orange text-gray-500 bg-white appearance-none text-sm sm:text-base"
               disabled={isLoadingOptions}
             >
               <option value="">
@@ -192,7 +192,7 @@ export default function PropertySearchForm() {
               name="property_type"
               value={formData.property_type}
               onChange={handleChange}
-              className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-500 bg-white appearance-none text-sm sm:text-base"
+              className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-orange text-gray-500 bg-white appearance-none text-sm sm:text-base"
             >
               <option value="">All property types</option>
               {PROPERTY_TYPES.map(type => (
@@ -208,7 +208,7 @@ export default function PropertySearchForm() {
                 name="minPrice"
                 value={formData.minPrice}
                 onChange={handleChange}
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-500 bg-white appearance-none text-sm sm:text-base"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-orange text-gray-500 bg-white appearance-none text-sm sm:text-base"
                 disabled={isLoadingOptions}
               >
                 <option value="">
@@ -226,7 +226,7 @@ export default function PropertySearchForm() {
                 name="maxPrice"
                 value={formData.maxPrice}
                 onChange={handleChange}
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-500 bg-white appearance-none text-sm sm:text-base"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-orange text-gray-500 bg-white appearance-none text-sm sm:text-base"
                 disabled={isLoadingOptions}
               >
                 <option value="">
@@ -248,7 +248,7 @@ export default function PropertySearchForm() {
                 name="bedrooms"
                 value={formData.bedrooms}
                 onChange={handleChange}
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-500 bg-white appearance-none text-sm sm:text-base"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-orange text-gray-500 bg-white appearance-none text-sm sm:text-base"
                 disabled={isLoadingOptions}
               >
                 <option value="">
@@ -266,7 +266,7 @@ export default function PropertySearchForm() {
                 name="bathrooms"
                 value={formData.bathrooms}
                 onChange={handleChange}
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-red text-gray-500 bg-white appearance-none text-sm sm:text-base"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-custom-orange text-gray-500 bg-white appearance-none text-sm sm:text-base"
                 disabled={isLoadingOptions}
               >
                 <option value="">
@@ -283,7 +283,7 @@ export default function PropertySearchForm() {
           
           <button 
             type="submit" 
-            className="w-full bg-custom-red hover:bg-red-700 text-white font-bold py-2 sm:py-3 px-4 rounded-full transition-colors duration-300 text-sm sm:text-base disabled:opacity-50"
+            className="w-full bg-custom-orange hover:bg-custom-yellow text-white font-bold py-2 sm:py-3 px-4 rounded-full transition-colors duration-300 text-sm sm:text-base disabled:opacity-50"
             disabled={isLoadingOptions}
           >
             {isLoadingOptions ? 'Loading Options...' : 'Search Properties'}

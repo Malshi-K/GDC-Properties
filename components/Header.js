@@ -168,14 +168,14 @@ const Header = () => {
                   href="/"
                   className={`relative ${
                     shouldShowSolidHeader 
-                      ? "text-custom-gray hover:text-custom-red" 
-                      : "text-white hover:text-custom-red"
+                      ? "text-custom-blue hover:text-custom-orange" 
+                      : "text-white hover:text-custom-orange"
                   } transition-colors px-1 lg:px-2 py-6 text-sm lg:text-lg ${
-                    isActive("/") ? "!text-custom-red" : ""
+                    isActive("/") ? "!text-custom-orange" : ""
                   }`}
                 >
                   {isActive("/") && (
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-custom-red rounded-b-sm"></div>
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-custom-orange rounded-b-sm"></div>
                   )}
                   Home
                 </Link>
@@ -184,14 +184,14 @@ const Header = () => {
                   href="/search"
                   className={`relative ${
                     shouldShowSolidHeader 
-                      ? "text-custom-gray hover:text-custom-red" 
-                      : "text-white hover:text-custom-red"
+                      ? "text-custom-blue hover:text-custom-orange" 
+                      : "text-white hover:text-custom-orange"
                   } transition-colors px-1 lg:px-3 py-6 text-sm lg:text-lg ${
-                    isActive("/search") ? "!text-custom-red" : ""
+                    isActive("/search") ? "!text-custom-orange" : ""
                   }`}
                 >
                   {isActive("/search") && (
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-custom-red rounded-b-sm"></div>
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-custom-orange rounded-b-sm"></div>
                   )}
                   For Rent
                 </Link>
@@ -200,14 +200,14 @@ const Header = () => {
                   href="/about"
                   className={`relative ${
                     shouldShowSolidHeader 
-                      ? "text-custom-gray hover:text-custom-red" 
-                      : "text-white hover:text-custom-red"
+                      ? "text-custom-blue hover:text-custom-orange" 
+                      : "text-white hover:text-custom-orange"
                   } transition-colors px-1 lg:px-3 py-6 text-sm lg:text-lg ${
-                    isActive("/about") ? "!text-custom-red" : ""
+                    isActive("/about") ? "!text-custom-orange" : ""
                   }`}
                 >
                   {isActive("/about") && (
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-custom-red rounded-b-sm"></div>
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-custom-orange rounded-b-sm"></div>
                   )}
                   About
                 </Link>
@@ -216,14 +216,14 @@ const Header = () => {
                   href="/contact"
                   className={`relative ${
                     shouldShowSolidHeader 
-                      ? "text-custom-gray hover:text-custom-red" 
-                      : "text-white hover:text-custom-red"
+                      ? "text-custom-blue hover:text-custom-orange" 
+                      : "text-white hover:text-custom-orange"
                   } transition-colors px-1 lg:px-3 py-6 text-sm lg:text-lg ${
-                    isActive("/contact") ? "!text-custom-red" : ""
+                    isActive("/contact") ? "!text-custom-orange" : ""
                   }`}
                 >
                   {isActive("/contact") && (
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-custom-red rounded-b-sm"></div>
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-custom-orange rounded-b-sm"></div>
                   )}
                   Contact
                 </Link>
@@ -242,8 +242,8 @@ const Header = () => {
                   <button
                     className={`flex items-center space-x-2 ${
                       shouldShowSolidHeader 
-                        ? "text-custom-gray hover:text-custom-red" 
-                        : "text-white hover:text-custom-red"
+                        ? "text-custom-blue hover:text-custom-orange" 
+                        : "text-white hover:text-custom-orange"
                     } transition-colors duration-200`}
                   >
                     <User size={24} />
@@ -282,7 +282,7 @@ const Header = () => {
               ) : (
                 <Link
                   href="/login"
-                  className="bg-custom-red text-white px-4 lg:px-6 py-2 rounded-full hover:bg-opacity-90 transition-colors text-sm lg:text-lg whitespace-nowrap"
+                  className="bg-custom-orange text-white px-4 lg:px-6 py-2 rounded-full hover:bg-opacity-90 transition-colors text-sm lg:text-lg whitespace-nowrap"
                 >
                   Tenant Portal
                 </Link>
@@ -295,8 +295,8 @@ const Header = () => {
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className={`${
                   shouldShowSolidHeader 
-                    ? "text-custom-gray hover:text-custom-red" 
-                    : "text-white hover:text-custom-red"
+                    ? "text-custom-blue hover:text-custom-orange" 
+                    : "text-white hover:text-custom-orange"
                 } focus:outline-none p-1`}
                 aria-label={isMenuOpen ? "Close menu" : "Open menu"}
               >
@@ -313,8 +313,8 @@ const Header = () => {
                   href="/"
                   className={`block px-3 py-2 rounded-md ${
                     isActive("/")
-                      ? "text-custom-red bg-gray-100"
-                      : "text-custom-gray hover:text-custom-red hover:bg-gray-50"
+                      ? "text-custom-orange bg-gray-100"
+                      : "text-custom-blue hover:text-custom-orange hover:bg-gray-50"
                   }`}
                   onClick={() => setIsMenuOpen(false)}
                 >
@@ -325,8 +325,8 @@ const Header = () => {
                   href="/search"
                   className={`block px-3 py-2 rounded-md ${
                     isActive("/search")
-                      ? "text-custom-red bg-gray-100"
-                      : "text-custom-gray hover:text-custom-red hover:bg-gray-50"
+                      ? "text-custom-orange bg-gray-100"
+                      : "text-custom-blue hover:text-custom-orange hover:bg-gray-50"
                   }`}
                   onClick={() => setIsMenuOpen(false)}
                 >
@@ -337,8 +337,8 @@ const Header = () => {
                   href="/about"
                   className={`block px-3 py-2 rounded-md ${
                     isActive("/about")
-                      ? "text-custom-red bg-gray-100"
-                      : "text-custom-gray hover:text-custom-red hover:bg-gray-50"
+                      ? "text-custom-orange bg-gray-100"
+                      : "text-custom-blue hover:text-custom-orange hover:bg-gray-50"
                   }`}
                   onClick={() => setIsMenuOpen(false)}
                 >
@@ -349,8 +349,8 @@ const Header = () => {
                   href="/contact"
                   className={`block px-3 py-2 rounded-md ${
                     isActive("/contact")
-                      ? "text-custom-red bg-gray-100"
-                      : "text-custom-gray hover:text-custom-red hover:bg-gray-50"
+                      ? "text-custom-orange bg-gray-100"
+                      : "text-custom-blue hover:text-custom-orange hover:bg-gray-50"
                   }`}
                   onClick={() => setIsMenuOpen(false)}
                 >
@@ -388,7 +388,7 @@ const Header = () => {
                   ) : (
                     <Link
                       href="/login"
-                      className="block w-full text-center bg-custom-red text-white px-6 py-2 rounded-full hover:bg-opacity-90 transition-colors"
+                      className="block w-full text-center bg-custom-orange text-white px-6 py-2 rounded-full hover:bg-opacity-90 transition-colors"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Tenant Portal

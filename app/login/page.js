@@ -60,7 +60,7 @@ function LoginForm() {
     <div className="w-full max-w-sm text-black">
       {/* Tab Headers */}
       <div className="flex mb-8">
-        <button className="flex-1 pb-2 text-custom-gray border-b-2 border-custom-red font-medium">
+        <button className="flex-1 pb-2 text-custom-blue border-b-2 border-custom-orange font-medium">
           Sign In
         </button>
         <Link
@@ -78,14 +78,14 @@ function LoginForm() {
       )}
 
       {error && (
-        <div className="mb-6 p-3 bg-red-100 text-red-700 rounded text-sm">
+        <div className="mb-6 p-3 bg-custom-yellow text-custom-orange rounded text-sm">
           {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6 text-black">
         <div>
-          <label className="block text-custom-gray text-sm mb-2" htmlFor="email">
+          <label className="block text-custom-blue text-sm mb-2" htmlFor="email">
             Your email
           </label>
           <input
@@ -94,14 +94,14 @@ function LoginForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="your-email@gmail.com"
-            className="w-full px-3 py-3 bg-transparent border border-gray-600 rounded-full text-custom-gray placeholder-gray-500 focus:outline-none focus:border-custom-red"
+            className="w-full px-3 py-3 bg-transparent border border-gray-600 rounded-full text-custom-blue placeholder-gray-500 focus:outline-none focus:border-custom-orange"
             required
             disabled={loading}
           />
         </div>
 
         <div>
-          <label className="block text-custom-gray text-sm mb-2" htmlFor="password">
+          <label className="block text-custom-blue text-sm mb-2" htmlFor="password">
             Your password
           </label>
           <div className="relative">
@@ -111,7 +111,7 @@ function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-3 py-3 bg-transparent border border-gray-600 rounded-full text-custom-gray placeholder-gray-500 focus:outline-none focus:border-custom-red"
+              className="w-full px-3 py-3 bg-transparent border border-gray-600 rounded-full text-custom-blue placeholder-gray-500 focus:outline-none focus:border-custom-orange"
               required
               disabled={loading}
             />
@@ -137,7 +137,7 @@ function LoginForm() {
           </label>
           <Link
             href="/forgot-password"
-            className="text-custom-red hover:underline text-sm"
+            className="text-custom-orange hover:underline text-sm"
           >
             Forgot password?
           </Link>
@@ -146,7 +146,7 @@ function LoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-custom-red text-white py-3 px-4 rounded-full font-medium hover:bg-opacity-90 transition-colors disabled:opacity-50 flex justify-center items-center"
+          className="w-full bg-custom-orange text-white py-3 px-4 rounded-full font-medium hover:bg-opacity-90 transition-colors disabled:opacity-50 flex justify-center items-center"
         >
           {loading ? (
             <>
@@ -170,7 +170,7 @@ function LoginFormLoading() {
 // Main page component
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex bg-custom-gray">
+    <div className="min-h-screen flex bg-custom-blue">
       {/* Left side - Image */}
       <div className="flex-1 relative">
         <Image

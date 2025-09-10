@@ -37,7 +37,7 @@ const CardBrandOption = ({ brand, selected, onClick, disabled = false }) => {
           />
         </div>
       ),
-      color: "blue",
+      color: "gray",
     },
     mastercard: {
       name: "Mastercard",
@@ -496,7 +496,7 @@ export default function EmailVerificationPaymentForm({
           </div>
 
           <div className="relative">
-            <div className="p-4 border border-gray-300 rounded-lg focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
+            <div className="p-4 border border-gray-300 rounded-lg focus-within:border-gray-500 focus-within:ring-1 focus-within:ring-gray-500">
               <CardElement
                 options={CARD_ELEMENT_OPTIONS}
                 onChange={handleCardChange}
@@ -542,7 +542,7 @@ export default function EmailVerificationPaymentForm({
               disabled={!cardComplete || !!stripeError}
               className={`w-full py-3 px-4 rounded-lg font-medium transition-all ${
                 cardComplete && !stripeError
-                  ? "bg-blue-600 text-white hover:bg-blue-700"
+                  ? "bg-gray-600 text-white hover:bg-gray-700"
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
               }`}
             >
@@ -580,7 +580,7 @@ export default function EmailVerificationPaymentForm({
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
                 disabled={codeSent || currentStep > 3}
-                className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
+                className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 disabled:bg-gray-100"
               />
               <svg
                 className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
@@ -649,7 +649,7 @@ export default function EmailVerificationPaymentForm({
               }
               placeholder="Enter 6-digit code"
               disabled={verifyingCode || currentStep > 4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center text-2xl tracking-wider disabled:bg-gray-100"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 text-center text-2xl tracking-wider disabled:bg-gray-100"
               maxLength={6}
             />
           </div>
@@ -684,7 +684,7 @@ export default function EmailVerificationPaymentForm({
                     setCurrentStep(3);
                     setVerificationCode("");
                   }}
-                  className="text-sm text-blue-600 hover:text-blue-800"
+                  className="text-sm text-gray-600 hover:text-gray-800"
                 >
                   Didn't receive the code? Send again
                 </button>
@@ -732,10 +732,10 @@ export default function EmailVerificationPaymentForm({
 
       {/* Error Messages */}
       {(errorMessage || stripeError) && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div className="p-4 bg-orange-50 border border-red-200 rounded-lg">
           <div className="flex items-start">
             <svg
-              className="h-5 w-5 text-red-400 mt-0.5 mr-3"
+              className="h-5 w-5 text-orange-400 mt-0.5 mr-3"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -747,7 +747,7 @@ export default function EmailVerificationPaymentForm({
                 d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            <p className="text-sm text-red-600">
+            <p className="text-sm text-orange-600">
               {errorMessage || stripeError}
             </p>
           </div>

@@ -135,9 +135,9 @@ export default function PaymentsTab({ onRefresh }) {
       case "pending":
         return "text-yellow-600 bg-yellow-50";
       case "processing":
-        return "text-blue-600 bg-blue-50";
+        return "text-gray-600 bg-gray-50";
       case "failed":
-        return "text-red-600 bg-red-50";
+        return "text-orange-600 bg-orange-50";
       default:
         return "text-gray-600 bg-gray-50";
     }
@@ -149,7 +149,7 @@ export default function PaymentsTab({ onRefresh }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-orange"></div>
       </div>
     );
   }
@@ -171,7 +171,7 @@ export default function PaymentsTab({ onRefresh }) {
             onRefresh?.();
             fetchPayments();
           }}
-          className="bg-custom-red text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+          className="bg-custom-orange text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors"
         >
           Refresh
         </button>
@@ -210,9 +210,9 @@ export default function PaymentsTab({ onRefresh }) {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
                 <svg
-                  className="w-5 h-5 text-blue-600"
+                  className="w-5 h-5 text-gray-600"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -264,9 +264,9 @@ export default function PaymentsTab({ onRefresh }) {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
                 <svg
-                  className="w-5 h-5 text-red-600"
+                  className="w-5 h-5 text-orange-600"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -300,7 +300,7 @@ export default function PaymentsTab({ onRefresh }) {
             <select
               value={selectedPeriod}
               onChange={(e) => setSelectedPeriod(e.target.value)}
-              className="rounded-md border-gray-300 shadow-sm focus:border-custom-red focus:ring-custom-red"
+              className="rounded-md border-gray-300 shadow-sm focus:border-custom-orange focus:ring-custom-orange"
             >
               <option value="all">All Time</option>
               <option value="month">This Month</option>
@@ -363,7 +363,7 @@ export default function PaymentsTab({ onRefresh }) {
                           ?.toUpperCase() || "RENTAL"}
                       </div>
                       {payment.platform_fee_amount > 0 && (
-                        <div className="text-xs text-red-500">
+                        <div className="text-xs text-orange-500">
                           Platform Fee: -
                           {formatCurrency(payment.platform_fee_amount)}
                         </div>

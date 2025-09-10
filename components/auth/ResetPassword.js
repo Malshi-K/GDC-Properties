@@ -209,7 +209,7 @@ export default function ResetPassword() {
         
         <div className="flex-grow flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-orange mx-auto"></div>
             <p className="mt-4 text-gray-600">Preparing secure password reset...</p>
           </div>
         </div>
@@ -236,14 +236,14 @@ export default function ResetPassword() {
         <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-8 relative">
           {DebugButton}
           
-          <h2 className="text-2xl font-bold mb-6 text-center text-custom-gray">
+          <h2 className="text-2xl font-bold mb-6 text-center text-custom-blue">
             Reset Your Password
           </h2>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-100 text-red-700 rounded flex items-center">
+            <div className="mb-6 p-4 bg-orange-100 text-orange-700 rounded flex items-center">
               <svg
-                className="h-5 w-5 text-red-500 mr-2"
+                className="h-5 w-5 text-orange-500 mr-2"
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 20 20"
                 fill="currentColor"
@@ -282,7 +282,7 @@ export default function ResetPassword() {
           )}
 
           {/* {debug && sessionInfo && (
-            <div className="mb-6 p-3 bg-blue-50 text-blue-800 rounded text-xs">
+            <div className="mb-6 p-3 bg-gray-50 text-gray-800 rounded text-xs">
               <h4 className="font-bold mb-1">Session Debug Info:</h4>
               <pre className="overflow-auto max-h-32">
                 {JSON.stringify(sessionInfo, null, 2)}
@@ -338,7 +338,7 @@ export default function ResetPassword() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-custom-red text-white py-2 px-4 rounded-full hover:bg-opacity-90 transition-colors disabled:opacity-50 flex justify-center items-center"
+                  className="w-full bg-custom-orange text-white py-2 px-4 rounded-full hover:bg-opacity-90 transition-colors disabled:opacity-50 flex justify-center items-center"
                 >
                   {loading ? (
                     <div className="flex items-center justify-center">
@@ -362,7 +362,7 @@ export default function ResetPassword() {
               </p>
               <Link
                 href="/forgot-password"
-                className="text-custom-red hover:underline font-medium"
+                className="text-custom-orange hover:underline font-medium"
               >
                 Request a new password reset link
               </Link>
@@ -371,7 +371,7 @@ export default function ResetPassword() {
 
           {redirectCountdown === null && (
             <div className="mt-6 text-center">
-              <Link href="/login" className="text-custom-red hover:underline">
+              <Link href="/login" className="text-custom-orange hover:underline">
                 Return to Sign In
               </Link>
             </div>

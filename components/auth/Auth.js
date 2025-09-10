@@ -32,7 +32,7 @@ export default function Auth({ isOpen, onClose }) {
           <X size={20} />
         </button>
         <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-custom-red mx-auto"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-custom-orange mx-auto"></div>
           <p className="mt-4">Redirecting to login page...</p>
         </div>
       </div>

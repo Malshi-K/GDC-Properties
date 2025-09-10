@@ -40,9 +40,9 @@ export default function AnalyticsTab({ onRefresh }) {
   const [activeView, setActiveView] = useState("overview");
 
   // Use the custom colors
-  const customRed = "#c30011";
-  const customYellow = "#ffc536";
-  const customGray = "#585858";
+  const customRed = "#f96929";
+  const customYellow = "#fda24a";
+  const customgray = "#5e81a1";
 
   // Chart colors
   const COLORS = [
@@ -377,7 +377,7 @@ export default function AnalyticsTab({ onRefresh }) {
     return (
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-custom-gray">
+          <h2 className="text-2xl font-bold text-custom-blue">
             Property Analytics
           </h2>
           <button
@@ -400,7 +400,7 @@ export default function AnalyticsTab({ onRefresh }) {
             Retry
           </button>
         </div>
-        <div className="bg-red-50 p-4 rounded-md text-red-600">
+        <div className="bg-orange-50 p-4 rounded-md text-orange-600">
           <p>Error loading analytics data: {error}</p>
           <p className="mt-2">
             Please ensure your database connection is properly configured and
@@ -431,7 +431,7 @@ export default function AnalyticsTab({ onRefresh }) {
     return (
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-custom-gray">
+          <h2 className="text-2xl font-bold text-custom-blue">
             Property Analytics
           </h2>
           <button
@@ -456,16 +456,16 @@ export default function AnalyticsTab({ onRefresh }) {
           </button>
         </div>
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-orange"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white shadow rounded-lg p-6 text-custom-gray max-w-6xl mx-auto">
+    <div className="bg-white shadow rounded-lg p-6 text-custom-blue max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-custom-gray">
+        <h2 className="text-2xl font-bold text-custom-blue">
           Property Analytics
         </h2>
         <button
@@ -495,8 +495,8 @@ export default function AnalyticsTab({ onRefresh }) {
           onClick={() => setActiveView("overview")}
           className={`px-4 py-2 rounded-md ${
             activeView === "overview"
-              ? "bg-custom-red text-white"
-              : "bg-gray-100 text-custom-gray"
+              ? "bg-custom-orange text-white"
+              : "bg-gray-100 text-custom-blue"
           }`}
         >
           Overview
@@ -505,8 +505,8 @@ export default function AnalyticsTab({ onRefresh }) {
           onClick={() => setActiveView("properties")}
           className={`px-4 py-2 rounded-md ${
             activeView === "properties"
-              ? "bg-custom-red text-white"
-              : "bg-gray-100 text-custom-gray"
+              ? "bg-custom-orange text-white"
+              : "bg-gray-100 text-custom-blue"
           }`}
         >
           Properties
@@ -515,8 +515,8 @@ export default function AnalyticsTab({ onRefresh }) {
           onClick={() => setActiveView("requests")}
           className={`px-4 py-2 rounded-md ${
             activeView === "requests"
-              ? "bg-custom-red text-white"
-              : "bg-gray-100 text-custom-gray"
+              ? "bg-custom-orange text-white"
+              : "bg-gray-100 text-custom-blue"
           }`}
         >
           Viewing Requests
@@ -525,8 +525,8 @@ export default function AnalyticsTab({ onRefresh }) {
           onClick={() => setActiveView("applications")}
           className={`px-4 py-2 rounded-md ${
             activeView === "applications"
-              ? "bg-custom-red text-white"
-              : "bg-gray-100 text-custom-gray"
+              ? "bg-custom-orange text-white"
+              : "bg-gray-100 text-custom-blue"
           }`}
         >
           Applications
@@ -535,8 +535,8 @@ export default function AnalyticsTab({ onRefresh }) {
           onClick={() => setActiveView("trends")}
           className={`px-4 py-2 rounded-md ${
             activeView === "trends"
-              ? "bg-custom-red text-white"
-              : "bg-gray-100 text-custom-gray"
+              ? "bg-custom-orange text-white"
+              : "bg-gray-100 text-custom-blue"
           }`}
         >
           Trends
@@ -548,19 +548,19 @@ export default function AnalyticsTab({ onRefresh }) {
         <div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-gray-50 p-4 rounded-md">
-              <h3 className="text-lg font-semibold text-custom-gray mb-2">
+              <h3 className="text-lg font-semibold text-custom-blue mb-2">
                 Property Metrics
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-sm text-gray-500">Total Properties</p>
-                  <p className="text-2xl font-bold text-custom-gray">
+                  <p className="text-2xl font-bold text-custom-blue">
                     {totalProperties}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Avg. Price</p>
-                  <p className="text-2xl font-bold text-custom-gray">
+                  <p className="text-2xl font-bold text-custom-blue">
                     $
                     {avgPrice.toLocaleString("en-US", {
                       maximumFractionDigits: 0,
@@ -569,13 +569,13 @@ export default function AnalyticsTab({ onRefresh }) {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Occupied</p>
-                  <p className="text-2xl font-bold text-custom-gray">
+                  <p className="text-2xl font-bold text-custom-blue">
                     {occupiedProperties}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Available</p>
-                  <p className="text-2xl font-bold text-custom-gray">
+                  <p className="text-2xl font-bold text-custom-blue">
                     {vacantProperties}
                   </p>
                 </div>
@@ -583,19 +583,19 @@ export default function AnalyticsTab({ onRefresh }) {
             </div>
 
             <div className="bg-gray-50 p-4 rounded-md">
-              <h3 className="text-lg font-semibold text-custom-gray mb-2">
+              <h3 className="text-lg font-semibold text-custom-blue mb-2">
                 Viewing Requests
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-sm text-gray-500">Total Requests</p>
-                  <p className="text-2xl font-bold text-custom-gray">
+                  <p className="text-2xl font-bold text-custom-blue">
                     {totalViewingRequests}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Conversion Rate</p>
-                  <p className="text-2xl font-bold text-custom-gray">
+                  <p className="text-2xl font-bold text-custom-blue">
                     {totalViewingRequests
                       ? Math.round(
                           (rentalApplications.length / totalViewingRequests) *
@@ -617,7 +617,7 @@ export default function AnalyticsTab({ onRefresh }) {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Completed</p>
-                  <p className="text-2xl font-bold text-custom-gray">
+                  <p className="text-2xl font-bold text-custom-blue">
                     {
                       viewingRequests.filter(
                         (r) => r.status?.toLowerCase() === "completed"
@@ -629,13 +629,13 @@ export default function AnalyticsTab({ onRefresh }) {
             </div>
 
             <div className="bg-gray-50 p-4 rounded-md">
-              <h3 className="text-lg font-semibold text-custom-gray mb-2">
+              <h3 className="text-lg font-semibold text-custom-blue mb-2">
                 Applications
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-sm text-gray-500">Total Applications</p>
-                  <p className="text-2xl font-bold text-custom-gray">
+                  <p className="text-2xl font-bold text-custom-blue">
                     {rentalApplications.length}
                   </p>
                 </div>
@@ -657,7 +657,7 @@ export default function AnalyticsTab({ onRefresh }) {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Rejected</p>
-                  <p className="text-2xl font-bold text-custom-red">
+                  <p className="text-2xl font-bold text-custom-orange">
                     {
                       rentalApplications.filter(
                         (a) => a.status?.toLowerCase() === "rejected"
@@ -672,7 +672,7 @@ export default function AnalyticsTab({ onRefresh }) {
           {/* Charts Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div className="bg-white border rounded-md p-4">
-              <h3 className="text-lg font-semibold text-custom-gray mb-4">
+              <h3 className="text-lg font-semibold text-custom-blue mb-4">
                 Property Types
               </h3>
               <div className="h-64">
@@ -712,7 +712,7 @@ export default function AnalyticsTab({ onRefresh }) {
             </div>
 
             <div className="bg-white border rounded-md p-4">
-              <h3 className="text-lg font-semibold text-custom-gray mb-4">
+              <h3 className="text-lg font-semibold text-custom-blue mb-4">
                 Viewing Request Status
               </h3>
               <div className="h-64">
@@ -759,7 +759,7 @@ export default function AnalyticsTab({ onRefresh }) {
         <div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div className="bg-white border rounded-md p-4">
-              <h3 className="text-lg font-semibold text-custom-gray mb-4">
+              <h3 className="text-lg font-semibold text-custom-blue mb-4">
                 Property Prices
               </h3>
               <div className="h-64">
@@ -789,7 +789,7 @@ export default function AnalyticsTab({ onRefresh }) {
             </div>
 
             <div className="bg-white border rounded-md p-4">
-              <h3 className="text-lg font-semibold text-custom-gray mb-4">
+              <h3 className="text-lg font-semibold text-custom-blue mb-4">
                 Bedrooms & Bathrooms
               </h3>
               <div className="h-64">
@@ -821,7 +821,7 @@ export default function AnalyticsTab({ onRefresh }) {
           </div>
 
           <div className="bg-white border rounded-md p-4">
-            <h3 className="text-lg font-semibold text-custom-gray mb-4">
+            <h3 className="text-lg font-semibold text-custom-blue mb-4">
               Property Engagement
             </h3>
             <div className="h-64">
@@ -862,7 +862,7 @@ export default function AnalyticsTab({ onRefresh }) {
         <div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div className="bg-white border rounded-md p-4">
-              <h3 className="text-lg font-semibold text-custom-gray mb-4">
+              <h3 className="text-lg font-semibold text-custom-blue mb-4">
                 Viewing Request Status
               </h3>
               <div className="h-64">
@@ -910,7 +910,7 @@ export default function AnalyticsTab({ onRefresh }) {
             </div>
 
             <div className="bg-white border rounded-md p-4">
-              <h3 className="text-lg font-semibold text-custom-gray mb-4">
+              <h3 className="text-lg font-semibold text-custom-blue mb-4">
                 Top Properties by Viewing Requests
               </h3>
               <div className="h-64">
@@ -943,7 +943,7 @@ export default function AnalyticsTab({ onRefresh }) {
 
           {/* Recent Viewing Requests Table */}
           <div className="bg-white border rounded-md p-4">
-            <h3 className="text-lg font-semibold text-custom-gray mb-4">
+            <h3 className="text-lg font-semibold text-custom-blue mb-4">
               Recent Viewing Requests
             </h3>
             <div className="overflow-x-auto">
@@ -1000,9 +1000,9 @@ export default function AnalyticsTab({ onRefresh }) {
                                   : request.status?.toLowerCase() === "approved"
                                   ? "bg-green-100 text-green-800"
                                   : request.status?.toLowerCase() === "declined"
-                                  ? "bg-red-100 text-red-800"
+                                  ? "bg-orange-100 text-orange-800"
                                   : request.status?.toLowerCase() === "canceled"
-                                  ? "bg-blue-100 text-blue-800"
+                                  ? "bg-gray-100 text-gray-800"
                                   : "bg-gray-100 text-gray-800"
                               }`}
                             >
@@ -1024,7 +1024,7 @@ export default function AnalyticsTab({ onRefresh }) {
         <div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div className="bg-white border rounded-md p-4">
-              <h3 className="text-lg font-semibold text-custom-gray mb-4">
+              <h3 className="text-lg font-semibold text-custom-blue mb-4">
                 Application Status
               </h3>
               <div className="h-64">
@@ -1073,7 +1073,7 @@ export default function AnalyticsTab({ onRefresh }) {
             </div>
 
             <div className="bg-white border rounded-md p-4">
-              <h3 className="text-lg font-semibold text-custom-gray mb-4">
+              <h3 className="text-lg font-semibold text-custom-blue mb-4">
                 Top Properties by Applications
               </h3>
               <div className="h-64">
@@ -1106,7 +1106,7 @@ export default function AnalyticsTab({ onRefresh }) {
 
           {/* Recent Applications Table */}
           <div className="bg-white border rounded-md p-4">
-            <h3 className="text-lg font-semibold text-custom-gray mb-4">
+            <h3 className="text-lg font-semibold text-custom-blue mb-4">
               Recent Applications
             </h3>
             <div className="overflow-x-auto">
@@ -1170,7 +1170,7 @@ export default function AnalyticsTab({ onRefresh }) {
                                   : application.status?.toLowerCase() ===
                                     "approved"
                                   ? "bg-green-100 text-green-800"
-                                  : "bg-red-100 text-red-800"
+                                  : "bg-orange-100 text-orange-800"
                               }`}
                             >
                               {application.status || "Pending"}
@@ -1190,7 +1190,7 @@ export default function AnalyticsTab({ onRefresh }) {
       {activeView === "trends" && (
         <div>
           <div className="bg-white border rounded-md p-4 mb-6">
-            <h3 className="text-lg font-semibold text-custom-gray mb-4">
+            <h3 className="text-lg font-semibold text-custom-blue mb-4">
               Monthly Trends
             </h3>
             <div className="h-80">

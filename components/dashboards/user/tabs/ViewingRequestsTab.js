@@ -165,7 +165,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
         };
       case 'declined': 
         return { 
-          className: 'bg-red-100 text-red-800',
+          className: 'bg-orange-100 text-orange-800',
           text: 'Declined' 
         };
       case 'canceled': 
@@ -175,7 +175,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
         };
       case 'completed': 
         return { 
-          className: 'bg-blue-100 text-blue-800',
+          className: 'bg-gray-100 text-gray-800',
           text: 'Completed' 
         };
       default: 
@@ -262,7 +262,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
           <button
             onClick={handleRefresh}
             disabled={requestsLoading}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red disabled:opacity-50"
+            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-orange disabled:opacity-50"
           >
             <svg
               className={`-ml-0.5 mr-2 h-4 w-4 ${requestsLoading ? 'animate-spin' : ''}`}
@@ -281,7 +281,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
           </button>
         </div>
         <div className="flex justify-center my-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-orange"></div>
         </div>
       </div>
     );
@@ -296,7 +296,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
         <button
           onClick={handleRefresh}
           disabled={requestsLoading}
-          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red disabled:opacity-50"
+          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-orange disabled:opacity-50"
         >
           <svg
             className={`-ml-0.5 mr-2 h-4 w-4 ${requestsLoading ? 'animate-spin' : ''}`}
@@ -332,7 +332,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
             </p>
             <Link 
               href="/search" 
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-red hover:bg-red-700"
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-orange hover:bg-orange-700"
             >
               Browse Properties
             </Link>
@@ -361,7 +361,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
                         {/* Enhanced image handling with loading state */}
                         {imageLoading ? (
                           <div className="flex items-center justify-center h-full w-full">
-                            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-custom-red"></div>
+                            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-custom-orange"></div>
                           </div>
                         ) : propertyImage ? (
                           <div className="relative h-full w-full">
@@ -418,7 +418,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
                           {/* Enhanced large image handling with loading state */}
                           {imageLoading ? (
                             <div className="w-full h-48 md:h-64 flex items-center justify-center">
-                              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
+                              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-orange"></div>
                             </div>
                           ) : propertyImage ? (
                             <div className="relative w-full h-48 md:h-64">
@@ -451,7 +451,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
                         <div className="w-full md:w-2/3">
                           <div className="mb-4">
                             <h3 className="text-xl font-semibold text-gray-900 mb-1">
-                              <Link href={`/properties/${request.property_id}`} className="hover:text-custom-red">
+                              <Link href={`/properties/${request.property_id}`} className="hover:text-custom-orange">
                                 {request.properties?.title || request.property_title || 'Property Viewing'}
                               </Link>
                             </h3>
@@ -488,7 +488,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
                                   handleCancelRequest(request.id);
                                 }}
                                 disabled={cancelingId === request.id}
-                                className="px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50 disabled:opacity-50"
+                                className="px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-orange-700 bg-white hover:bg-orange-50 disabled:opacity-50"
                               >
                                 {cancelingId === request.id ? 'Cancelling...' : 'Cancel Request'}
                               </button>
@@ -511,7 +511,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
                             <Link
                               href={`/properties/${request.property_id}`}
                               onClick={(e) => e.stopPropagation()}
-                              className="px-4 py-2 border border-custom-red text-custom-red rounded-md text-sm font-medium bg-white hover:bg-red-50"
+                              className="px-4 py-2 border border-custom-orange text-custom-orange rounded-md text-sm font-medium bg-white hover:bg-orange-50"
                             >
                               View Property
                             </Link>

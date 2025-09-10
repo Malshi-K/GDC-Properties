@@ -383,9 +383,9 @@ export default function AdminPropertiesTab({ onRefresh }) {
   const getStatusBadgeColor = (status) => {
     switch (status?.toLowerCase()) {
       case 'available': return 'bg-green-100 text-green-800 border border-green-200';
-      case 'rented': return 'bg-red-100 text-red-800 border border-red-200';
+      case 'rented': return 'bg-orange-100 text-orange-800 border border-red-200';
       case 'maintenance': return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
-      case 'pending': return 'bg-blue-100 text-blue-800 border border-blue-200';
+      case 'pending': return 'bg-gray-100 text-gray-800 border border-gray-200';
       default: return 'bg-gray-100 text-gray-800 border border-gray-200';
     }
   };
@@ -449,16 +449,16 @@ export default function AdminPropertiesTab({ onRefresh }) {
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+        <div className="bg-orange-50 border border-red-200 text-orange-700 px-4 py-3 rounded-md">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+              <svg className="h-5 w-5 text-orange-400" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error</h3>
-              <div className="mt-2 text-sm text-red-700">
+              <h3 className="text-sm font-medium text-orange-800">Error</h3>
+              <div className="mt-2 text-sm text-orange-700">
                 <p>{error}</p>
               </div>
             </div>
@@ -468,21 +468,21 @@ export default function AdminPropertiesTab({ onRefresh }) {
 
       {/* Debug Info */}
       {debugInfo && (
-        <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-md">
+        <div className="bg-gray-50 border border-gray-200 text-gray-700 px-4 py-3 rounded-md">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+              <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-blue-800">Debug Info</h3>
-              <div className="mt-2 text-sm text-blue-700">
+              <h3 className="text-sm font-medium text-gray-800">Debug Info</h3>
+              <div className="mt-2 text-sm text-gray-700">
                 <p>{debugInfo.message}</p>
                 {debugInfo.sampleProperty && (
                   <details className="mt-2">
                     <summary className="cursor-pointer font-medium">Sample Property Data</summary>
-                    <pre className="text-xs bg-blue-100 p-2 rounded mt-1 overflow-x-auto">
+                    <pre className="text-xs bg-gray-100 p-2 rounded mt-1 overflow-x-auto">
                       {JSON.stringify(debugInfo.sampleProperty, null, 2)}
                     </pre>
                   </details>
@@ -525,8 +525,8 @@ export default function AdminPropertiesTab({ onRefresh }) {
 
         <div className="bg-white p-4 rounded-lg shadow border">
           <div className="flex items-center">
-            <div className="p-2 bg-red-100 rounded-lg">
-              <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <svg className="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
             </div>
@@ -553,8 +553,8 @@ export default function AdminPropertiesTab({ onRefresh }) {
 
         <div className="bg-white p-4 rounded-lg shadow border">
           <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="p-2 bg-gray-100 rounded-lg">
+              <svg className="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -678,7 +678,7 @@ export default function AdminPropertiesTab({ onRefresh }) {
                           </div>
                           {/* Show image info for debugging */}
                           {property.images && property.images.length > 0 && (
-                            <div className="text-xs text-blue-600 mt-1">
+                            <div className="text-xs text-gray-600 mt-1">
                               {property.images.length} image{property.images.length !== 1 ? 's' : ''}
                             </div>
                           )}

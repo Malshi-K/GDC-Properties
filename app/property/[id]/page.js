@@ -437,7 +437,7 @@ export default function PropertyDetails() {
           </p>
           <Link
             href="/search"
-            className="bg-custom-red hover:bg-red-700 text-white font-bold py-2 px-6 rounded-md transition-colors duration-300"
+            className="bg-custom-orange hover:bg-custom-yellow text-white font-bold py-2 px-6 rounded-md transition-colors duration-300"
           >
             Back to Search
           </Link>
@@ -684,7 +684,7 @@ export default function PropertyDetails() {
           <div className="md:col-span-8">
             {/* Status tag */}
             <div className="mb-2">
-              <span className="inline-block bg-blue-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
+              <span className="inline-block bg-gray-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
                 {property.status || "For sale"}
               </span>
             </div>
@@ -710,7 +710,7 @@ export default function PropertyDetails() {
 
                 {/* Right side - Price */}
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-custom-red">
+                  <div className="text-2xl font-bold text-custom-orange">
                     {formatPrice(property.price)}/year
                   </div>
                 </div>
@@ -852,7 +852,7 @@ export default function PropertyDetails() {
                     {property.nearby_amenities.map((amenity, index) => (
                       <div key={index} className="flex items-center">
                         <svg
-                          className="w-5 h-5 text-blue-500 mr-2"
+                          className="w-5 h-5 text-gray-500 mr-2"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -900,7 +900,7 @@ export default function PropertyDetails() {
 
                 <button
                   onClick={openViewingModal}
-                  className="w-full bg-custom-red hover:bg-red-700 text-white font-medium py-2 px-4 rounded-full transition-colors duration-300 mb-3"
+                  className="w-full bg-custom-orange hover:bg-custom-yellow text-white font-medium py-2 px-4 rounded-full transition-colors duration-300 mb-3"
                   disabled={property.status !== "available"}
                 >
                   Book Viewing

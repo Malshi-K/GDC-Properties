@@ -111,7 +111,7 @@ const PropertyApplicationModal = ({ property, isOpen, onClose, onSuccess }) => {
           <div className="mb-6">
             <h3 className="font-semibold text-gray-800">{property.title}</h3>
             <p className="text-gray-600">{property.location}</p>
-            <p className="text-custom-red font-bold mt-1">
+            <p className="text-custom-orange font-bold mt-1">
               {new Intl.NumberFormat('en-US', {
                 style: 'currency',
                 currency: 'USD',
@@ -121,7 +121,7 @@ const PropertyApplicationModal = ({ property, isOpen, onClose, onSuccess }) => {
           </div>
           
           {error && (
-            <div className="bg-red-50 text-red-700 p-3 rounded-md mb-4">
+            <div className="bg-orange-50 text-orange-700 p-3 rounded-md mb-4">
               {error}
             </div>
           )}
@@ -131,7 +131,7 @@ const PropertyApplicationModal = ({ property, isOpen, onClose, onSuccess }) => {
               <p className="mb-4">You need to be logged in to apply for a property.</p>
               <a 
                 href="/login" 
-                className="bg-custom-red hover:bg-red-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300 inline-block"
+                className="bg-custom-orange hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-md transition-colors duration-300 inline-block"
               >
                 Log In / Sign Up
               </a>
@@ -148,7 +148,7 @@ const PropertyApplicationModal = ({ property, isOpen, onClose, onSuccess }) => {
                   required
                   value={formData.employmentStatus}
                   onChange={handleChange}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
                 >
                   <option value="">Select an option</option>
                   <option value="Full-time">Full-time</option>
@@ -172,7 +172,7 @@ const PropertyApplicationModal = ({ property, isOpen, onClose, onSuccess }) => {
                   value={formData.income}
                   onChange={handleChange}
                   placeholder="e.g. 60000"
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
                 />
               </div>
               
@@ -188,7 +188,7 @@ const PropertyApplicationModal = ({ property, isOpen, onClose, onSuccess }) => {
                   value={formData.creditScore}
                   onChange={handleChange}
                   placeholder="e.g. 720"
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
                 />
               </div>
               
@@ -204,7 +204,7 @@ const PropertyApplicationModal = ({ property, isOpen, onClose, onSuccess }) => {
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="Enter your phone number"
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
                 />
               </div>
               
@@ -219,7 +219,7 @@ const PropertyApplicationModal = ({ property, isOpen, onClose, onSuccess }) => {
                   value={formData.message}
                   onChange={handleChange}
                   placeholder="Why are you interested in this property? Include any details that may help your application."
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
                 ></textarea>
               </div>
               
@@ -234,7 +234,7 @@ const PropertyApplicationModal = ({ property, isOpen, onClose, onSuccess }) => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-red hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red"
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-orange hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-orange"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit Application'}

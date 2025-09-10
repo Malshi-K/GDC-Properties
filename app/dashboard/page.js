@@ -1118,10 +1118,10 @@ export default function Dashboard() {
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="flex flex-col items-center">
           <div className="relative h-24 w-24 mb-4">
-            <div className="absolute inset-0 border-4 border-custom-red border-opacity-20 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-transparent border-t-custom-red rounded-full animate-spin"></div>
+            <div className="absolute inset-0 border-4 border-custom-orange border-opacity-20 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-transparent border-t-custom-orange rounded-full animate-spin"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-custom-red text-sm font-medium">
+              <span className="text-custom-orange text-sm font-medium">
                 Loading...
               </span>
             </div>

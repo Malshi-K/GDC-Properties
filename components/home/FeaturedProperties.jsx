@@ -176,7 +176,7 @@ const FeaturedProperties = () => {
 
           {/* Status Badge */}
           {property.status && (
-            <div className="absolute top-4 left-4 bg-custom-gray text-white px-3 py-1 rounded-full text-xs font-medium capitalize">
+            <div className="absolute top-4 left-4 bg-custom-blue text-white px-3 py-1 rounded-full text-xs font-medium capitalize">
               {property.status}
             </div>
           )}
@@ -285,10 +285,10 @@ const FeaturedProperties = () => {
   // Error display
   const ErrorDisplay = () => (
     <div className="w-full py-10 text-center">
-      <p className="text-red-500 mb-4">{error}</p>
+      <p className="text-orange-500 mb-4">{error}</p>
       <button
         onClick={() => loadProperties(true)}
-        className="px-4 py-2 bg-custom-red text-white rounded hover:bg-red-700 transition-colors"
+        className="px-4 py-2 bg-custom-orange text-white rounded hover:bg-orange-700 transition-colors"
       >
         Try Again
       </button>

@@ -63,7 +63,7 @@ const PropertyApplications = ({
     // Handle payment-specific statuses
     if (status === 'payment_pending') {
       return {
-        className: "bg-blue-100 text-blue-800",
+        className: "bg-gray-100 text-gray-800",
         text: "Payment Pending",
       };
     }
@@ -88,7 +88,7 @@ const PropertyApplications = ({
         };
       case "rejected":
         return {
-          className: "bg-red-100 text-red-800",
+          className: "bg-orange-100 text-orange-800",
           text: "Rejected",
         };
       case "withdrawn":
@@ -163,7 +163,7 @@ const PropertyApplications = ({
             <button
               onClick={onRefresh}
               disabled={loading}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red disabled:opacity-50"
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-orange disabled:opacity-50"
             >
               <svg className={`-ml-0.5 mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -173,7 +173,7 @@ const PropertyApplications = ({
           )}
         </div>
         <div className="flex justify-center my-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-orange"></div>
         </div>
       </div>
     );
@@ -187,7 +187,7 @@ const PropertyApplications = ({
           <button
             onClick={onRefresh}
             disabled={loading}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red disabled:opacity-50"
+            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-orange disabled:opacity-50"
           >
             <svg className={`-ml-0.5 mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -205,7 +205,7 @@ const PropertyApplications = ({
             </svg>
             <h3 className="text-lg font-medium text-gray-900 mb-1">No applications</h3>
             <p className="text-gray-500 mb-4">You haven't applied for any properties yet.</p>
-            <Link href="/search" className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-red hover:bg-red-700">
+            <Link href="/search" className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-orange hover:bg-orange-700">
               Browse Properties
             </Link>
           </div>
@@ -251,16 +251,16 @@ const PropertyApplications = ({
                 )}
 
                 {application.status === "payment_pending" && (
-                  <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+                  <div className="bg-gray-50 border-l-4 border-gray-400 p-4">
                     <div className="flex items-start">
                       <div className="flex-shrink-0">
-                        <svg className="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                         </svg>
                       </div>
                       <div className="ml-3">
-                        <h3 className="text-sm font-medium text-blue-800">Payment in Progress 💳</h3>
-                        <div className="mt-2 text-sm text-blue-700">
+                        <h3 className="text-sm font-medium text-gray-800">Payment in Progress 💳</h3>
+                        <div className="mt-2 text-sm text-gray-700">
                           <p>Your payment is being processed. You will receive a confirmation once completed.</p>
                         </div>
                       </div>
@@ -293,7 +293,7 @@ const PropertyApplications = ({
                       <div className="h-12 w-12 bg-gray-200 rounded-md overflow-hidden flex-shrink-0">
                         {imageLoading ? (
                           <div className="flex items-center justify-center h-full w-full">
-                            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-custom-red"></div>
+                            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-custom-orange"></div>
                           </div>
                         ) : propertyImage ? (
                           <div className="relative h-full w-full">
@@ -348,7 +348,7 @@ const PropertyApplications = ({
                         <div className="w-full md:w-1/3 h-48 md:h-auto rounded-lg overflow-hidden bg-gray-100">
                           {imageLoading ? (
                             <div className="w-full h-48 md:h-64 flex items-center justify-center">
-                              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
+                              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-orange"></div>
                             </div>
                           ) : propertyImage ? (
                             <div className="relative w-full h-48 md:h-64">
@@ -371,12 +371,12 @@ const PropertyApplications = ({
                         <div className="w-full md:w-2/3">
                           <div className="mb-4">
                             <h3 className="text-xl font-semibold text-gray-900 mb-1">
-                              <Link href={`/properties/${application.property_id}`} className="hover:text-custom-red">
+                              <Link href={`/properties/${application.property_id}`} className="hover:text-custom-orange">
                                 {application.property_title}
                               </Link>
                             </h3>
                             <p className="text-gray-600 mb-2">{application.property_location}</p>
-                            <p className="text-custom-red font-bold">
+                            <p className="text-custom-orange font-bold">
                               {typeof formatPrice === "function" ? formatPrice(application.property_price) : `$${application.property_price?.toLocaleString() || "Price not available"}`}
                             </p>
                           </div>
@@ -431,7 +431,7 @@ const PropertyApplications = ({
                             <Link
                               href={`/properties/${application.property_id}`}
                               onClick={(e) => e.stopPropagation()}
-                              className="px-4 py-2 border border-custom-red text-custom-red rounded-md text-sm font-medium bg-white hover:bg-red-50"
+                              className="px-4 py-2 border border-custom-orange text-custom-orange rounded-md text-sm font-medium bg-white hover:bg-orange-50"
                             >
                               View Property
                             </Link>
@@ -454,7 +454,7 @@ const PropertyApplications = ({
                               <button
                                 onClick={(e) => handleWithdraw(application.id, e)}
                                 disabled={withdrawingId === application.id}
-                                className="px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50 disabled:opacity-50"
+                                className="px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-orange-700 bg-white hover:bg-orange-50 disabled:opacity-50"
                               >
                                 {withdrawingId === application.id ? "Withdrawing..." : "Withdraw"}
                               </button>

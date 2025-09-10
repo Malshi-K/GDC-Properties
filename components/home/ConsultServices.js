@@ -36,7 +36,7 @@ export default function ConsultServices() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">              
               <Link
                 href="/contact"
-                className="bg-custom-red hover:bg-red-700 text-white px-8 py-4 rounded-full flex items-center justify-center transition duration-300 font-semibold text-lg min-w-[200px]"
+                className="bg-custom-orange hover:bg-custom-yellow text-white px-8 py-4 rounded-full flex items-center justify-center transition duration-300 font-semibold text-lg min-w-[200px]"
               >
                 <span className="mr-2">Book Appraisal</span>
                 <FaArrowRight className="text-white" />

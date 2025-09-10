@@ -61,7 +61,7 @@ export default function PaymentPage() {
       <ProtectedRoute>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-orange mx-auto mb-4"></div>
             <p className="text-gray-600">Loading payment details...</p>
           </div>
         </div>
@@ -76,7 +76,7 @@ export default function PaymentPage() {
           <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6">
             <div className="text-center">
               <svg
-                className="h-12 w-12 text-red-400 mx-auto mb-4"
+                className="h-12 w-12 text-custom-orange mx-auto mb-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -94,7 +94,7 @@ export default function PaymentPage() {
               <p className="text-gray-600 mb-4">{error}</p>
               <button
                 onClick={() => router.push("/dashboard")}
-                className="bg-custom-red text-white px-4 py-2 rounded-md hover:bg-red-700"
+                className="bg-custom-orange text-white px-4 py-2 rounded-md hover:bg-custom-yellow"
               >
                 Return to Dashboard
               </button>
@@ -122,7 +122,7 @@ export default function PaymentPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Property & Application Summary */}
             <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-4 text-custom-red">
+              <h2 className="text-xl font-semibold mb-4 text-custom-orange">
                 Application Summary
               </h2>
 
@@ -134,7 +134,7 @@ export default function PaymentPage() {
                 <p className="text-gray-600 mb-1">
                   {application.properties.location}
                 </p>
-                <p className="text-custom-red font-bold text-lg">
+                <p className="text-custom-orange font-bold text-lg">
                   ${application.properties.price.toLocaleString()}/month
                 </p>
               </div>
@@ -175,7 +175,7 @@ export default function PaymentPage() {
 
             {/* Payment Section */}
             <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-xl font-semibold mb-4 text-custom-red">
+              <h2 className="text-xl font-semibold mb-4 text-custom-orange">
                 Payment Details
               </h2>
 
@@ -193,7 +193,7 @@ export default function PaymentPage() {
                   <div className="border-t pt-3">
                     <div className="flex justify-between font-bold text-lg text-gray-400">
                       <span>Total Amount</span>
-                      <span className="text-custom-red">
+                      <span className="text-custom-orange">
                         ${paymentBreakdown?.total.toLocaleString()}
                       </span>
                     </div>

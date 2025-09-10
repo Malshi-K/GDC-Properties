@@ -78,13 +78,13 @@ export default function RentalApplicationModal({ property, isOpen, onClose }) {
         <div className="mb-4">
           <h3 className="font-medium text-gray-900">{property.title}</h3>
           <p className="text-gray-600">{property.location}</p>
-          <p className="text-custom-red font-semibold">
+          <p className="text-custom-orange font-semibold">
             ${parseInt(property.price).toLocaleString()}/month
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          <div className="mb-4 bg-orange-50 border border-red-200 text-orange-700 px-4 py-3 rounded">
             {error}
           </div>
         )}
@@ -100,7 +100,7 @@ export default function RentalApplicationModal({ property, isOpen, onClose }) {
               value={formData.employmentStatus}
               onChange={handleChange}
               required
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
             >
               <option value="employed">Employed</option>
               <option value="self-employed">Self-Employed</option>
@@ -123,7 +123,7 @@ export default function RentalApplicationModal({ property, isOpen, onClose }) {
               required
               min="0"
               placeholder="60000"
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
             />
           </div>
 
@@ -137,7 +137,7 @@ export default function RentalApplicationModal({ property, isOpen, onClose }) {
               value={formData.creditScore}
               onChange={handleChange}
               required
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
             >
               <option value="excellent">Excellent (750+)</option>
               <option value="good">Good (700-749)</option>
@@ -158,7 +158,7 @@ export default function RentalApplicationModal({ property, isOpen, onClose }) {
               onChange={handleChange}
               rows="3"
               placeholder="Include any additional information you'd like the property owner to know about your application"
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
             ></textarea>
           </div>
 
@@ -181,7 +181,7 @@ export default function RentalApplicationModal({ property, isOpen, onClose }) {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-red hover:bg-red-700 disabled:opacity-50 flex items-center"
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-orange hover:bg-orange-700 disabled:opacity-50 flex items-center"
               >
                 {loading && (
                   <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

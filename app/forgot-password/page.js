@@ -33,7 +33,7 @@ function ForgotPasswordForm() {
     <div className="w-full max-w-md">
       {/* Header */}
       <div className="mb-8 text-center">
-        <h2 className="text-2xl font-bold text-custom-gray mb-4">
+        <h2 className="text-2xl font-bold text-custom-blue mb-4">
           Forgot Your Password?
         </h2>
         <p className="text-gray-400">
@@ -49,7 +49,7 @@ function ForgotPasswordForm() {
       )}
 
       {error && (
-        <div className="mb-6 p-3 bg-red-100 text-red-700 rounded text-sm">
+        <div className="mb-6 p-3 bg-custom-yellow text-custom-orange rounded text-sm">
           {error}
         </div>
       )}
@@ -57,7 +57,7 @@ function ForgotPasswordForm() {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label
-            className="block text-custom-gray text-sm mb-2"
+            className="block text-custom-blue text-sm mb-2"
             htmlFor="email"
           >
             Email Address
@@ -68,7 +68,7 @@ function ForgotPasswordForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="your-email@gmail.com"
-            className="w-full px-3 py-3 bg-transparent border border-gray-600 rounded-full text-custom-gray placeholder-gray-500 focus:outline-none focus:border-custom-red"
+            className="w-full px-3 py-3 bg-transparent border border-gray-600 rounded-full text-custom-blue placeholder-gray-500 focus:outline-none focus:border-custom-orange"
             required
             disabled={loading}
           />
@@ -77,7 +77,7 @@ function ForgotPasswordForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-custom-red text-white py-3 px-4 rounded-full font-medium hover:bg-opacity-90 transition-colors disabled:opacity-50 flex justify-center items-center"
+          className="w-full bg-custom-orange text-white py-3 px-4 rounded-full font-medium hover:bg-opacity-90 transition-colors disabled:opacity-50 flex justify-center items-center"
         >
           {loading ? (
             <>
@@ -91,7 +91,7 @@ function ForgotPasswordForm() {
       </form>
 
       <div className="mt-8 text-center">
-        <Link href="/login" className="text-custom-red hover:underline">
+        <Link href="/login" className="text-custom-orange hover:underline">
           Back to Sign In
         </Link>
       </div>
@@ -101,7 +101,7 @@ function ForgotPasswordForm() {
 
 export default function ForgotPasswordPage() {
   return (
-    <div className="min-h-screen flex bg-custom-gray">
+    <div className="min-h-screen flex bg-custom-blue">
       {/* Left side - Image */}
       <div className="flex-1 relative">
         <Image

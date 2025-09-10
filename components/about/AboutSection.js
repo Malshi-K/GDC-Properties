@@ -11,8 +11,8 @@ const AboutSection = () => {
           {/* Left side - Image with red borders */}
           <div className="w-full lg:w-1/2 relative">
             {/* Red border lines */}
-            <div className="absolute top-0 right-0 w-24 h-full border-t-2 border-r-2 border-red-500 z-10"></div>
-            <div className="absolute bottom-0 left-0 w-full h-24 border-l-2 border-b-2 border-red-500 z-10"></div>
+            <div className="absolute top-0 right-0 w-24 h-full border-t-2 border-r-2 border-custom-orange z-10"></div>
+            <div className="absolute bottom-0 left-0 w-full h-24 border-l-2 border-b-2 border-custom-orange z-10"></div>
 
             {/* Image centered within the borders */}
             <div
@@ -32,11 +32,11 @@ const AboutSection = () => {
           {/* Right side - Text content */}
           <div className="w-full lg:w-1/2 flex flex-col justify-center text-gray-700">
             <div className="max-w-xl">
-              <h3 className="text-red-600 font-medium mb-2">OUR STORY</h3>
+              <h3 className="text-custom-orange font-medium mb-2">OUR STORY</h3>
 
-              <h1 className="text-4xl md:text-5xl font-bold mb-6">
+              <h1 className="text-4xl md:text-5xl font-bold mb-6 text-custom-blue">
                 ABOUT GDC{" "}
-                <span className="font-light text-gray-500">PROPERTIES</span>
+                <span className="font-light text-custom-yellow">PROPERTIES</span>
               </h1>
 
               <div className="space-y-6">

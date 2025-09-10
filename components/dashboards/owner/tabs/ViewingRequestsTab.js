@@ -56,7 +56,7 @@ export default function ViewingRequestsTab({
         };
       case 'declined': 
         return { 
-          className: 'bg-red-100 text-red-800',
+          className: 'bg-orange-100 text-orange-800',
           text: 'Declined' 
         };
       case 'canceled': 
@@ -66,7 +66,7 @@ export default function ViewingRequestsTab({
         };
       case 'completed': 
         return { 
-          className: 'bg-blue-100 text-blue-800',
+          className: 'bg-gray-100 text-gray-800',
           text: 'Completed' 
         };
       default: 
@@ -126,7 +126,7 @@ export default function ViewingRequestsTab({
           </button>
         </div>
         <div className="flex justify-center my-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-orange"></div>
         </div>
       </div>
     );
@@ -136,12 +136,12 @@ export default function ViewingRequestsTab({
     return (
       <div className="max-w-6xl mx-auto">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Property Viewing Requests</h2>
-        <div className="bg-red-50 text-red-700 p-4 rounded-md mb-4">
+        <div className="bg-orange-50 text-orange-700 p-4 rounded-md mb-4">
           <p>Error: {error}</p>
         </div>
         <button 
           onClick={onRefresh}
-          className="text-custom-red hover:text-red-700 font-medium"
+          className="text-custom-orange hover:text-orange-700 font-medium"
         >
           Try again
         </button>
@@ -274,7 +274,7 @@ function ViewingRequestCard({ request, onStatusUpdate, actionInProgress, mounted
           <div className="md:w-1/3 h-64 md:h-auto bg-gray-100 relative">
             {isImageLoading ? (
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-custom-red"></div>
+                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-custom-orange"></div>
               </div>
             ) : propertyImage && !imageError ? (
               <div className="relative w-full h-full min-h-[16rem]">
@@ -323,7 +323,7 @@ function ViewingRequestCard({ request, onStatusUpdate, actionInProgress, mounted
             {/* Property type overlay if available */}
             {request.properties?.property_type && (
               <div className="absolute top-2 left-2">
-                <span className="bg-custom-red text-white px-2 py-1 rounded text-xs font-medium">
+                <span className="bg-custom-orange text-white px-2 py-1 rounded text-xs font-medium">
                   {request.properties.property_type.charAt(0).toUpperCase() + request.properties.property_type.slice(1)}
                 </span>
               </div>
@@ -410,7 +410,7 @@ function ViewingRequestCard({ request, onStatusUpdate, actionInProgress, mounted
                   <button 
                     onClick={() => onStatusUpdate(request.id, 'declined')}
                     disabled={actionInProgress === request.id}
-                    className="px-4 py-2 border border-red-500 rounded-md text-sm font-medium text-white bg-red-500 hover:bg-red-600 disabled:opacity-50"
+                    className="px-4 py-2 border border-red-500 rounded-md text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50"
                   >
                     {actionInProgress === request.id ? 'Processing...' : 'Decline'}
                   </button>
@@ -449,7 +449,7 @@ function getStatusBadge(status) {
       };
     case 'declined': 
       return { 
-        className: 'bg-red-100 text-red-800',
+        className: 'bg-orange-100 text-orange-800',
         text: 'Declined' 
       };
     case 'canceled': 
@@ -459,7 +459,7 @@ function getStatusBadge(status) {
       };
     case 'completed': 
       return { 
-        className: 'bg-blue-100 text-blue-800',
+        className: 'bg-gray-100 text-gray-800',
         text: 'Completed' 
       };
     default: 

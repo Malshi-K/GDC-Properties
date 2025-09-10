@@ -5,12 +5,12 @@ import { FaEnvelope, FaPhoneVolume } from "react-icons/fa";
 export default function ContactForm() {
   const contactInfo = [
     {
-      icon: <FaPhoneVolume className="text-custom-red text-xl sm:text-2xl" />,
+      icon: <FaPhoneVolume className="text-custom-orange text-xl sm:text-2xl" />,
       title: "Phone Number",
       content: "+64 7 838 0090",
     },
     {
-      icon: <FaEnvelope className="text-custom-red text-xl sm:text-2xl" />,
+      icon: <FaEnvelope className="text-custom-orange text-xl sm:text-2xl" />,
       title: "Email Address",
       content: "info@gdcdigital.net",
     },
@@ -23,11 +23,11 @@ export default function ContactForm() {
           {/* Left Side - Centered Contact Description */}
           <div className="flex flex-col justify-center">
             <div className="text-center lg:text-left mb-6">
-              <h5 className="text-custom-red uppercase tracking-wider mb-2 text-sm sm:text-base">
+              <h5 className="text-custom-orange uppercase tracking-wider mb-2 text-sm sm:text-base">
                 CONTACT US
               </h5>
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold">
-                Get In <span className="text-custom-red">Touch</span>
+                Get In <span className="text-custom-orange">Touch</span>
               </h2>
               <p className="text-gray-600 mt-2 sm:mt-4 text-sm sm:text-base">
                 We're here to help with all your property needs. Reach out to us
@@ -44,7 +44,7 @@ export default function ContactForm() {
                 >
                   <div className="mr-4 sm:mr-6">{item.icon}</div>
                   <div>
-                    <h3 className="font-bold text-base sm:text-lg text-custom-gray">
+                    <h3 className="font-bold text-base sm:text-lg text-custom-blue">
                       {item.title}
                     </h3>
                     <p className="text-gray-600 text-sm sm:text-base">
@@ -58,7 +58,7 @@ export default function ContactForm() {
 
           {/* Right Side - Contact Form */}
           <div className="bg-white p-6 sm:p-8 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-300">
-            <h3 className="text-xl sm:text-2xl font-bold text-custom-gray mb-6">
+            <h3 className="text-xl sm:text-2xl font-bold text-custom-blue mb-6">
               Send us a Message
             </h3>
             <form className="space-y-4 sm:space-y-5">
@@ -67,7 +67,7 @@ export default function ContactForm() {
                   <input
                     type="text"
                     placeholder="Your Name"
-                    className="w-full p-3 sm:p-4 border border-gray-300 rounded-full focus:outline-none focus:border-custom-red focus:ring-1 focus:ring-custom-red text-sm sm:text-base transition-colors duration-200"
+                    className="w-full p-3 sm:p-4 border border-gray-300 rounded-full focus:outline-none focus:border-custom-orange focus:ring-1 focus:ring-custom-orange text-sm sm:text-base transition-colors duration-200"
                     required
                   />
                 </div>
@@ -75,7 +75,7 @@ export default function ContactForm() {
                   <input
                     type="email"
                     placeholder="Your Email"
-                    className="w-full p-3 sm:p-4 border border-gray-300 rounded-full focus:outline-none focus:border-custom-red focus:ring-1 focus:ring-custom-red text-sm sm:text-base transition-colors duration-200"
+                    className="w-full p-3 sm:p-4 border border-gray-300 rounded-full focus:outline-none focus:border-custom-orange focus:ring-1 focus:ring-custom-orange text-sm sm:text-base transition-colors duration-200"
                     required
                   />
                 </div>
@@ -85,7 +85,7 @@ export default function ContactForm() {
                 <input
                   type="text"
                   placeholder="Your Subject"
-                  className="w-full p-3 sm:p-4 border border-gray-300 rounded-full focus:outline-none focus:border-custom-red focus:ring-1 focus:ring-custom-red text-sm sm:text-base transition-colors duration-200"
+                  className="w-full p-3 sm:p-4 border border-gray-300 rounded-full focus:outline-none focus:border-custom-orange focus:ring-1 focus:ring-custom-orange text-sm sm:text-base transition-colors duration-200"
                   required
                 />
               </div>
@@ -94,7 +94,7 @@ export default function ContactForm() {
                 <textarea
                   rows="5"
                   placeholder="Your Message"
-                  className="w-full p-3 sm:p-4 border border-gray-300 rounded-lg focus:outline-none focus:border-custom-red focus:ring-1 focus:ring-custom-red text-sm sm:text-base transition-colors duration-200 resize-vertical"
+                  className="w-full p-3 sm:p-4 border border-gray-300 rounded-lg focus:outline-none focus:border-custom-orange focus:ring-1 focus:ring-custom-orange text-sm sm:text-base transition-colors duration-200 resize-vertical"
                   required
                 ></textarea>
               </div>
@@ -102,7 +102,7 @@ export default function ContactForm() {
               <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full bg-custom-red text-white py-3 sm:py-4 px-6 sm:px-8 rounded-full hover:bg-opacity-90 transition-all duration-300 text-sm sm:text-base font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                  className="w-full bg-custom-orange text-white py-3 sm:py-4 px-6 sm:px-8 rounded-full hover:bg-opacity-90 transition-all duration-300 text-sm sm:text-base font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                 >
                   Send Message
                 </button>

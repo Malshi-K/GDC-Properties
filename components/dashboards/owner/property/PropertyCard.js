@@ -145,7 +145,7 @@ export default function PropertyCard({
         <div className="md:w-1/3 h-64 md:h-auto bg-gray-100 relative">
           {isImageLoading ? (
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-custom-red"></div>
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-custom-orange"></div>
             </div>
           ) : propertyImage && !imageError ? (
             <div className="relative w-full h-full min-h-[16rem]">
@@ -198,7 +198,7 @@ export default function PropertyCard({
           {/* Image overlay with property type if available */}
           {property.property_type && (
             <div className="absolute top-2 left-2">
-              <span className="bg-custom-red text-white px-2 py-1 rounded text-xs font-medium">
+              <span className="bg-custom-orange text-white px-2 py-1 rounded text-xs font-medium">
                 {property.property_type.charAt(0).toUpperCase() + property.property_type.slice(1)}
               </span>
             </div>
@@ -210,7 +210,7 @@ export default function PropertyCard({
           <div className="flex justify-between items-start mb-4">
             <div className="flex-1">
               <h3 
-                className="text-xl font-bold text-gray-900 cursor-pointer hover:text-custom-red transition-colors"
+                className="text-xl font-bold text-gray-900 cursor-pointer hover:text-custom-orange transition-colors"
                 onClick={navigateToPropertyDetails}
               >
                 {property.title || "Untitled Property"}
@@ -222,7 +222,7 @@ export default function PropertyCard({
                 </svg>
                 {property.location || "Location not specified"}
               </p>
-              <p className="text-custom-red font-bold text-lg">
+              <p className="text-custom-orange font-bold text-lg">
                 {getFormattedPrice()}
               </p>
             </div>
@@ -231,7 +231,7 @@ export default function PropertyCard({
             <div className="flex space-x-2 ml-4">
               <button
                 onClick={handleEdit}
-                className="p-2 text-gray-600 hover:text-custom-red hover:bg-red-50 rounded transition-colors duration-300"
+                className="p-2 text-gray-600 hover:text-custom-orange hover:bg-orange-50 rounded transition-colors duration-300"
                 title="Edit property"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -245,7 +245,7 @@ export default function PropertyCard({
               </button>
               <button
                 onClick={handleDelete}
-                className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors duration-300"
+                className="p-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded transition-colors duration-300"
                 title="Delete property"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -332,7 +332,7 @@ export default function PropertyCard({
                     property.status === 'available' 
                       ? 'bg-green-100 text-green-800'
                       : property.status === 'occupied'
-                      ? 'bg-red-100 text-red-800'
+                      ? 'bg-orange-100 text-orange-800'
                       : 'bg-gray-100 text-gray-800'
                   }`}>
                     {property.status.charAt(0).toUpperCase() + property.status.slice(1)}
@@ -341,7 +341,7 @@ export default function PropertyCard({
                 
                 <button
                   onClick={navigateToPropertyDetails}
-                  className="text-custom-red hover:text-red-700 font-medium border border-custom-red rounded-full px-4 py-2 transition-colors duration-300 hover:bg-red-50"
+                  className="text-custom-orange hover:text-orange-700 font-medium border border-custom-orange rounded-full px-4 py-2 transition-colors duration-300 hover:bg-orange-50"
                 >
                   View Details
                 </button>

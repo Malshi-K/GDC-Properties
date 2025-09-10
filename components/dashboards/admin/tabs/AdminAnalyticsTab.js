@@ -90,9 +90,9 @@ export default function AdminAnalyticsTab({ onRefresh }) {
   const getRoleBadgeClass = (role) => {
     switch (role) {
       case 'admin':
-        return 'bg-red-100 text-red-800';
+        return 'bg-orange-100 text-orange-800';
       case 'property_owner':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-gray-100 text-gray-800';
       case 'property_seeker':
         return 'bg-green-100 text-green-800';
       default:
@@ -111,7 +111,7 @@ export default function AdminAnalyticsTab({ onRefresh }) {
         <button
           onClick={onRefresh}
           disabled={isLoading}
-          className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center"
+          className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 disabled:opacity-50 flex items-center"
         >
           {isLoading ? (
             <>
@@ -131,8 +131,8 @@ export default function AdminAnalyticsTab({ onRefresh }) {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-lg shadow border">
           <div className="flex items-center">
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <svg className="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="p-3 bg-gray-100 rounded-lg">
+              <svg className="h-8 w-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
               </svg>
             </div>

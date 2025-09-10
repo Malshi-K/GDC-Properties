@@ -22,7 +22,7 @@ const PropertyTypesOverview = () => {
   ];
 
   return (
-    <section className="py-5 md:py-10 bg-custom-red px-20">
+    <section className="py-5 md:py-10 bg-custom-orange px-20">
       <div className="container mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12">
           {propertyTypes?.map((type, index) => (

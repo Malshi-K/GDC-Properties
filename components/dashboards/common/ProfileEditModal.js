@@ -218,7 +218,7 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                       )}
 
                       {/* Upload button */}
-                      <label className="absolute bottom-0 right-0 bg-custom-red hover:bg-red-700 text-white rounded-full p-1.5 cursor-pointer transition-colors duration-300">
+                      <label className="absolute bottom-0 right-0 bg-custom-orange hover:bg-custom-yellow text-white rounded-full p-1.5 cursor-pointer transition-colors duration-300">
                         <FaUpload className="text-xs" />
                         <input
                           type="file"
@@ -235,7 +235,7 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                       {photoPreview ? (
                         <span className="text-green-600">New photo selected</span>
                       ) : profileImageUrl ? (
-                        <span className="text-blue-600">Current profile photo</span>
+                        <span className="text-gray-600">Current profile photo</span>
                       ) : isLoadingImage ? (
                         <span className="text-yellow-600">Loading photo...</span>
                       ) : (
@@ -256,7 +256,7 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                         value={formData.full_name}
                         onChange={handleChange}
                         disabled={loading}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red disabled:bg-gray-50"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-orange disabled:bg-gray-50"
                         placeholder="Enter your full name"
                       />
                     </div>
@@ -286,7 +286,7 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                         value={formData.phone}
                         onChange={handleChange}
                         disabled={loading}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red disabled:bg-gray-50"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-orange disabled:bg-gray-50"
                         placeholder="Enter your phone number"
                       />
                     </div>
@@ -301,7 +301,7 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                         onChange={handleChange}
                         disabled={loading}
                         rows="2"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red disabled:bg-gray-50"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-orange disabled:bg-gray-50"
                         placeholder="Enter your address"
                       ></textarea>
                     </div>
@@ -318,7 +318,7 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                           onChange={handleChange}
                           disabled={loading}
                           rows="2"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-red disabled:bg-gray-50"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-custom-orange disabled:bg-gray-50"
                           placeholder="Describe your rental preferences"
                         ></textarea>
                       </div>
@@ -330,7 +330,7 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-custom-red text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-custom-orange text-base font-medium text-white hover:bg-custom-yellow focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-orange sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {loading ? (
                         <>
@@ -348,7 +348,7 @@ export default function ProfileEditModal({ isOpen, onClose }) {
                       type="button"
                       onClick={onClose}
                       disabled={loading}
-                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red sm:mt-0 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-orange sm:mt-0 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <FaTimes className="mr-2" />
                       Cancel

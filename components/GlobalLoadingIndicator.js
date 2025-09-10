@@ -90,7 +90,7 @@ export default function GlobalLoadingIndicator() {
   
   return (
     <div className="fixed top-0 left-0 right-0 z-50 h-1">
-      <div className="h-full bg-custom-red animate-progress-bar"></div>
+      <div className="h-full bg-custom-orange animate-progress-bar"></div>
     </div>
   );
 }

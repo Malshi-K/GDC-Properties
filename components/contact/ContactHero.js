@@ -22,7 +22,7 @@ export default function ContactHero() {
       
       <div className="container mx-auto px-40 py-20 relative z-10">
         <h1 className="text-4xl md:text-5xl font-bold mb-4">
-          Contact <span className="text-custom-red">Us</span>
+          Contact <span className="text-custom-orange">Us</span>
         </h1>
         <div className="flex items-center text-sm">
           <Link href="/" className="hover:text-orange-400">Home</Link>

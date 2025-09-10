@@ -105,7 +105,7 @@ function SignupForm() {
         >
           Sign In
         </Link>
-        <button className="flex-1 pb-2 text-custom-gray border-b-2 border-custom-red font-medium">
+        <button className="flex-1 pb-2 text-custom-blue border-b-2 border-custom-orange font-medium">
           Sign Up
         </button>
       </div>
@@ -117,7 +117,7 @@ function SignupForm() {
       )}
 
       {error && (
-        <div className="mb-6 p-3 bg-red-100 text-red-700 rounded text-sm">
+        <div className="mb-6 p-3 bg-custom-yellow text-custom-orange rounded text-sm">
           {error}
         </div>
       )}
@@ -125,7 +125,7 @@ function SignupForm() {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label
-            className="block text-custom-gray text-sm mb-2"
+            className="block text-custom-blue text-sm mb-2"
             htmlFor="full-name"
           >
             Full Name
@@ -136,7 +136,7 @@ function SignupForm() {
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             placeholder="Your Full Name"
-            className="w-full px-3 py-3 bg-transparent border border-gray-600 rounded-full text-custom-gray placeholder-gray-500 focus:outline-none focus:border-custom-red"
+            className="w-full px-3 py-3 bg-transparent border border-gray-600 rounded-full text-custom-blue placeholder-gray-500 focus:outline-none focus:border-custom-orange"
             required
             disabled={loading}
           />
@@ -144,7 +144,7 @@ function SignupForm() {
 
         <div>
           <label
-            className="block text-custom-gray text-sm mb-2"
+            className="block text-custom-blue text-sm mb-2"
             htmlFor="email"
           >
             Your email
@@ -155,7 +155,7 @@ function SignupForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="your-email@gmail.com"
-            className="w-full px-3 py-3 bg-transparent border border-gray-600 rounded-full text-custom-gray placeholder-gray-500 focus:outline-none focus:border-custom-red"
+            className="w-full px-3 py-3 bg-transparent border border-gray-600 rounded-full text-custom-blue placeholder-gray-500 focus:outline-none focus:border-custom-orange"
             required
             disabled={loading}
           />
@@ -163,7 +163,7 @@ function SignupForm() {
 
         <div>
           <label
-            className="block text-custom-gray text-sm mb-2"
+            className="block text-custom-blue text-sm mb-2"
             htmlFor="password"
           >
             Your password
@@ -175,7 +175,7 @@ function SignupForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-3 py-3 bg-transparent border border-gray-600 rounded-full text-custom-gray placeholder-gray-500 focus:outline-none focus:border-custom-red"
+              className="w-full px-3 py-3 bg-transparent border border-gray-600 rounded-full text-custom-blue placeholder-gray-500 focus:outline-none focus:border-custom-orange"
               required
               minLength={6}
               disabled={loading}
@@ -220,7 +220,7 @@ function SignupForm() {
 
         <div>
           <label
-            className="block text-custom-gray text-sm mb-2"
+            className="block text-custom-blue text-sm mb-2"
             htmlFor="confirm-password"
           >
             Confirm password
@@ -232,7 +232,7 @@ function SignupForm() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-3 py-3 bg-transparent border border-gray-600 rounded-full text-custom-gray placeholder-gray-500 focus:outline-none focus:border-custom-red"
+              className="w-full px-3 py-3 bg-transparent border border-gray-600 rounded-full text-custom-blue placeholder-gray-500 focus:outline-none focus:border-custom-orange"
               required
               minLength={6}
               disabled={loading}
@@ -279,7 +279,7 @@ function SignupForm() {
         <div className="p-4 bg-gray-300 rounded-lg">
           <div className="flex items-start">
             <svg
-              className="h-5 w-5 text-custom-red mr-2 mt-0.5 flex-shrink-0"
+              className="h-5 w-5 text-custom-orange mr-2 mt-0.5 flex-shrink-0"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 20 20"
               fill="currentColor"
@@ -291,7 +291,7 @@ function SignupForm() {
               />
             </svg>
             <div className="text-sm">
-              <p className="text-custom-gray font-medium mb-1">Account Type</p>
+              <p className="text-custom-blue font-medium mb-1">Account Type</p>
               <p className="text-gray-700">
                 You'll start as a <strong>Property Seeker</strong>. If you're a
                 property owner, an administrator can upgrade your account after
@@ -304,7 +304,7 @@ function SignupForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-custom-red text-white py-3 px-4 rounded-full font-medium hover:bg-opacity-90 transition-colors disabled:opacity-50 flex justify-center items-center"
+          className="w-full bg-custom-orange text-white py-3 px-4 rounded-full font-medium hover:bg-opacity-90 transition-colors disabled:opacity-50 flex justify-center items-center"
         >
           {loading ? (
             <>
@@ -322,7 +322,7 @@ function SignupForm() {
 
 export default function SignupPage() {
   return (
-    <div className="min-h-screen flex bg-custom-gray">
+    <div className="min-h-screen flex bg-custom-blue">
       {/* Left side - Image */}
       <div className="flex-1 relative">
         <Image

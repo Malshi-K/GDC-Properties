@@ -16,7 +16,7 @@ export default function HeroSection() {
             Discover amazing propeties for your next stay
           </p>
           <Link href="/contact">
-            <button className="bg-custom-red hover:bg-red-700 text-white font-bold py-2 sm:py-3 px-6 sm:px-8 rounded-full transition-colors duration-300">
+            <button className="bg-custom-orange hover:bg-custom-yellow text-white font-bold py-2 sm:py-3 px-6 sm:px-8 rounded-full transition-colors duration-300">
               Get in Touch
             </button>
           </Link>

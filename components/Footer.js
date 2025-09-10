@@ -4,7 +4,7 @@ import Link from "next/link";
 
 const Footer = () => {
   return (
-    <footer className="bg-custom-gray border-t border-gray-200 py-8 md:py-12">
+    <footer className="bg-custom-blue border-t border-gray-200 py-8 md:py-12">
       <div className="container w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
           {/* Logo and Contact */}
@@ -22,7 +22,7 @@ const Footer = () => {
 
           {/* Quick Link */}
           <div className="mt-4 sm:mt-0 flex flex-col items-center sm:items-start">
-            <h3 className="font-bold text-custom-red mb-4 text-xl">Quick Link</h3>
+            <h3 className="font-bold text-custom-orange mb-4 text-xl">Quick Link</h3>
             <ul className="space-y-2 text-center sm:text-left">
               <li>
                 <Link
@@ -54,7 +54,7 @@ const Footer = () => {
 
           {/* Categories */}
           <div className="mt-4 sm:mt-0 flex flex-col items-center sm:items-start">
-            <h3 className="font-bold text-custom-red mb-4 text-xl">Property Types</h3>
+            <h3 className="font-bold text-custom-orange mb-4 text-xl">Property Types</h3>
             <ul className="space-y-2 text-center sm:text-left">
               <li>
                 <p className="text-white hover:text-custom-yellow cursor-pointer transition-colors duration-200">
@@ -78,7 +78,7 @@ const Footer = () => {
           {/* Getting Started and Support */}
           <div className="space-y-6 mt-4 sm:mt-0 flex flex-col items-center sm:items-start">
             <div className="flex flex-col items-center sm:items-start">
-              <h3 className="font-bold text-custom-red mb-4 text-xl">
+              <h3 className="font-bold text-custom-orange mb-4 text-xl">
                 Getting Started
               </h3>
               <ul className="space-y-2 text-center sm:text-left">
@@ -94,7 +94,7 @@ const Footer = () => {
             </div>
 
             <div className="flex flex-col items-center sm:items-start">
-              <h3 className="font-bold text-custom-red mb-4 text-xl">Get in touch</h3>
+              <h3 className="font-bold text-custom-orange mb-4 text-xl">Get in touch</h3>
               <ul className="space-y-3">
                 <li className="flex items-center justify-center sm:justify-start">
                   <svg
@@ -156,7 +156,7 @@ const Footer = () => {
                   href="https://facebook.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-white border border-gray-200 text-red-600 rounded-full p-2 w-10 h-10 flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105"
+                  className="bg-white border border-gray-200 text-custom-orange rounded-full p-2 w-10 h-10 flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105"
                 >
                   <span className="sr-only">Facebook</span>
                   <svg
@@ -177,7 +177,7 @@ const Footer = () => {
                   href="https://instagram.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-white border border-gray-200 text-red-600 rounded-full p-2 w-10 h-10 flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105"
+                  className="bg-white border border-gray-200 text-custom-orange rounded-full p-2 w-10 h-10 flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105"
                 >
                   <span className="sr-only">Instagram</span>
                   <svg
@@ -197,7 +197,7 @@ const Footer = () => {
                   href="https://linkedin.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-white border border-gray-200 text-red-600 rounded-full p-2 w-10 h-10 flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105"
+                  className="bg-white border border-gray-200 text-custom-orange rounded-full p-2 w-10 h-10 flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105"
                 >
                   <span className="sr-only">LinkedIn</span>
                   <svg

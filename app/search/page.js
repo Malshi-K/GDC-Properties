@@ -31,7 +31,7 @@ export default function SearchPage() {
               {/* Loading indicator */}
               <div className="text-center mb-6">
                 <h2 className="text-2xl font-bold mb-4">Loading properties...</h2>
-                <div className="w-12 h-12 border-4 border-gray-300 border-t-custom-red rounded-full animate-spin mx-auto"></div>
+                <div className="w-12 h-12 border-4 border-gray-300 border-t-custom-orange rounded-full animate-spin mx-auto"></div>
               </div>
             </div>
           </div>

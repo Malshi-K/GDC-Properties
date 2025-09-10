@@ -233,7 +233,7 @@ export default function SettingsTab({ user, profile }) {
               onClick={() => setActiveTab("profile")}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === "profile"
-                  ? "border-custom-red text-custom-red"
+                  ? "border-custom-orange text-custom-orange"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
@@ -243,7 +243,7 @@ export default function SettingsTab({ user, profile }) {
               onClick={() => setActiveTab("notifications")}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === "notifications"
-                  ? "border-custom-red text-custom-red"
+                  ? "border-custom-orange text-custom-orange"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
@@ -253,7 +253,7 @@ export default function SettingsTab({ user, profile }) {
               onClick={() => setActiveTab("security")}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === "security"
-                  ? "border-custom-red text-custom-red"
+                  ? "border-custom-orange text-custom-orange"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
@@ -282,7 +282,7 @@ export default function SettingsTab({ user, profile }) {
                         type="text"
                         value={formData.fullName}
                         onChange={handleInputChange}
-                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-custom-red focus:border-custom-red"
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-custom-orange focus:border-custom-orange"
                       />
                     </div>
                     
@@ -310,7 +310,7 @@ export default function SettingsTab({ user, profile }) {
                         type="tel"
                         value={formData.phone}
                         onChange={handleInputChange}
-                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-custom-red focus:border-custom-red"
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-custom-orange focus:border-custom-orange"
                       />
                     </div>
                     
@@ -324,7 +324,7 @@ export default function SettingsTab({ user, profile }) {
                         rows="3"
                         value={formData.address}
                         onChange={handleInputChange}
-                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-custom-red focus:border-custom-red"
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-custom-orange focus:border-custom-orange"
                       />
                     </div>
                   </div>
@@ -348,7 +348,7 @@ export default function SettingsTab({ user, profile }) {
                           type="checkbox"
                           checked={notifications.systemUpdates}
                           onChange={handleNotificationChange}
-                          className="h-4 w-4 text-custom-red border-gray-300 rounded"
+                          className="h-4 w-4 text-custom-orange border-gray-300 rounded"
                         />
                         <label htmlFor="notifications-system-updates" className="ml-2 block text-sm text-gray-700">
                           System updates and announcements
@@ -362,7 +362,7 @@ export default function SettingsTab({ user, profile }) {
                           type="checkbox"
                           checked={notifications.marketingEmails}
                           onChange={handleNotificationChange}
-                          className="h-4 w-4 text-custom-red border-gray-300 rounded"
+                          className="h-4 w-4 text-custom-orange border-gray-300 rounded"
                         />
                         <label htmlFor="notifications-marketing" className="ml-2 block text-sm text-gray-700">
                           Marketing emails and promotions
@@ -383,7 +383,7 @@ export default function SettingsTab({ user, profile }) {
                             type="checkbox"
                             checked={notifications.newInquiries}
                             onChange={handleNotificationChange}
-                            className="h-4 w-4 text-custom-red border-gray-300 rounded"
+                            className="h-4 w-4 text-custom-orange border-gray-300 rounded"
                           />
                           <label htmlFor="notifications-new-inquiries" className="ml-2 block text-sm text-gray-700">
                             New property inquiries
@@ -397,7 +397,7 @@ export default function SettingsTab({ user, profile }) {
                             type="checkbox"
                             checked={notifications.viewingRequests}
                             onChange={handleNotificationChange}
-                            className="h-4 w-4 text-custom-red border-gray-300 rounded"
+                            className="h-4 w-4 text-custom-orange border-gray-300 rounded"
                           />
                           <label htmlFor="notifications-viewing-requests" className="ml-2 block text-sm text-gray-700">
                             Viewing requests
@@ -411,7 +411,7 @@ export default function SettingsTab({ user, profile }) {
                             type="checkbox"
                             checked={notifications.rentalApplications}
                             onChange={handleNotificationChange}
-                            className="h-4 w-4 text-custom-red border-gray-300 rounded"
+                            className="h-4 w-4 text-custom-orange border-gray-300 rounded"
                           />
                           <label htmlFor="notifications-applications" className="ml-2 block text-sm text-gray-700">
                             Rental applications
@@ -433,7 +433,7 @@ export default function SettingsTab({ user, profile }) {
                             type="checkbox"
                             checked={notifications.newProperties}
                             onChange={handleNotificationChange}
-                            className="h-4 w-4 text-custom-red border-gray-300 rounded"
+                            className="h-4 w-4 text-custom-orange border-gray-300 rounded"
                           />
                           <label htmlFor="notifications-new-properties" className="ml-2 block text-sm text-gray-700">
                             New property alerts
@@ -447,7 +447,7 @@ export default function SettingsTab({ user, profile }) {
                             type="checkbox"
                             checked={notifications.applicationUpdates}
                             onChange={handleNotificationChange}
-                            className="h-4 w-4 text-custom-red border-gray-300 rounded"
+                            className="h-4 w-4 text-custom-orange border-gray-300 rounded"
                           />
                           <label htmlFor="notifications-application-updates" className="ml-2 block text-sm text-gray-700">
                             Application status updates
@@ -461,7 +461,7 @@ export default function SettingsTab({ user, profile }) {
                             type="checkbox"
                             checked={notifications.viewingReminders}
                             onChange={handleNotificationChange}
-                            className="h-4 w-4 text-custom-red border-gray-300 rounded"
+                            className="h-4 w-4 text-custom-orange border-gray-300 rounded"
                           />
                           <label htmlFor="notifications-viewing-reminders" className="ml-2 block text-sm text-gray-700">
                             Viewing reminders
@@ -524,16 +524,16 @@ export default function SettingsTab({ user, profile }) {
                             </div>
                           ) : (
                             <>
-                              <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
+                              <div className="bg-gray-50 border border-gray-200 rounded-md p-4 mb-4">
                                 <div className="flex">
                                   <div className="flex-shrink-0">
-                                    <svg className="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                                     </svg>
                                   </div>
                                   <div className="ml-3">
-                                    <h3 className="text-sm font-medium text-blue-800">Secure Password Reset</h3>
-                                    <div className="mt-2 text-sm text-blue-700">
+                                    <h3 className="text-sm font-medium text-gray-800">Secure Password Reset</h3>
+                                    <div className="mt-2 text-sm text-gray-700">
                                       <p>
                                         We'll send a password reset link to your email address. This link will:
                                       </p>
@@ -558,7 +558,7 @@ export default function SettingsTab({ user, profile }) {
                                   type="button"
                                   onClick={handlePasswordResetRequest}
                                   disabled={isSubmitting}
-                                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-red hover:bg-red-700"
+                                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-orange hover:bg-orange-700"
                                 >
                                   {isSubmitting ? (
                                     <span className="flex items-center justify-center">
@@ -581,7 +581,7 @@ export default function SettingsTab({ user, profile }) {
                   {/* Delete Account Section */}
                   <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
                     <div className="p-4 border-b border-gray-200 bg-gray-50">
-                      <h3 className="text-lg font-medium text-red-600">Delete Account</h3>
+                      <h3 className="text-lg font-medium text-custom-orange">Delete Account</h3>
                     </div>
                     <div className="p-4">
                       <div className="flex items-center justify-between">
@@ -592,7 +592,7 @@ export default function SettingsTab({ user, profile }) {
                           <button
                             type="button"
                             onClick={toggleDeleteConfirmation}
-                            className="inline-flex items-center px-3 py-1.5 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50"
+                            className="inline-flex items-center px-3 py-1.5 border border-custom-orange rounded-md text-sm font-medium text-custom-orange bg-white hover:bg-orange-50"
                           >
                             Delete Account
                           </button>
@@ -600,9 +600,9 @@ export default function SettingsTab({ user, profile }) {
                       </div>
                       
                       {showDeleteConfirmation && (
-                        <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
-                          <h4 className="text-lg font-medium text-red-800 mb-2">Confirm Account Deletion</h4>
-                          <p className="text-sm text-red-700 mb-4">
+                        <div className="mt-4 bg-custom-orange border border-custom-orange rounded-lg p-4">
+                          <h4 className="text-lg font-medium text-custom-orange mb-2">Confirm Account Deletion</h4>
+                          <p className="text-sm text-custom-orange mb-4">
                             This action cannot be undone. Please confirm your password to proceed with account deletion.
                           </p>
                           
@@ -617,12 +617,12 @@ export default function SettingsTab({ user, profile }) {
                                 value={deletePassword}
                                 onChange={handleDeletePasswordChange}
                                 className={`block w-full px-3 py-2 border ${
-                                  deletePasswordError ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-custom-red focus:border-custom-red'
+                                  deletePasswordError ? 'border-custom-orange focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-custom-orange focus:border-custom-orange'
                                 } rounded-md shadow-sm`}
                                 placeholder="Your current password"
                               />
                               {deletePasswordError && (
-                                <p className="mt-1 text-sm text-red-600">{deletePasswordError}</p>
+                                <p className="mt-1 text-sm text-orange-600">{deletePasswordError}</p>
                               )}
                             </div>
                             
@@ -644,7 +644,7 @@ export default function SettingsTab({ user, profile }) {
                               <button
                                 type="submit"
                                 disabled={isDeletingAccount}
-                                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                               >
                                 {isDeletingAccount ? (
                                   <span className="flex items-center justify-center">
@@ -673,7 +673,7 @@ export default function SettingsTab({ user, profile }) {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-red hover:bg-red-700"
+                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-orange hover:bg-custom-yellow"
                   >
                     {isSubmitting ? (
                       <span className="flex items-center justify-center">

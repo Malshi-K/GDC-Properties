@@ -419,7 +419,7 @@ export default function AddEditPropertyModal({
         </div>
 
         {error && (
-          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          <div className="mb-4 bg-orange-50 border border-red-200 text-orange-700 px-4 py-3 rounded">
             {error}
           </div>
         )}
@@ -469,7 +469,7 @@ export default function AddEditPropertyModal({
                       <button
                         type="button"
                         onClick={() => handleRemoveImage(index)}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-1 right-1 bg-orange-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                         title="Remove image"
                       >
                         <svg
@@ -511,7 +511,7 @@ export default function AddEditPropertyModal({
               <div className="mb-4">
                 <div className="w-full bg-gray-200 rounded-full h-2.5">
                   <div
-                    className="bg-custom-red h-2.5 rounded-full"
+                    className="bg-custom-orange h-2.5 rounded-full"
                     style={{ width: `${uploadProgress}%` }}
                   ></div>
                 </div>
@@ -588,7 +588,7 @@ export default function AddEditPropertyModal({
                 value={formData.title}
                 onChange={handleChange}
                 required
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
               />
             </div>
 
@@ -606,7 +606,7 @@ export default function AddEditPropertyModal({
                 value={formData.location}
                 onChange={handleChange}
                 required
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
               >
                 <option value="">Select a location</option>
                 {nzLocations.map((location) => (
@@ -630,7 +630,7 @@ export default function AddEditPropertyModal({
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
               />
             </div>
 
@@ -649,7 +649,7 @@ export default function AddEditPropertyModal({
                 onChange={handleChange}
                 required
                 min="0"
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
               />
             </div>
 
@@ -666,7 +666,7 @@ export default function AddEditPropertyModal({
                 value={formData.property_type}
                 onChange={handleChange}
                 required
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
               >
                 {propertyTypes.map((type) => (
                   <option key={type.value} value={type.value}>
@@ -691,7 +691,7 @@ export default function AddEditPropertyModal({
                 onChange={handleChange}
                 required
                 min="0"
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
               />
             </div>
 
@@ -711,7 +711,7 @@ export default function AddEditPropertyModal({
                 required
                 min="0"
                 step="0.5"
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
               />
             </div>
 
@@ -730,7 +730,7 @@ export default function AddEditPropertyModal({
                 onChange={handleChange}
                 required
                 min="0"
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
               />
             </div>
 
@@ -749,7 +749,7 @@ export default function AddEditPropertyModal({
                 onChange={handleChange}
                 min="1800"
                 max={new Date().getFullYear()}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
               />
             </div>
 
@@ -766,7 +766,7 @@ export default function AddEditPropertyModal({
                 name="available_from"
                 value={formData.available_from}
                 onChange={handleChange}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
               />
             </div>
 
@@ -782,7 +782,7 @@ export default function AddEditPropertyModal({
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
               >
                 <option value="available">Available</option>
                 <option value="pending">Pending</option>
@@ -805,7 +805,7 @@ export default function AddEditPropertyModal({
               onChange={handleChange}
               rows="2"
               required
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
               placeholder="Brief description for property listings"
             ></textarea>
           </div>
@@ -824,7 +824,7 @@ export default function AddEditPropertyModal({
                     value={amenity}
                     checked={formData.amenities.includes(amenity)}
                     onChange={handleAmenityChange}
-                    className="h-4 w-4 text-custom-red border-gray-300 rounded focus:ring-custom-red"
+                    className="h-4 w-4 text-custom-orange border-gray-300 rounded focus:ring-custom-orange"
                   />
                   <label
                     htmlFor={`amenity-${amenity}`}
@@ -846,7 +846,7 @@ export default function AddEditPropertyModal({
               <button
                 type="button"
                 onClick={() => handleAddArrayItem("nearby_amenities")}
-                className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-custom-red bg-red-50 hover:bg-red-100"
+                className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-custom-orange bg-orange-50 hover:bg-orange-100"
               >
                 Add Nearby Amenity
               </button>
@@ -859,7 +859,7 @@ export default function AddEditPropertyModal({
                   onChange={(e) =>
                     handleArrayItemChange(e, index, "nearby_amenities")
                   }
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-red focus:border-custom-red"
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
                   placeholder="e.g., Premium shopping centers (5 min drive)"
                 />
                 <button
@@ -867,7 +867,7 @@ export default function AddEditPropertyModal({
                   onClick={() =>
                     handleRemoveArrayItem(index, "nearby_amenities")
                   }
-                  className="ml-2 text-red-600 hover:text-red-800"
+                  className="ml-2 text-orange-600 hover:text-orange-800"
                 >
                   <svg
                     className="h-5 w-5"
@@ -900,7 +900,7 @@ export default function AddEditPropertyModal({
               <button
                 type="submit"
                 disabled={loading || isUploading}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-red hover:bg-red-700 disabled:opacity-50 flex items-center"
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-custom-orange hover:bg-orange-700 disabled:opacity-50 flex items-center"
               >
                 {loading && (
                   <svg

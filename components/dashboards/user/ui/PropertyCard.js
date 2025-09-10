@@ -22,7 +22,7 @@ const PropertyCard = ({ property, onRemove = null }) => {
           {onRemove && (
             <button 
               onClick={() => onRemove(property.id)}
-              className="text-gray-500 hover:text-red-500"
+              className="text-gray-500 hover:text-orange-500"
               aria-label="Remove from favorites"
             >
               <svg 
@@ -42,7 +42,7 @@ const PropertyCard = ({ property, onRemove = null }) => {
           )}
         </div>
         
-        <p className="text-custom-red font-bold mb-2">
+        <p className="text-custom-orange font-bold mb-2">
           {formatPrice(property.price)}
         </p>
         
@@ -57,7 +57,7 @@ const PropertyCard = ({ property, onRemove = null }) => {
         
         <Link 
           href={`/properties/${property.propertyId}`}
-          className="block text-center bg-custom-red text-white px-4 py-2 rounded-full hover:bg-opacity-90 transition-colors"
+          className="block text-center bg-custom-orange text-white px-4 py-2 rounded-full hover:bg-opacity-90 transition-colors"
         >
           View Details
         </Link>

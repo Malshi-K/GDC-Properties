@@ -35,7 +35,7 @@ export default function PropertyDetailActions({ property }) {
       <div className="flex flex-col sm:flex-row gap-3">
         <button
           onClick={() => setShowViewingModal(true)}
-          className="bg-custom-red hover:bg-red-700 text-white font-medium py-2 px-4 rounded transition-colors duration-300 flex-1 flex justify-center items-center"
+          className="bg-custom-orange hover:bg-orange-700 text-white font-medium py-2 px-4 rounded transition-colors duration-300 flex-1 flex justify-center items-center"
         >
           <svg
             className="h-5 w-5 mr-2"
@@ -55,7 +55,7 @@ export default function PropertyDetailActions({ property }) {
         
         <button
           onClick={() => setShowApplicationModal(true)}
-          className="border border-custom-red text-custom-red hover:bg-red-50 font-medium py-2 px-4 rounded transition-colors duration-300 flex-1 flex justify-center items-center"
+          className="border border-custom-orange text-custom-orange hover:bg-orange-50 font-medium py-2 px-4 rounded transition-colors duration-300 flex-1 flex justify-center items-center"
         >
           <svg
             className="h-5 w-5 mr-2"
@@ -76,7 +76,7 @@ export default function PropertyDetailActions({ property }) {
       
       {!user && (
         <p className="text-sm text-gray-500 mt-3 text-center">
-          You need to <a href="/login" className="text-custom-red hover:underline">log in</a> to request a viewing or apply
+          You need to <a href="/login" className="text-custom-orange hover:underline">log in</a> to request a viewing or apply
         </p>
       )}
       

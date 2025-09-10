@@ -30,9 +30,9 @@ export default function GlobalOffices() {
       <div className="container mx-auto">
         <div className="items-center">
           <div>
-            <h5 className="text-custom-red uppercase tracking-wider mb-2 text-lg">GET IN TOUCH</h5>
-            <h2 className="text-3xl md:text-5xl font-bold mb-6">
-              Our Offices <span className="text-custom-red">Located</span> All <br />
+            <h5 className="text-custom-orange uppercase tracking-wider mb-2 text-lg">GET IN TOUCH</h5>
+            <h2 className="text-3xl md:text-5xl font-bold mb-6 text-custom-blue">
+              Our Offices <span className="text-custom-orange">Located</span> All <br />
               Over The World
             </h2>
             <p className="text-gray-600 mb-12 max-w-xl text-lg">
@@ -44,9 +44,9 @@ export default function GlobalOffices() {
               {officeLocations?.map((office, index) => (
                 <div 
                   key={index} 
-                  className="bg-custom-gray text-white p-10 rounded-lg text-center flex flex-col items-center"
+                  className="bg-custom-blue text-white p-10 rounded-lg text-center flex flex-col items-center"
                 >
-                  <div className="bg-custom-red rounded-full w-16 h-16 flex items-center justify-center mb-6">
+                  <div className="bg-custom-orange rounded-full w-16 h-16 flex items-center justify-center mb-6">
                     {office.icon}
                   </div>
                   <h3 className="text-white font-bold text-4xl mb-2">{office.title}</h3>

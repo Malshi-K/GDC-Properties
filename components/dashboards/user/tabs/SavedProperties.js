@@ -159,7 +159,7 @@ const SavedProperties = ({
             <button
               onClick={onRefresh}
               disabled={loadingFavorites}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red disabled:opacity-50"
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-orange disabled:opacity-50"
             >
               <svg
                 className={`-ml-0.5 mr-2 h-4 w-4 ${loadingFavorites ? 'animate-spin' : ''}`}
@@ -180,7 +180,7 @@ const SavedProperties = ({
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex justify-center my-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-orange"></div>
           </div>
         </div>
       </div>
@@ -195,7 +195,7 @@ const SavedProperties = ({
           <button
             onClick={onRefresh}
             disabled={loadingFavorites}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red disabled:opacity-50"
+            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-orange disabled:opacity-50"
           >
             <svg
               className={`-ml-0.5 mr-2 h-4 w-4 ${loadingFavorites ? 'animate-spin' : ''}`}
@@ -236,7 +236,7 @@ const SavedProperties = ({
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-1">You haven't saved any properties yet</h3>
             <p className="text-gray-500 mb-6">Save properties to view them later and compare your options</p>
-            <Link href="/search" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-custom-red hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-red">
+            <Link href="/search" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-custom-orange hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-custom-orange">
               Browse Properties
             </Link>
           </div>
@@ -251,7 +251,7 @@ const SavedProperties = ({
               <select
                 value={sortBy}
                 onChange={handleSortChange}
-                className="rounded-md text-custom-gray border-gray-300 shadow-sm focus:border-custom-red focus:ring-custom-red text-sm"
+                className="rounded-md text-custom-blue border-gray-300 shadow-sm focus:border-custom-orange focus:ring-custom-orange text-sm"
               >
                 <option value="default">Sort by: Default</option>
                 <option value="price-low-high">Price: Low to High</option>
@@ -268,9 +268,9 @@ const SavedProperties = ({
                   onClick={() => toggleView('grid')}
                   className={`relative inline-flex items-center px-3 py-2 rounded-l-md border ${
                     view === 'grid'
-                      ? 'bg-custom-red text-white border-custom-red'
+                      ? 'bg-custom-orange text-white border-custom-orange'
                       : 'border-gray-300 bg-white text-gray-500 hover:bg-gray-50'
-                  } text-sm font-medium focus:z-10 focus:outline-none focus:ring-1 focus:ring-custom-red focus:border-custom-red`}
+                  } text-sm font-medium focus:z-10 focus:outline-none focus:ring-1 focus:ring-custom-orange focus:border-custom-orange`}
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -282,9 +282,9 @@ const SavedProperties = ({
                   onClick={() => toggleView('list')}
                   className={`relative -ml-px inline-flex items-center px-3 py-2 rounded-r-md border ${
                     view === 'list'
-                      ? 'bg-custom-red text-white border-custom-red'
+                      ? 'bg-custom-orange text-white border-custom-orange'
                       : 'border-gray-300 bg-white text-gray-500 hover:bg-gray-50'
-                  } text-sm font-medium focus:z-10 focus:outline-none focus:ring-1 focus:ring-custom-red focus:border-custom-red`}
+                  } text-sm font-medium focus:z-10 focus:outline-none focus:ring-1 focus:ring-custom-orange focus:border-custom-orange`}
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
@@ -311,7 +311,7 @@ const SavedProperties = ({
                         {/* NEW: Enhanced image handling with loading state */}
                         {imageLoading ? (
                           <div className="w-full h-full flex items-center justify-center">
-                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-custom-red"></div>
+                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-custom-orange"></div>
                           </div>
                         ) : propertyImage ? (
                           <div className="relative w-full h-full">
@@ -347,9 +347,9 @@ const SavedProperties = ({
                           aria-label="Remove from saved properties"
                         >
                           {removingId === property.id ? (
-                            <div className="w-4 h-4 border-2 border-custom-red border-t-transparent rounded-full animate-spin"></div>
+                            <div className="w-4 h-4 border-2 border-custom-orange border-t-transparent rounded-full animate-spin"></div>
                           ) : (
-                            <svg className="w-4 h-4 text-custom-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 text-custom-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                           )}
@@ -362,13 +362,13 @@ const SavedProperties = ({
                         href={`/properties/${property.propertyId}`}
                         className="block"
                       >
-                        <h3 className="text-lg font-semibold text-custom-red hover:text-red-700 transition-colors mb-1 line-clamp-1">{property.title}</h3>
+                        <h3 className="text-lg font-semibold text-custom-orange hover:text-orange-700 transition-colors mb-1 line-clamp-1">{property.title}</h3>
                       </Link>
                       
                       <p className="text-gray-600 text-sm mb-2 line-clamp-1">{property.location}</p>
                       
                       <div className="flex justify-between items-center mb-3">
-                        <span className="text-custom-red font-bold">
+                        <span className="text-custom-orange font-bold">
                           {property.price 
                             ? new Intl.NumberFormat('en-US', {
                                 style: 'currency',
@@ -385,7 +385,7 @@ const SavedProperties = ({
                       
                       <Link 
                         href={`/properties/${property.propertyId}`}
-                        className="block w-full text-center bg-custom-red hover:bg-red-700 text-white py-2 px-4 rounded-full transition-colors"
+                        className="block w-full text-center bg-custom-orange hover:bg-orange-700 text-white py-2 px-4 rounded-full transition-colors"
                       >
                         View Details
                       </Link>
@@ -410,7 +410,7 @@ const SavedProperties = ({
                         {/* NEW: Enhanced image handling with loading state */}
                         {imageLoading ? (
                           <div className="w-full h-48 sm:h-full flex items-center justify-center">
-                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-custom-red"></div>
+                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-custom-orange"></div>
                           </div>
                         ) : propertyImage ? (
                           <div className="relative w-full h-full">
@@ -446,9 +446,9 @@ const SavedProperties = ({
                           aria-label="Remove from saved properties"
                         >
                           {removingId === property.id ? (
-                            <div className="w-4 h-4 border-2 border-custom-red border-t-transparent rounded-full animate-spin"></div>
+                            <div className="w-4 h-4 border-2 border-custom-orange border-t-transparent rounded-full animate-spin"></div>
                           ) : (
-                            <svg className="w-4 h-4 text-custom-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 text-custom-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                           )}
@@ -462,7 +462,7 @@ const SavedProperties = ({
                               href={`/properties/${property.propertyId}`}
                               className="block"
                             >
-                              <h3 className="text-lg font-semibold text-custom-red hover:text-red-700 transition-colors mb-1">{property.title}</h3>
+                              <h3 className="text-lg font-semibold text-custom-orange hover:text-orange-700 transition-colors mb-1">{property.title}</h3>
                             </Link>
                             
                             <p className="text-gray-600 text-sm mb-2">{property.location}</p>
@@ -472,11 +472,11 @@ const SavedProperties = ({
                           <button
                             onClick={() => handleRemoveFavorite(property.id)}
                             disabled={removingId === property.id}
-                            className="hidden sm:block p-2 h-10 text-custom-red hover:text-red-700 transition-colors disabled:opacity-50"
+                            className="hidden sm:block p-2 h-10 text-custom-orange hover:text-orange-700 transition-colors disabled:opacity-50"
                             aria-label="Remove from saved properties"
                           >
                             {removingId === property.id ? (
-                              <div className="w-5 h-5 border-2 border-custom-red border-t-transparent rounded-full animate-spin"></div>
+                              <div className="w-5 h-5 border-2 border-custom-orange border-t-transparent rounded-full animate-spin"></div>
                             ) : (
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -509,7 +509,7 @@ const SavedProperties = ({
                         </div>
                         
                         <div className="mt-auto pt-4 flex justify-between items-center">
-                          <span className="text-custom-red font-bold text-lg">
+                          <span className="text-custom-orange font-bold text-lg">
                             {property.price 
                               ? new Intl.NumberFormat('en-US', {
                                   style: 'currency',
@@ -522,7 +522,7 @@ const SavedProperties = ({
                           
                           <Link 
                             href={`/properties/${property.propertyId}`}
-                            className="inline-flex items-center justify-center bg-custom-red hover:bg-red-700 text-white py-2 px-4 rounded-full transition-colors"
+                            className="inline-flex items-center justify-center bg-custom-orange hover:bg-orange-700 text-white py-2 px-4 rounded-full transition-colors"
                           >
                             View Details
                           </Link>

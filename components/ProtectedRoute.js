@@ -63,7 +63,7 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
           <div className="animate-pulse flex flex-col items-center">
             <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
             <div className="h-4 bg-gray-200 rounded w-1/2 mb-6"></div>
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-orange"></div>
           </div>
         </div>
       </div>
@@ -82,7 +82,7 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
           <h2 className="text-2xl font-bold mb-4 text-center">Redirecting...</h2>
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-orange mx-auto"></div>
         </div>
       </div>
     );
@@ -92,7 +92,7 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
   if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-orange"></div>
       </div>
     );
   }

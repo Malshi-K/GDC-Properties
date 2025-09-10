@@ -294,7 +294,7 @@ export default function ResetPasswordPage() {
   // Loading state display
   if (tokenProcessing) {
     return (
-      <div className="min-h-screen flex bg-custom-gray">
+      <div className="min-h-screen flex bg-custom-blue">
         {/* Left side - Image */}
         <div className="flex-1 relative">
           <Image
@@ -321,8 +321,8 @@ export default function ResetPasswordPage() {
         {/* Right side - Loading */}
         <div className="flex-1 flex items-center justify-center p-8 bg-white">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-red mx-auto"></div>
-            <p className="mt-4 text-custom-gray">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-custom-orange mx-auto"></div>
+            <p className="mt-4 text-custom-blue">
               Preparing secure password reset...
             </p>
           </div>
@@ -332,7 +332,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-custom-gray">
+    <div className="min-h-screen flex bg-custom-blue">
       {/* Left side - Image */}
       <div className="flex-1 relative">
         <Image
@@ -361,7 +361,7 @@ export default function ResetPasswordPage() {
 
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-custom-gray mb-4">
+            <h2 className="text-2xl font-bold text-custom-blue mb-4">
               Reset Your Password
             </h2>
             {!message && redirectCountdown === null && tokenValid && (
@@ -372,7 +372,7 @@ export default function ResetPasswordPage() {
           </div>
 
           {error && (
-            <div className="mb-6 p-3 bg-red-100 text-red-700 rounded text-sm">
+            <div className="mb-6 p-3 bg-custom-yellow text-custom-orange rounded text-sm">
               {error}
             </div>
           )}
@@ -392,7 +392,7 @@ export default function ResetPasswordPage() {
           {tokenValid && redirectCountdown === null && !message && (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="block text-custom-gray text-sm mb-2" htmlFor="new-password">
+                <label className="block text-custom-blue text-sm mb-2" htmlFor="new-password">
                   New Password
                 </label>
                 <div className="relative">
@@ -402,7 +402,7 @@ export default function ResetPasswordPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full px-3 py-3 bg-white border border-gray-300 rounded-full text-custom-gray placeholder-gray-400 focus:outline-none focus:border-custom-red focus:ring-1 focus:ring-custom-red"
+                    className="w-full px-3 py-3 bg-white border border-gray-300 rounded-full text-custom-blue placeholder-gray-400 focus:outline-none focus:border-custom-orange focus:ring-1 focus:ring-custom-orange"
                     required
                     minLength={6}
                     disabled={loading}
@@ -446,7 +446,7 @@ export default function ResetPasswordPage() {
               </div>
 
               <div>
-                <label className="block text-custom-gray text-sm mb-2" htmlFor="confirm-password">
+                <label className="block text-custom-blue text-sm mb-2" htmlFor="confirm-password">
                   Confirm New Password
                 </label>
                 <div className="relative">
@@ -456,7 +456,7 @@ export default function ResetPasswordPage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full px-3 py-3 bg-white border border-gray-300 rounded-full text-custom-gray placeholder-gray-400 focus:outline-none focus:border-custom-red focus:ring-1 focus:ring-custom-red"
+                    className="w-full px-3 py-3 bg-white border border-gray-300 rounded-full text-custom-blue placeholder-gray-400 focus:outline-none focus:border-custom-orange focus:ring-1 focus:ring-custom-orange"
                     required
                     minLength={6}
                     disabled={loading}
@@ -502,7 +502,7 @@ export default function ResetPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-custom-red text-white py-3 px-4 rounded-full font-medium hover:bg-opacity-90 transition-colors disabled:opacity-50 flex justify-center items-center"
+                className="w-full bg-custom-orange text-white py-3 px-4 rounded-full font-medium hover:bg-opacity-90 transition-colors disabled:opacity-50 flex justify-center items-center"
               >
                 {loading ? (
                   <div className="flex items-center justify-center">
@@ -518,12 +518,12 @@ export default function ResetPasswordPage() {
 
           {!tokenValid && !tokenProcessing && (
             <div className="text-center">
-              <p className="mb-4 text-custom-gray">
+              <p className="mb-4 text-custom-blue">
                 Your password reset link is invalid or has expired.
               </p>
               <Link
                 href="/forgot-password"
-                className="text-custom-red hover:underline font-medium"
+                className="text-custom-orange hover:underline font-medium"
               >
                 Request a new password reset link
               </Link>
@@ -532,7 +532,7 @@ export default function ResetPasswordPage() {
 
           {!message && redirectCountdown === null && (
             <div className="mt-6 text-center">
-              <Link href="/login" className="text-custom-red hover:underline">
+              <Link href="/login" className="text-custom-orange hover:underline">
                 Return to Sign In
               </Link>
             </div>

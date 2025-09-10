@@ -124,25 +124,25 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
         return {
           title: "SYSTEM ADMINISTRATOR",
           subtitle: "Platform Management",
-          badgeColor: "bg-custom-gray text-white",
+          badgeColor: "bg-custom-blue text-white",
         };
       case "property_owner":
         return {
           title: "PROPERTY OWNER",
           subtitle: "Property Management",
-          badgeColor: "bg-custom-gray text-white",
+          badgeColor: "bg-custom-blue text-white",
         };
       case "property_seeker":
         return {
           title: "PROPERTY SEEKER",
           subtitle: "Find Your Home",
-          badgeColor: "bg-custom-gray text-white",
+          badgeColor: "bg-custom-blue text-white",
         };
       default:
         return {
           title: "USER",
           subtitle: "Account",
-          badgeColor: "bg-custom-gray text-white",
+          badgeColor: "bg-custom-blue text-white",
         };
     }
   };
@@ -406,7 +406,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="bg-custom-red text-white p-2 rounded-full shadow-lg focus:outline-none"
+          className="bg-custom-orange text-white p-2 rounded-full shadow-lg focus:outline-none"
           aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
         >
           {isMobileMenuOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
@@ -416,7 +416,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
       {/* Sidebar Container */}
       <div
         ref={sidebarRef}
-        className={`bg-custom-red text-white flex flex-col h-full transition-all duration-300 z-40
+        className={`bg-custom-orange text-white flex flex-col h-full transition-all duration-300 z-40
                     lg:relative lg:w-64 lg:translate-x-0 lg:opacity-100 lg:shadow-none
                     fixed top-0 left-0 w-64 shadow-lg
                     ${
@@ -426,7 +426,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
                     }`}
       >
         {/* Profile Section */}
-        <div className="p-6 flex flex-col items-center border-b border-red-600">
+        <div className="p-6 flex flex-col items-center border-b border-custom-orange">
           {/* Admin Badge - Show for admin users */}
           {userRole === "admin" && (
             <div className="w-full mb-3">
@@ -438,7 +438,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
           )}
 
           {/* Profile Image with stable display logic */}
-          <div className="w-16 h-16 md:w-24 md:h-24 relative rounded-full overflow-hidden mb-4 bg-red-500 border-2 border-white">
+          <div className="w-16 h-16 md:w-24 md:h-24 relative rounded-full overflow-hidden mb-4 bg-custom-orange border-2 border-white">
             {/* Show actual image if available and loaded */}
             {profileImageUrl && imageLoaded && (
               <img
@@ -458,14 +458,14 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
             {/* Show fallback icon when no image or image failed to load */}
             {(showFallback || (!profileImageUrl && imageLoaded)) && (
               <div className="absolute inset-0 bg-white flex items-center justify-center">
-                <FaUser className="text-custom-red text-xl md:text-3xl" />
+                <FaUser className="text-custom-orange text-xl md:text-3xl" />
               </div>
             )}
 
             {/* Show loading spinner only when actually loading */}
             {isLoadingImage && !imageLoaded && (
-              <div className="absolute inset-0 bg-red-500 bg-opacity-50 flex items-center justify-center">
-                <div className="w-4 h-4 md:w-6 md:h-6 border-2 md:border-3 border-white border-t-red-300 rounded-full animate-spin"></div>
+              <div className="absolute inset-0 bg-custom-orange bg-opacity-50 flex items-center justify-center">
+                <div className="w-4 h-4 md:w-6 md:h-6 border-2 md:border-3 border-white border-t-custom-orange rounded-full animate-spin"></div>
               </div>
             )}
           </div>
@@ -482,14 +482,14 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
             {roleInfo.title}
           </div>
 
-          <p className="text-red-200 text-xs md:text-sm mb-4 text-center truncate max-w-full">
+          <p className="text-white text-xs md:text-sm mb-4 text-center truncate max-w-full">
             {user?.email}
           </p>
 
           {/* Edit Profile Button */}
           <button
             onClick={() => setShowEditModal(true)}
-            className="w-full bg-red-600 hover:bg-red-800 text-white text-xs md:text-sm py-2 px-4 rounded-md transition-colors duration-300 flex items-center justify-center"
+            className="w-full bg-custom-blue hover:bg-custom-yellow text-white text-xs md:text-sm py-2 px-4 rounded-md transition-colors duration-300 flex items-center justify-center"
           >
             <FaEdit className="mr-2" size={12} />
             Edit Profile
@@ -497,8 +497,8 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
         </div>
 
         {/* Role Header - Show current role context */}
-        <div className="px-4 py-3 bg-red-600 border-b border-red-700">
-          <p className="text-red-100 text-xs text-center font-medium">
+        <div className="px-4 py-3 bg-custom-orange border-b border-custom-yellow">
+          <p className="text-white text-md text-center font-medium">
             {roleInfo.subtitle}
           </p>
         </div>
@@ -512,7 +512,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
                 <>
                   {/* Top curve */}
                   <div className="absolute right-0 -top-4 w-4 h-4 bg-[#f3f4f6]">
-                    <div className="absolute bottom-0 right-0 w-4 h-4 bg-custom-red rounded-br-full"></div>
+                    <div className="absolute bottom-0 right-0 w-4 h-4 bg-custom-orange rounded-br-full"></div>
                   </div>
 
                   {/* Button background */}
@@ -520,7 +520,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
 
                   {/* Bottom curve */}
                   <div className="absolute right-0 -bottom-4 w-4 h-4 bg-[#f3f4f6]">
-                    <div className="absolute top-0 right-0 w-4 h-4 bg-custom-red rounded-tr-full"></div>
+                    <div className="absolute top-0 right-0 w-4 h-4 bg-custom-orange rounded-tr-full"></div>
                   </div>
                 </>
               )}
@@ -530,13 +530,13 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
                 onClick={() => handleTabSelect(item.id)}
                 className={`w-full text-left px-4 md:px-6 py-2 md:py-3 flex items-center relative z-10 transition-colors duration-200 ${
                   activeTab === item.id
-                    ? "text-custom-red font-medium"
-                    : "text-white hover:bg-red-600"
+                    ? "text-custom-orange font-medium"
+                    : "text-white hover:bg-custom-yellow"
                 }`}
               >
                 <div
                   className={`mr-2 md:mr-3 ${
-                    activeTab === item.id ? "text-custom-red" : "text-white"
+                    activeTab === item.id ? "text-custom-orange" : "text-white"
                   }`}
                 >
                   <IconComponent
@@ -553,11 +553,11 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
         </nav>
 
         {/* Bottom Navigation with Icons */}
-        <div className="border-t border-red-600 p-3 md:p-4 z-10">
+        <div className="border-t border-custom-orange p-3 md:p-4 z-10">
           <div className="flex justify-around">
             <button
               onClick={navigateToHome}
-              className="text-white hover:text-red-200 rounded-full hover:bg-red-600 transition-colors duration-200 p-2"
+              className="text-white hover:text-custom-orange rounded-full hover:bg-custom-yellow transition-colors duration-200 p-2"
               title="Home"
             >
               <FaHome size={16} className="md:text-xl" />
@@ -565,7 +565,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
 
             <button
               onClick={handleSignOut}
-              className="text-white hover:text-red-200 rounded-full hover:bg-red-600 transition-colors duration-200 p-2"
+              className="text-white hover:text-custom-orange rounded-full hover:bg-custom-yellow transition-colors duration-200 p-2"
               title="Sign Out"
             >
               <FaSignOutAlt size={16} className="md:text-xl" />

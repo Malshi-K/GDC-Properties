@@ -9,11 +9,11 @@ export default function ContactMap() {
         {/* Google Maps Section - Two Column Layout */}
         <div className="mt-16">
           <div className="text-center mb-8">
-            <h5 className="text-custom-red uppercase tracking-wider mb-2 text-sm sm:text-base">
+            <h5 className="text-custom-orange uppercase tracking-wider mb-2 text-sm sm:text-base">
               OUR LOCATIONS
             </h5>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-custom-gray">
-              Service <span className="text-custom-red">Areas</span>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-custom-blue">
+              Service <span className="text-custom-orange">Areas</span>
             </h2>
             <p className="text-gray-600 mt-2 sm:mt-4 max-w-2xl mx-auto text-sm sm:text-base">
               Explore our service areas in detail with these interactive maps.

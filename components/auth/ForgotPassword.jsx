@@ -49,7 +49,7 @@ export default function ForgotPassword() {
         </Link>
         <Link
           href="/"
-          className="text-custom-gray hover:text-custom-red transition-colors"
+          className="text-custom-blue hover:text-custom-orange transition-colors"
         >
           <X size={24} />
         </Link>
@@ -75,8 +75,8 @@ export default function ForgotPassword() {
           )}
 
           {error && (
-            <div className="mb-4 p-4 bg-red-100 text-red-700 rounded flex items-center">
-              <svg className="h-5 w-5 text-red-500 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <div className="mb-4 p-4 bg-orange-100 text-orange-700 rounded flex items-center">
+              <svg className="h-5 w-5 text-orange-500 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
               <span>{error}</span>
@@ -105,7 +105,7 @@ export default function ForgotPassword() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-custom-red text-white py-2 px-4 rounded-full hover:bg-opacity-90 transition-colors disabled:opacity-50 flex justify-center items-center"
+              className="w-full bg-custom-orange text-white py-2 px-4 rounded-full hover:bg-opacity-90 transition-colors disabled:opacity-50 flex justify-center items-center"
             >
               {loading ? (
                 <>
@@ -123,7 +123,7 @@ export default function ForgotPassword() {
           <div className="mt-6 text-center">
             <Link
               href="/login"
-              className="text-custom-red hover:underline"
+              className="text-custom-orange hover:underline"
             >
               Back to Sign In
             </Link>

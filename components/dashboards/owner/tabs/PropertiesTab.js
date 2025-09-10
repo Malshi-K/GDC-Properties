@@ -339,7 +339,7 @@ export default function PropertiesTab({
           {/* Quick stats */}
           {!isLoading && (
             <div className="flex gap-4 text-sm text-gray-600">
-              <span className="px-2 py-1 bg-blue-100 rounded-full">
+              <span className="px-2 py-1 bg-gray-100 rounded-full">
                 {processedProperties.length} properties
               </span>
               {viewingRequests.length > 0 && (
@@ -395,7 +395,7 @@ export default function PropertiesTab({
           {/* Add new property button */}
           <button
             onClick={handleAddNew}
-            className="bg-custom-red hover:bg-red-700 text-white font-medium py-2 px-3 sm:px-4 rounded-md transition-colors duration-300 flex items-center text-sm sm:text-base whitespace-nowrap"
+            className="bg-custom-orange hover:bg-orange-700 text-white font-medium py-2 px-3 sm:px-4 rounded-md transition-colors duration-300 flex items-center text-sm sm:text-base whitespace-nowrap"
             disabled={isLoading}
           >
             <svg
@@ -425,7 +425,7 @@ export default function PropertiesTab({
             <div>
               <div>User ID: {user?.id}</div>
               <div>Loading: {isLoading ? 'Yes' : 'No'}</div>
-              {processingError && <div className="text-red-600">Error: {processingError}</div>}
+              {processingError && <div className="text-orange-600">Error: {processingError}</div>}
             </div>
             <div>
               <div>Properties: {properties.length}</div>
@@ -441,13 +441,13 @@ export default function PropertiesTab({
       {isLoading ? (
         <div className="flex justify-center my-8 sm:my-12">
           <div className="flex flex-col items-center">
-            <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-t-2 border-b-2 border-custom-red mb-4"></div>
+            <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-t-2 border-b-2 border-custom-orange mb-4"></div>
             <p className="text-gray-600 text-sm">Loading properties...</p>
           </div>
         </div>
       ) : processingError ? (
         <div className="bg-white shadow rounded-lg p-4 sm:p-6 text-center">
-          <div className="text-red-500 mb-4">
+          <div className="text-orange-500 mb-4">
             <svg
               className="h-12 w-12 mx-auto mb-2"
               fill="none"
@@ -468,7 +468,7 @@ export default function PropertiesTab({
           </div>
           <button
             onClick={handleRefresh}
-            className="inline-block mt-3 sm:mt-4 bg-custom-red text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors text-sm sm:text-base"
+            className="inline-block mt-3 sm:mt-4 bg-custom-orange text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-colors text-sm sm:text-base"
           >
             Try Again
           </button>
@@ -505,7 +505,7 @@ export default function PropertiesTab({
           </p>
           <button
             onClick={handleAddNew}
-            className="inline-block bg-custom-red text-white px-6 py-2 rounded-md hover:bg-red-700 transition-colors text-sm sm:text-base font-medium"
+            className="inline-block bg-custom-orange text-white px-6 py-2 rounded-md hover:bg-orange-700 transition-colors text-sm sm:text-base font-medium"
           >
             Add Your First Property
           </button>
@@ -534,7 +534,7 @@ export default function PropertiesTab({
                 {viewingRequests.length > 0 && (
                   <button
                     onClick={() => onViewAllRequests && onViewAllRequests()}
-                    className="flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
+                    className="flex items-center px-4 py-2 bg-gray-50 text-gray-700 rounded-md hover:bg-gray-100 transition-colors"
                   >
                     <svg
                       className="h-5 w-5 mr-2"
@@ -556,7 +556,7 @@ export default function PropertiesTab({
                       />
                     </svg>
                     View All Viewing Requests
-                    <span className="ml-1 px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs">
+                    <span className="ml-1 px-2 py-0.5 bg-gray-100 text-gray-800 rounded-full text-xs">
                       {viewingRequests.length}
                     </span>
                   </button>

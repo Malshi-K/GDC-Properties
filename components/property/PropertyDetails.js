@@ -115,7 +115,7 @@ export default function PropertyDetails() {
           <h2 className="text-2xl font-bold mb-4">
             Loading property details...
           </h2>
-          <div className="w-12 h-12 border-4 border-gray-300 border-t-custom-red rounded-full animate-spin mx-auto"></div>
+          <div className="w-12 h-12 border-4 border-gray-300 border-t-custom-orange rounded-full animate-spin mx-auto"></div>
         </div>
       </div>
     );
@@ -133,7 +133,7 @@ export default function PropertyDetails() {
           </p>
           <Link
             href="/search"
-            className="bg-custom-red hover:bg-red-700 text-white font-bold py-2 px-6 rounded-md transition-colors duration-300"
+            className="bg-custom-orange hover:bg-orange-700 text-white font-bold py-2 px-6 rounded-md transition-colors duration-300"
           >
             Back to Search
           </Link>
@@ -150,7 +150,7 @@ export default function PropertyDetails() {
           <div className="p-6 flex items-center">
             <button
               onClick={() => router.back()}
-              className="flex items-center text-gray-700 hover:text-custom-red transition-colors"
+              className="flex items-center text-gray-700 hover:text-custom-orange transition-colors"
             >
               <svg
                 className="w-5 h-5 mr-2"
@@ -210,7 +210,7 @@ export default function PropertyDetails() {
                         key={index}
                         className={`relative h-20 rounded-md overflow-hidden cursor-pointer border-2 ${
                           activeImage === index
-                            ? "border-custom-red"
+                            ? "border-custom-orange"
                             : "border-transparent"
                         }`}
                         onClick={() => handleImageClick(index)}
@@ -239,7 +239,7 @@ export default function PropertyDetails() {
               {/* Price and status */}
               <div className="flex flex-wrap justify-between items-center bg-gray-50 rounded-lg p-6">
                 <div>
-                  <span className="text-3xl font-bold text-custom-red">
+                  <span className="text-3xl font-bold text-custom-orange">
                     {formatPrice(property.price)}
                   </span>
                 </div>
@@ -350,7 +350,7 @@ export default function PropertyDetails() {
                           className="flex items-center text-gray-700"
                         >
                           <svg
-                            className="w-5 h-5 text-custom-red mr-2"
+                            className="w-5 h-5 text-custom-orange mr-2"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -385,7 +385,7 @@ export default function PropertyDetails() {
                         className="flex items-center text-gray-700"
                       >
                         <svg
-                          className="w-5 h-5 text-custom-red mr-2"
+                          className="w-5 h-5 text-custom-orange mr-2"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -414,7 +414,7 @@ export default function PropertyDetails() {
                 </p>
 
                 <div className="space-y-3">
-                  <button className="w-full bg-custom-red hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md transition-colors duration-300">
+                  <button className="w-full bg-custom-orange hover:bg-orange-700 text-white font-bold py-3 px-4 rounded-md transition-colors duration-300">
                     Schedule a Viewing
                   </button>
                   <button className="w-full bg-white hover:bg-gray-100 text-gray-800 font-semibold py-3 px-4 border border-gray-300 rounded-md transition-colors duration-300">

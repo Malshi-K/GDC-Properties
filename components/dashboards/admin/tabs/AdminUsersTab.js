@@ -249,9 +249,9 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
   const getRoleBadgeColor = (role) => {
     switch (role) {
       case "admin":
-        return "bg-red-100 text-red-800 border border-red-200";
+        return "bg-orange-100 text-orange-800 border border-red-200";
       case "property_owner":
-        return "bg-blue-100 text-blue-800 border border-blue-200";
+        return "bg-gray-100 text-gray-800 border border-gray-200";
       case "property_seeker":
         return "bg-green-100 text-green-800 border border-green-200";
       default:
@@ -307,7 +307,7 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
   };
 
   return (
-    <div className="space-y-6 text-custom-gray">
+    <div className="space-y-6 text-custom-blue">
       {/* Header with Actions */}
       <div className="flex justify-between items-center">
         <div>
@@ -318,11 +318,11 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+        <div className="bg-orange-50 border border-red-200 text-orange-700 px-4 py-3 rounded-md">
           <div className="flex">
             <div className="flex-shrink-0">
               <svg
-                className="h-5 w-5 text-red-400"
+                className="h-5 w-5 text-orange-400"
                 viewBox="0 0 20 20"
                 fill="currentColor"
               >
@@ -334,8 +334,8 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error</h3>
-              <div className="mt-2 text-sm text-red-700">
+              <h3 className="text-sm font-medium text-orange-800">Error</h3>
+              <div className="mt-2 text-sm text-orange-700">
                 <p>{error}</p>
               </div>
             </div>
@@ -604,7 +604,7 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
                                 handleRoleUpdate(userItem.id, "property_owner")
                               }
                               disabled={updating === userItem.id}
-                              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                               {updating === userItem.id
                                 ? "Updating..."
