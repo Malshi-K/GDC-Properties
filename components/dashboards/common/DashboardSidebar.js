@@ -1,3 +1,5 @@
+// Updated DashboardSidebar Component with Hidden Scrollbar
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -174,21 +176,21 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
     {
       id: "users",
       label: "Users Management",
-      imageSrc: "/images/icons/tabs/1.png", // Add your image path here
+      imageSrc: "/images/icons/tabs/1.png",
       fallbackIcon: <FaUsers className="h-5 w-5 mr-3" />,
       roles: ["admin"],
     },
     {
       id: "properties",
       label: "All Properties",
-      imageSrc: "/images/icons/tabs/2.png", // Add your image path here
+      imageSrc: "/images/icons/tabs/2.png",
       fallbackIcon: <FaBuilding className="h-5 w-5 mr-3" />,
       roles: ["admin"],
     },
     {
       id: "analytics",
       label: "System Analytics",
-      imageSrc: "/images/icons/tabs/3.png", // Add your image path here
+      imageSrc: "/images/icons/tabs/3.png",
       fallbackIcon: <FaChartBar className="h-5 w-5 mr-3" />,
       roles: ["admin"],
     },
@@ -197,7 +199,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
     {
       id: "properties",
       label: "My Properties",
-      imageSrc: "/images/icons/tabs/2.png", // Add your image path here
+      imageSrc: "/images/icons/tabs/2.png",
       fallbackIcon: (
         <svg
           className="h-5 w-5 mr-3"
@@ -218,7 +220,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
     {
       id: "viewings",
       label: "Viewing Requests",
-      imageSrc: "/images/icons/tabs/4.png", // Add your image path here
+      imageSrc: "/images/icons/tabs/4.png",
       fallbackIcon: (
         <svg
           className="h-5 w-5 mr-3"
@@ -239,7 +241,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
     {
       id: "applications",
       label: "Rental Applications",
-      imageSrc: "/images/icons/tabs/5.png", // Add your image path here
+      imageSrc: "/images/icons/tabs/5.png",
       fallbackIcon: (
         <svg
           className="h-5 w-5 mr-3"
@@ -260,7 +262,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
     {
       id: "payments",
       label: "Payments",
-      imageSrc: "/images/icons/tabs/6.png", // Add your image path here
+      imageSrc: "/images/icons/tabs/6.png",
       fallbackIcon: (
         <svg
           className="h-5 w-5 mr-3"
@@ -281,7 +283,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
     {
       id: "analytics",
       label: "Analytics",
-      imageSrc: "/images/icons/tabs/3.png", // Add your image path here
+      imageSrc: "/images/icons/tabs/3.png",
       fallbackIcon: (
         <svg
           className="h-5 w-5 mr-3"
@@ -304,7 +306,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
     {
       id: "viewingRequests",
       label: "Viewing Requests",
-      imageSrc: "/images/icons/tabs/4.png", // Add your image path here
+      imageSrc: "/images/icons/tabs/4.png",
       fallbackIcon: (
         <svg
           className="h-5 w-5 mr-3"
@@ -325,7 +327,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
     {
       id: "applications",
       label: "My Applications",
-      imageSrc: "/images/icons/tabs/5.png", // Add your image path here
+      imageSrc: "/images/icons/tabs/5.png",
       fallbackIcon: (
         <svg
           className="h-5 w-5 mr-3"
@@ -346,7 +348,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
     {
       id: "favorites",
       label: "Saved Properties",
-      imageSrc: "/images/icons/tabs/7.png", // Add your image path here
+      imageSrc: "/images/icons/tabs/7.png",
       fallbackIcon: (
         <svg
           className="h-5 w-5 mr-3"
@@ -369,7 +371,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
     {
       id: "settings",
       label: "Account Settings",
-      imageSrc: "/images/icons/tabs/8.png", // Add your image path here
+      imageSrc: "/images/icons/tabs/8.png",
       fallbackIcon: (
         <svg
           className="h-5 w-5 mr-3"
@@ -402,6 +404,17 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
 
   return (
     <>
+      {/* Custom styles for hiding scrollbar */}
+      <style jsx>{`
+        .hide-scrollbar {
+          scrollbar-width: none; /* Firefox */
+          -ms-overflow-style: none; /* Internet Explorer 10+ */
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none; /* WebKit browsers */
+        }
+      `}</style>
+
       {/* Mobile Toggle Button - Shown only on mobile */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <button
@@ -503,8 +516,8 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
           </p>
         </div>
 
-        {/* Navigation Menu - with curved active tab */}
-        <nav className="flex-1 mt-4 md:mt-6 relative z-10 overflow-y-auto">
+        {/* Navigation Menu - with curved active tab and hidden scrollbar */}
+        <nav className="flex-1 mt-4 md:mt-6 relative z-10 overflow-y-auto hide-scrollbar">
           {filteredNavItems.map((item) => (
             <div key={item.id} className="relative mb-1 md:mb-2">
               {/* Active tab curved background - only shown when active */}

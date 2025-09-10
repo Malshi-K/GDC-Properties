@@ -1,15 +1,15 @@
 "use client";
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import {useAuth} from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Create a client component that safely uses useSearchParams
 function LoginForm() {
-  const { signIn, signOut, session } = useAuth();  
+  const { signIn, signOut, session } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,7 +26,9 @@ function LoginForm() {
     if (resetSuccess) {
       // Clear any old session if user just reset password
       signOut?.();
-      setMessage("Your password has been successfully reset. Please log in with your new password.");
+      setMessage(
+        "Your password has been successfully reset. Please log in with your new password."
+      );
     }
   }, [resetSuccess, signOut]);
 
@@ -85,7 +87,10 @@ function LoginForm() {
 
       <form onSubmit={handleSubmit} className="space-y-6 text-black">
         <div>
-          <label className="block text-custom-blue text-sm mb-2" htmlFor="email">
+          <label
+            className="block text-custom-blue text-sm mb-2"
+            htmlFor="email"
+          >
             Your email
           </label>
           <input
@@ -101,7 +106,10 @@ function LoginForm() {
         </div>
 
         <div>
-          <label className="block text-custom-blue text-sm mb-2" htmlFor="password">
+          <label
+            className="block text-custom-blue text-sm mb-2"
+            htmlFor="password"
+          >
             Your password
           </label>
           <div className="relative">
@@ -164,7 +172,9 @@ function LoginForm() {
 
 // Loading fallback for Suspense
 function LoginFormLoading() {
-  return <div className="p-4 text-center text-white">Loading login form...</div>;
+  return (
+    <div className="p-4 text-center text-white">Loading login form...</div>
+  );
 }
 
 // Main page component
@@ -186,13 +196,15 @@ export default function LoginPage() {
       {/* Right side - Form */}
       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-white relative">
         <div className="mb-8">
-          <Image
-            src="/images/logo.png"
-            alt="GDC Properties"
-            width={200}
-            height={120}
-            className="h-20 w-auto object-contain"
-          />
+          <Link href="/">
+            <Image
+              src="/images/logo.png"
+              alt="GDC Properties"
+              width={200}
+              height={120}
+              className="h-20 w-auto object-contain"
+            />
+          </Link>
         </div>
 
         <Suspense fallback={<LoginFormLoading />}>

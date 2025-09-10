@@ -51,39 +51,198 @@ export default function PaymentsTab({ onRefresh }) {
         return;
       }
 
-      // For now, let's see if we get the distributions first
       console.log("Distributions received:", distributions);
 
-      // If this works, we can add the other steps to fetch related data
-      setPayments(
-        distributions.map((d) => ({
-          ...d,
-          owner_net_amount: d.amount,
-          rental_applications: {
-            properties: { title: "Loading...", location: "Loading..." },
-            profiles: { full_name: "Loading..." },
-          },
-        }))
-      );
+      // Step 2: Get payment record IDs
+      const paymentRecordIds = distributions.map(d => d.payment_record_id).filter(Boolean);
+      
+      if (paymentRecordIds.length === 0) {
+        setPayments([]);
+        calculateSummary([]);
+        return;
+      }
 
-      calculateSummary(
-        distributions.map((d) => ({
-          owner_net_amount: d.amount,
-          platform_fee_amount: 0,
-        }))
-      );
+      // Step 3: Fetch payment records with application details
+      const paymentRecords = await fetchData({
+        table: "payment_records",
+        select: `
+          id,
+          application_id,
+          payment_type,
+          amount,
+          status,
+          platform_fee_amount,
+          management_fee_amount,
+          owner_net_amount,
+          due_date,
+          paid_at,
+          created_at
+        `,
+        filters: [
+          { 
+            column: "id", 
+            operator: "in", 
+            value: paymentRecordIds 
+          }
+        ]
+      });
+
+      console.log("Payment records:", paymentRecords);
+
+      if (!paymentRecords || paymentRecords.length === 0) {
+        setPayments([]);
+        calculateSummary([]);
+        return;
+      }
+
+      // Step 4: Get application IDs to fetch rental agreements
+      const applicationIds = paymentRecords.map(pr => pr.application_id).filter(Boolean);
+      
+      if (applicationIds.length === 0) {
+        // If no applications, just use the payment records data
+        const enrichedPayments = distributions.map(dist => {
+          const paymentRecord = paymentRecords.find(pr => pr.id === dist.payment_record_id);
+          return {
+            ...dist,
+            ...paymentRecord,
+            owner_net_amount: dist.amount, // Use distribution amount as owner's share
+            rental_applications: {
+              properties: { title: "Direct Payment", location: "N/A" },
+              profiles: { full_name: "Direct Payment" },
+            },
+          };
+        });
+        
+        setPayments(enrichedPayments);
+        calculateSummary(enrichedPayments);
+        return;
+      }
+
+      // Step 5: Fetch rental agreements to get property and tenant info
+      const rentalAgreements = await fetchData({
+        table: "rental_agreements",
+        select: `
+          id,
+          application_id,
+          property_id,
+          tenant_id,
+          owner_id
+        `,
+        filters: [
+          { 
+            column: "application_id", 
+            operator: "in", 
+            value: applicationIds 
+          },
+          // Ensure these are agreements where the current user is the owner
+          {
+            column: "owner_id",
+            operator: "eq",
+            value: user.id
+          }
+        ]
+      });
+
+      console.log("Rental agreements:", rentalAgreements);
+
+      if (!rentalAgreements || rentalAgreements.length === 0) {
+        // No matching rental agreements for this owner
+        setPayments([]);
+        calculateSummary([]);
+        return;
+      }
+
+      // Step 6: Get property and tenant details
+      const propertyIds = [...new Set(rentalAgreements.map(ra => ra.property_id))];
+      const tenantIds = [...new Set(rentalAgreements.map(ra => ra.tenant_id))];
+
+      const [properties, tenants] = await Promise.all([
+        fetchData({
+          table: "properties",
+          select: "id, title, location",
+          filters: [
+            { column: "id", operator: "in", value: propertyIds }
+          ]
+        }),
+        fetchData({
+          table: "profiles",
+          select: "id, full_name",
+          filters: [
+            { column: "id", operator: "in", value: tenantIds }
+          ]
+        })
+      ]);
+
+      console.log("Properties:", properties);
+      console.log("Tenants:", tenants);
+
+      // Step 7: Combine all data
+      const enrichedPayments = distributions.map(dist => {
+        const paymentRecord = paymentRecords.find(pr => pr.id === dist.payment_record_id);
+        
+        if (!paymentRecord) {
+          return {
+            ...dist,
+            owner_net_amount: dist.amount,
+            rental_applications: {
+              properties: { title: "Unknown Property", location: "Unknown" },
+              profiles: { full_name: "Unknown Tenant" },
+            },
+          };
+        }
+
+        const rentalAgreement = rentalAgreements.find(ra => ra.application_id === paymentRecord.application_id);
+        
+        if (!rentalAgreement) {
+          return {
+            ...dist,
+            ...paymentRecord,
+            owner_net_amount: dist.amount,
+            rental_applications: {
+              properties: { title: "No Property Link", location: "N/A" },
+              profiles: { full_name: "No Tenant Link" },
+            },
+          };
+        }
+
+        const property = properties?.find(p => p.id === rentalAgreement.property_id) || {};
+        const tenant = tenants?.find(t => t.id === rentalAgreement.tenant_id) || {};
+
+        return {
+          ...dist,
+          ...paymentRecord,
+          owner_net_amount: dist.amount, // Use the distribution amount as the owner's share
+          rental_applications: {
+            properties: { 
+              title: property.title || "Unknown Property", 
+              location: property.location || "Unknown Location" 
+            },
+            profiles: { 
+              full_name: tenant.full_name || "Unknown Tenant" 
+            },
+          },
+        };
+      });
+
+      console.log("Final enriched payments:", enrichedPayments);
+
+      setPayments(enrichedPayments);
+      calculateSummary(enrichedPayments);
+
     } catch (error) {
       console.error("Error fetching owner payments:", error);
       toast.error("Failed to load payment data");
+      setPayments([]);
+      calculateSummary([]);
     }
   };
 
-  // Also update calculateSummary to use the correct amount field
   const calculateSummary = (paymentsData) => {
     const totalEarnings = paymentsData.reduce(
-      (sum, p) => sum + (p.owner_net_amount || 0),
+      (sum, p) => sum + (p.owner_net_amount || p.amount || 0),
       0
     );
+    
     const totalPlatformFees = paymentsData.reduce(
       (sum, p) => sum + (p.platform_fee_amount || 0),
       0
@@ -99,7 +258,7 @@ export default function PaymentsTab({ onRefresh }) {
     });
 
     const thisMonthEarnings = thisMonth.reduce(
-      (sum, p) => sum + (p.owner_net_amount || 0),
+      (sum, p) => sum + (p.owner_net_amount || p.amount || 0),
       0
     );
 
@@ -108,6 +267,33 @@ export default function PaymentsTab({ onRefresh }) {
       totalEarnings,
       totalPlatformFees,
       thisMonthEarnings,
+    });
+  };
+
+  // Apply period filter to payments before rendering
+  const getFilteredPayments = () => {
+    if (selectedPeriod === "all") {
+      return payments;
+    }
+
+    const now = new Date();
+    return payments.filter(payment => {
+      const paymentDate = new Date(payment.created_at);
+      
+      switch (selectedPeriod) {
+        case "month":
+          return paymentDate.getMonth() === now.getMonth() && 
+                 paymentDate.getFullYear() === now.getFullYear();
+        case "quarter":
+          const currentQuarter = Math.floor(now.getMonth() / 3);
+          const paymentQuarter = Math.floor(paymentDate.getMonth() / 3);
+          return paymentQuarter === currentQuarter && 
+                 paymentDate.getFullYear() === now.getFullYear();
+        case "year":
+          return paymentDate.getFullYear() === now.getFullYear();
+        default:
+          return true;
+      }
     });
   };
 
@@ -131,7 +317,7 @@ export default function PaymentsTab({ onRefresh }) {
   const getStatusColor = (status) => {
     switch (status) {
       case "completed":
-        return "text-green-600 bg-green-50";
+        return "text-custom-blue bg-green-50";
       case "pending":
         return "text-yellow-600 bg-yellow-50";
       case "processing":
@@ -145,6 +331,7 @@ export default function PaymentsTab({ onRefresh }) {
 
   const cacheKey = `owner_payments_${user?.id}`;
   const isLoading = loading[cacheKey];
+  const filteredPayments = getFilteredPayments();
 
   if (isLoading) {
     return (
@@ -159,7 +346,7 @@ export default function PaymentsTab({ onRefresh }) {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-custom-blue">
             Payment Dashboard
           </h1>
           <p className="text-gray-600">
@@ -182,9 +369,9 @@ export default function PaymentsTab({ onRefresh }) {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-custom-orange rounded-full flex items-center justify-center">
                 <svg
-                  className="w-5 h-5 text-green-600"
+                  className="w-8 h-8 text-white"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -200,7 +387,7 @@ export default function PaymentsTab({ onRefresh }) {
               <dt className="text-sm font-medium text-gray-500">
                 Total Earnings
               </dt>
-              <dd className="text-lg font-semibold text-gray-900">
+              <dd className="text-lg font-semibold text-custom-blue">
                 {formatCurrency(summary.totalEarnings)}
               </dd>
             </div>
@@ -210,23 +397,25 @@ export default function PaymentsTab({ onRefresh }) {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-custom-orange rounded-full flex items-center justify-center">
                 <svg
-                  className="w-5 h-5 text-gray-600"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
+                  className="w-6 h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
                   <path
-                    fillRule="evenodd"
-                    d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V8zm8 0a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1h-6a1 1 0 01-1-1V8z"
-                    clipRule="evenodd"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                   />
                 </svg>
               </div>
             </div>
             <div className="ml-5 w-0 flex-1">
               <dt className="text-sm font-medium text-gray-500">This Month</dt>
-              <dd className="text-lg font-semibold text-gray-900">
+              <dd className="text-lg font-semibold text-custom-blue">
                 {formatCurrency(summary.thisMonthEarnings)}
               </dd>
             </div>
@@ -236,9 +425,9 @@ export default function PaymentsTab({ onRefresh }) {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-custom-orange rounded-full flex items-center justify-center">
                 <svg
-                  className="w-5 h-5 text-purple-600"
+                  className="w-8 h-8 text-white"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -254,7 +443,7 @@ export default function PaymentsTab({ onRefresh }) {
               <dt className="text-sm font-medium text-gray-500">
                 Total Payments
               </dt>
-              <dd className="text-lg font-semibold text-gray-900">
+              <dd className="text-lg font-semibold text-custom-blue">
                 {summary.totalPayments}
               </dd>
             </div>
@@ -264,9 +453,9 @@ export default function PaymentsTab({ onRefresh }) {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-custom-orange rounded-full flex items-center justify-center">
                 <svg
-                  className="w-5 h-5 text-orange-600"
+                  className="w-8 h-8 text-white"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -282,7 +471,7 @@ export default function PaymentsTab({ onRefresh }) {
               <dt className="text-sm font-medium text-gray-500">
                 Platform Fees
               </dt>
-              <dd className="text-lg font-semibold text-gray-900">
+              <dd className="text-lg font-semibold text-custom-blue">
                 {formatCurrency(summary.totalPlatformFees)}
               </dd>
             </div>
@@ -294,13 +483,13 @@ export default function PaymentsTab({ onRefresh }) {
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-medium text-gray-900">
+            <h2 className="text-lg font-bold text-custom-blue">
               Payment History
             </h2>
             <select
               value={selectedPeriod}
               onChange={(e) => setSelectedPeriod(e.target.value)}
-              className="rounded-md border-gray-300 shadow-sm focus:border-custom-orange focus:ring-custom-orange"
+              className="focus:border-custom-orange focus:ring-custom-orange text-custom-blue"
             >
               <option value="all">All Time</option>
               <option value="month">This Month</option>
@@ -332,11 +521,11 @@ export default function PaymentsTab({ onRefresh }) {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {payments.map((payment) => (
+              {filteredPayments.map((payment) => (
                 <tr key={payment.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-custom-blue">
                         {payment.rental_applications?.properties?.title ||
                           "Unknown Property"}
                       </div>
@@ -353,8 +542,8 @@ export default function PaymentsTab({ onRefresh }) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {formatCurrency(payment.amount)}
+                      <div className="text-sm font-medium text-custom-blue">
+                        Total: {formatCurrency(payment.amount)}
                       </div>
                       <div className="text-xs text-gray-500">
                         Type:{" "}
@@ -377,15 +566,12 @@ export default function PaymentsTab({ onRefresh }) {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-lg font-semibold text-green-600">
-                      {formatCurrency(payment.owner_net_amount)}
+                    <div className="text-lg font-semibold text-custom-blue">
+                      {formatCurrency(payment.owner_net_amount || payment.amount)}
                     </div>
                     <div className="text-xs text-gray-500">
-                      {(
-                        (payment.owner_net_amount / payment.amount) *
-                        100
-                      ).toFixed(1)}
-                      % of total
+                      {payment.percentage ? `${payment.percentage}%` : 
+                       payment.amount ? `${((payment.owner_net_amount || payment.amount) / payment.amount * 100).toFixed(1)}%` : '0%'} of total
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -400,7 +586,7 @@ export default function PaymentsTab({ onRefresh }) {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div>{formatDate(payment.created_at)}</div>
                     {payment.paid_at && (
-                      <div className="text-xs text-green-600">
+                      <div className="text-xs text-custom-blue">
                         Paid: {formatDate(payment.paid_at)}
                       </div>
                     )}
@@ -410,7 +596,7 @@ export default function PaymentsTab({ onRefresh }) {
             </tbody>
           </table>
 
-          {payments.length === 0 && (
+          {filteredPayments.length === 0 && (
             <div className="text-center py-12">
               <svg
                 className="mx-auto h-12 w-12 text-gray-400"
@@ -425,7 +611,7 @@ export default function PaymentsTab({ onRefresh }) {
                   d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m13-8V4a1 1 0 00-1-1H7a1 1 0 00-1 1v1m8 0V4.5"
                 />
               </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">
+              <h3 className="mt-2 text-sm font-medium text-custom-blue">
                 No payments yet
               </h3>
               <p className="mt-1 text-sm text-gray-500">
