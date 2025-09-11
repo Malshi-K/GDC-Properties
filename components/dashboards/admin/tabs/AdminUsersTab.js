@@ -14,12 +14,16 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
   const [filterRole, setFilterRole] = useState("all");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [roleRequests, setRoleRequests] = useState([]);
+  const [activeTab, setActiveTab] = useState("users"); // 'users' or 'requests'
 
   // Cache key for users data
   const CACHE_KEY = "admin_users_with_email";
 
   useEffect(() => {
+    console.log("AdminUsersTab mounted, fetching data...");
     fetchUsers();
+    fetchRoleRequests();
   }, []);
 
   // Simplified fetch users function - now email is in profiles table
@@ -100,6 +104,8 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
         has_profile: true, // Since we're getting data from profiles table
         profile_created_at: profile.created_at,
         updated_at: profile.updated_at || null,
+        has_pending_request:
+          profile.preferences?.role_request?.status === "pending", // Add this line
       }));
 
       console.log(
@@ -121,21 +127,142 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
     }
   };
 
+  const fetchRoleRequests = async () => {
+    console.log("=== FETCHING ROLE REQUESTS ===");
+
+    try {
+      // Method 1: Try to fetch from role_requests table
+      console.log("Attempting to fetch from role_requests table...");
+
+      const { data: requests, error } = await supabase
+        .from("role_requests")
+        .select("*")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching from role_requests:", error);
+        console.log("Error details:", {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        });
+      } else {
+        console.log(
+          `✅ Fetched ${
+            requests?.length || 0
+          } pending requests from role_requests table`
+        );
+        console.log("Requests data:", requests);
+      }
+
+      if (!error && requests && requests.length > 0) {
+        setRoleRequests(requests);
+        return; // Success, exit early
+      }
+
+      // Method 2: Fallback to checking profiles.preferences
+      console.log("Attempting fallback to profiles.preferences...");
+
+      // First, get all profiles with non-null preferences
+      const { data: profiles, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .not("preferences", "is", null);
+
+      if (profileError) {
+        console.error("Error fetching profiles:", profileError);
+        setRoleRequests([]);
+        return;
+      }
+
+      console.log(`Found ${profiles?.length || 0} profiles with preferences`);
+
+      if (profiles && profiles.length > 0) {
+        const pendingRequests = [];
+
+        profiles.forEach((profile) => {
+          try {
+            // Parse preferences if it's a string
+            let prefs = profile.preferences;
+            if (typeof prefs === "string") {
+              try {
+                prefs = JSON.parse(prefs);
+              } catch (parseError) {
+                console.error(
+                  `Failed to parse preferences for profile ${profile.id}:`,
+                  parseError
+                );
+                return;
+              }
+            }
+
+            // Check if there's a pending role request
+            if (prefs?.role_request?.status === "pending") {
+              const request = {
+                id: `${profile.id}_request`,
+                user_id: profile.id,
+                user_email: profile.email || "No email",
+                user_name: profile.full_name || "No name",
+                requested_role:
+                  prefs.role_request.requested_role || "property_owner",
+                business_name: prefs.role_request.business_name || "",
+                business_type: prefs.role_request.business_type || "",
+                additional_info: prefs.role_request.additional_info || "",
+                created_at:
+                  prefs.role_request.requested_at || profile.created_at,
+                status: "pending",
+              };
+
+              pendingRequests.push(request);
+              console.log(`Found pending request for user ${profile.email}`);
+            }
+          } catch (err) {
+            console.error(`Error processing profile ${profile.id}:`, err);
+          }
+        });
+
+        console.log(
+          `✅ Found ${pendingRequests.length} pending requests from profiles`
+        );
+        setRoleRequests(pendingRequests);
+      } else {
+        console.log("No profiles with preferences found");
+        setRoleRequests([]);
+      }
+    } catch (error) {
+      console.error("Unexpected error in fetchRoleRequests:", error);
+      setRoleRequests([]);
+    }
+  };
+
   // Enhanced role update function
-  const handleRoleUpdate = async (userId, newRole) => {
+  const handleRoleUpdate = async (userId, newRole, isApproval = false) => {
     console.log(`🚀 Starting role update for user ${userId} to ${newRole}`);
     setUpdating(userId);
 
     try {
-      console.log(`🔄 Updating user ${userId} role to ${newRole}`);
+      // Use a different variable name to avoid shadowing updateData from context
+      const profileUpdate = {
+        role: newRole,
+        updated_at: new Date().toISOString(),
+      };
 
-      // Update using direct Supabase query
+      // Add preferences update if this is an approval
+      if (isApproval) {
+        profileUpdate.preferences = {
+          role_request: {
+            status: "approved",
+            approved_at: new Date().toISOString(),
+            approved_by: user.email,
+          },
+        };
+      }
+
       const { data: updatedProfile, error: updateError } = await supabase
         .from("profiles")
-        .update({
-          role: newRole,
-          updated_at: new Date().toISOString(),
-        })
+        .update(profileUpdate)
         .eq("id", userId)
         .select()
         .single();
@@ -147,7 +274,52 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
         return;
       }
 
-      console.log("✅ Database update successful:", updatedProfile);
+      // If this is an approval, update role_requests table
+      if (isApproval) {
+        // Update role_requests table (don't worry if this fails)
+        const { error: requestUpdateError } = await supabase
+          .from("role_requests")
+          .update({
+            status: "approved",
+            approved_at: new Date().toISOString(),
+            approved_by: user.email,
+          })
+          .eq("user_id", userId);
+
+        if (requestUpdateError) {
+          console.log(
+            "Note: role_requests update failed, but continuing:",
+            requestUpdateError
+          );
+        }
+
+        // Send approval email (optional)
+        try {
+          const response = await fetch("/api/send-role-approval-email", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              user_email: updatedProfile.email,
+              user_name: updatedProfile.full_name,
+              new_role: newRole,
+            }),
+          });
+
+          if (response.ok) {
+            console.log("Approval email sent successfully");
+          }
+        } catch (emailError) {
+          console.log(
+            "Email sending failed, but role was updated:",
+            emailError
+          );
+        }
+
+        // Remove from pending requests
+        setRoleRequests(roleRequests.filter((r) => r.user_id !== userId));
+      }
 
       // Update local state
       const updatedUsers = users.map((u) =>
@@ -157,93 +329,82 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
               role: newRole,
               updated_at:
                 updatedProfile?.updated_at || new Date().toISOString(),
+              has_pending_request: false,
             }
           : u
       );
 
       setUsers(updatedUsers);
 
-      // Update cached data
+      // Use the updateData function from context correctly
       updateData(CACHE_KEY, updatedUsers);
-
-      // Invalidate related cache entries
       invalidateCache("profiles");
       invalidateCache("admin_users");
 
-      // Call the provided onUpdateRole callback if available
       if (onUpdateRole && typeof onUpdateRole === "function") {
-        try {
-          await onUpdateRole(userId, newRole);
-          console.log("📞 onUpdateRole callback completed successfully");
-        } catch (callbackError) {
-          console.warn("⚠️ onUpdateRole callback failed:", callbackError);
-        }
+        await onUpdateRole(userId, newRole);
       }
 
-      console.log(`🎉 Successfully updated user ${userId} role to ${newRole}`);
+      // Show success message
+      alert(
+        `Successfully ${isApproval ? "approved" : "updated"} ${
+          updatedProfile.full_name || "user"
+        } as ${getRoleDisplayName(newRole)}.`
+      );
+
       setError(null);
     } catch (error) {
       console.error("💥 Error in handleRoleUpdate:", error);
       setError(`Failed to update user role: ${error.message}`);
-      alert(
-        `Failed to update user role: ${error.message}\n\nPlease check the console for more details.`
-      );
+      alert(`Failed to update user role: ${error.message}`);
     } finally {
-      console.log(`🔓 Clearing updating state for user ${userId}`);
+      setUpdating(null);
+    }
+  };
+
+  const handleRejectRequest = async (userId) => {
+    if (!confirm("Are you sure you want to reject this role request?")) {
+      return;
+    }
+
+    setUpdating(userId);
+
+    try {
+      await supabase
+        .from("profiles")
+        .update({
+          preferences: {
+            role_request: {
+              status: "rejected",
+              rejected_at: new Date().toISOString(),
+              rejected_by: user.email,
+            },
+          },
+        })
+        .eq("id", userId);
+
+      await supabase
+        .from("role_requests")
+        .update({
+          status: "rejected",
+          rejected_at: new Date().toISOString(),
+          rejected_by: user.email,
+        })
+        .eq("user_id", userId);
+
+      setRoleRequests(roleRequests.filter((r) => r.user_id !== userId));
+      alert("Role request rejected successfully.");
+    } catch (error) {
+      console.error("Failed to reject request:", error);
+      alert("Failed to reject request: " + error.message);
+    } finally {
       setUpdating(null);
     }
   };
 
   // Refresh function that clears cache and refetches
-  const handleRefresh = async () => {
-    // Clear cache
-    invalidateCache("admin_users");
-    invalidateCache("profiles");
-
-    // Call external refresh if provided
-    if (onRefresh && typeof onRefresh === "function") {
-      onRefresh();
-    }
-
-    // Refetch data
-    await fetchUsers();
-  };
 
   // Test function to check if email sync is working
-  const testEmailSync = async () => {
-    console.log("=== TESTING EMAIL SYNC ===");
-
-    try {
-      // Check if profiles have email field
-      const { data: sampleProfiles, error } = await supabase
-        .from("profiles")
-        .select("id, email, full_name")
-        .limit(3);
-
-      console.log("Sample profiles with email:", sampleProfiles);
-
-      if (error) {
-        console.error("Test failed:", error);
-        alert(`Test failed: ${error.message}`);
-        return;
-      }
-
-      const hasEmails = sampleProfiles?.some(
-        (p) => p.email && !p.email.includes("@system.local")
-      );
-
-      if (hasEmails) {
-        alert("✅ Email sync is working! Profiles have real email addresses.");
-      } else {
-        alert(
-          "⚠️ Email sync may not be working. Check if you ran the SQL scripts."
-        );
-      }
-    } catch (error) {
-      console.error("Test email sync failed:", error);
-      alert(`Test failed: ${error.message}`);
-    }
-  };
 
   // Helper functions remain the same...
   const getRoleBadgeColor = (role) => {
@@ -304,6 +465,7 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
     property_seeker: users.filter(
       (u) => u.role === "property_seeker" || !u.role
     ).length,
+    pending_requests: roleRequests.length, // Add this line
   };
 
   return (
@@ -314,6 +476,37 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
           <h1 className="text-2xl font-bold text-gray-900">Users Management</h1>
           <p className="text-gray-600">Manage user roles and permissions</p>
         </div>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab("users")}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === "users"
+                ? "border-custom-orange text-custom-orange"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+          >
+            All Users ({users.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("requests")}
+            className={`py-2 px-1 border-b-2 font-medium text-sm relative ${
+              activeTab === "requests"
+                ? "border-custom-orange text-custom-orange"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+          >
+            Role Requests
+            {roleRequests.length > 0 && (
+              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                {roleRequests.length}
+              </span>
+            )}
+          </button>
+        </nav>
       </div>
 
       {/* Error Display */}
@@ -343,302 +536,454 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
         </div>
       )}
 
-      {/* Search and Filter Controls */}
-      <div className="bg-white p-4 rounded-lg shadow border">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <label
-              htmlFor="search"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Search Users
-            </label>
-            <input
-              type="text"
-              id="search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by name, email, or ID..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
-            />
-          </div>
-          <div className="sm:w-48">
-            <label
-              htmlFor="roleFilter"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Filter by Role
-            </label>
-            <select
-              id="roleFilter"
-              value={filterRole}
-              onChange={(e) => setFilterRole(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
-            >
-              <option value="all">All Roles</option>
-              <option value="admin">Administrators</option>
-              <option value="property_owner">Property Owners</option>
-              <option value="property_seeker">Property Seekers</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow border">
-          <div className="flex items-center">
-            <div className="p-2 bg-gray-100 rounded-lg">
-              <img
-                src="/images/icons/5.png"
-                alt="Total Users"
-                className="h-10 w-10 object-contain"
-                onError={(e) => {
-                  e.target.style.display = "none";
-                  e.target.nextSibling.style.display = "block";
-                }}
-              />
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">Total Users</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {roleStats.total}
+      {activeTab === "requests" ? (
+        /* Role Requests Tab Content */
+        <div className="space-y-6">
+          {roleRequests.length === 0 ? (
+            <div className="bg-white rounded-lg shadow border p-8 text-center">
+              <svg
+                className="mx-auto h-12 w-12 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">
+                No pending requests
+              </h3>
+              <p className="mt-1 text-sm text-gray-500">
+                There are no pending role upgrade requests at this time.
               </p>
             </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-lg shadow border">
-          <div className="flex items-center">
-            <div className="p-2 bg-gray-100 rounded-lg">
-              <img
-                src="/images/icons/6.png"
-                alt="Administrators"
-                className="h-10 w-10 object-contain"
-                onError={(e) => {
-                  e.target.style.display = "none";
-                  e.target.nextSibling.style.display = "block";
-                }}
-              />
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">Admins</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {roleStats.admin}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-lg shadow border">
-          <div className="flex items-center">
-            <div className="p-2 bg-gray-100 rounded-lg">
-              <img
-                src="/images/icons/7.png"
-                alt="Administrators"
-                className="h-10 w-10 object-contain"
-                onError={(e) => {
-                  e.target.style.display = "none";
-                  e.target.nextSibling.style.display = "block";
-                }}
-              />
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">
-                Property Owners
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                {roleStats.property_owner}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-lg shadow border">
-          <div className="flex items-center">
-            <div className="p-2 bg-gray-100 rounded-lg">
-              <img
-                src="/images/icons/8.png"
-                alt="Administrators"
-                className="h-10 w-10 object-contain"
-                onError={(e) => {
-                  e.target.style.display = "none";
-                  e.target.nextSibling.style.display = "block";
-                }}
-              />
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-500">
-                Property Seekers
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                {roleStats.property_seeker}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Users Table */}
-      <div className="bg-white rounded-lg shadow border overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold">
-            Users ({filteredUsers.length})
-          </h2>
-        </div>
-
-        {isLoading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
-            <p className="text-gray-500 mt-2">Loading users...</p>
-          </div>
-        ) : filteredUsers.length === 0 ? (
-          <div className="p-8 text-center">
-            <svg
-              className="mx-auto h-12 w-12 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
-              />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">
-              No users found
-            </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {error
-                ? "Please check the error message above."
-                : searchTerm || filterRole !== "all"
-                ? "Try adjusting your search or filter criteria."
-                : "No users have been created yet."}
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredUsers.map((userItem) => (
-                  <tr
-                    key={userItem.id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {userItem.full_name || "No name provided"}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            ID: {userItem.id?.slice(0, 8)}...
-                          </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow border overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-semibold">
+                  Pending Role Requests ({roleRequests.length})
+                </h2>
+              </div>
+              <div className="divide-y divide-gray-200">
+                {roleRequests.map((request) => (
+                  <div key={request.user_id} className="p-6 hover:bg-gray-50">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center">
+                          <h3 className="text-lg font-medium text-gray-900">
+                            {request.user_name || "No name provided"}
+                          </h3>
+                          <span className="ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                            Pending Approval
+                          </span>
                         </div>
-                      </div>
-                    </td>
+                        <p className="mt-1 text-sm text-gray-600">
+                          {request.user_email}
+                        </p>
 
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {userItem.email}
-                      </div>
-                      {userItem.email &&
-                        !userItem.email.includes("@system.local") && (
-                          <div className="text-xs text-green-600">
-                            ✓ Real Email
+                        <div className="mt-4 space-y-2">
+                          <div className="flex items-center text-sm">
+                            <span className="font-medium text-gray-700 w-32">
+                              Requested Role:
+                            </span>
+                            <span className="text-gray-900">
+                              {getRoleDisplayName(request.requested_role)}
+                            </span>
                           </div>
-                        )}
-                    </td>
-
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${getRoleBadgeColor(
-                          userItem.role || "property_seeker"
-                        )}`}
-                      >
-                        {getRoleDisplayName(userItem.role || "property_seeker")}
-                      </span>
-                    </td>
-
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-col">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          ✓ Profile Complete
-                        </span>
-                        {userItem.updated_at && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            Updated:{" "}
-                            {new Date(userItem.updated_at).toLocaleDateString()}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {userItem.role !== "admin" ? (
-                        <div className="flex space-x-2">
-                          {!isPropertyOwner(userItem.role) && (
-                            <button
-                              onClick={() =>
-                                handleRoleUpdate(userItem.id, "property_owner")
-                              }
-                              disabled={updating === userItem.id}
-                              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                              {updating === userItem.id
-                                ? "Updating..."
-                                : "Make Owner"}
-                            </button>
+                          {request.business_name && (
+                            <div className="flex items-center text-sm">
+                              <span className="font-medium text-gray-700 w-32">
+                                Business Name:
+                              </span>
+                              <span className="text-gray-900">
+                                {request.business_name}
+                              </span>
+                            </div>
                           )}
-
-                          {!isPropertySeeker(userItem.role) && (
-                            <button
-                              onClick={() =>
-                                handleRoleUpdate(userItem.id, "property_seeker")
-                              }
-                              disabled={updating === userItem.id}
-                              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                              {updating === userItem.id
-                                ? "Updating..."
-                                : "Make Seeker"}
-                            </button>
+                          {request.business_type && (
+                            <div className="flex items-center text-sm">
+                              <span className="font-medium text-gray-700 w-32">
+                                Business Type:
+                              </span>
+                              <span className="text-gray-900">
+                                {request.business_type
+                                  .replace(/_/g, " ")
+                                  .replace(/\b\w/g, (l) => l.toUpperCase())}
+                              </span>
+                            </div>
                           )}
+                          {request.additional_info && (
+                            <div className="text-sm mt-2">
+                              <span className="font-medium text-gray-700">
+                                Additional Information:
+                              </span>
+                              <p className="mt-1 text-gray-600 bg-gray-50 p-2 rounded">
+                                {request.additional_info}
+                              </p>
+                            </div>
+                          )}
+                          <div className="flex items-center text-sm text-gray-500">
+                            <span className="font-medium w-32">Requested:</span>
+                            <span>
+                              {new Date(request.created_at).toLocaleString()}
+                            </span>
+                          </div>
                         </div>
-                      ) : (
-                        <div className="flex items-center text-gray-400">
-                          <span className="text-xs">Administrator</span>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
+                      </div>
+
+                      <div className="ml-4 flex space-x-2">
+                        <button
+                          onClick={() =>
+                            handleRoleUpdate(
+                              request.user_id,
+                              request.requested_role,
+                              true
+                            )
+                          }
+                          disabled={updating === request.user_id}
+                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {updating === request.user_id
+                            ? "Processing..."
+                            : "Approve"}
+                        </button>
+                        <button
+                          onClick={() => handleRejectRequest(request.user_id)}
+                          disabled={updating === request.user_id}
+                          className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Users Tab - All your existing content */
+        <>
+          {/* Search and Filter Controls */}
+          <div className="bg-white p-4 rounded-lg shadow border">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <label
+                  htmlFor="search"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Search Users
+                </label>
+                <input
+                  type="text"
+                  id="search"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by name, email, or ID..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                />
+              </div>
+              <div className="sm:w-48">
+                <label
+                  htmlFor="roleFilter"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Filter by Role
+                </label>
+                <select
+                  id="roleFilter"
+                  value={filterRole}
+                  onChange={(e) => setFilterRole(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                >
+                  <option value="all">All Roles</option>
+                  <option value="admin">Administrators</option>
+                  <option value="property_owner">Property Owners</option>
+                  <option value="property_seeker">Property Seekers</option>
+                </select>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white p-4 rounded-lg shadow border">
+              <div className="flex items-center">
+                <div className="p-2 bg-gray-100 rounded-lg">
+                  <img
+                    src="/images/icons/5.png"
+                    alt="Total Users"
+                    className="h-10 w-10 object-contain"
+                    onError={(e) => {
+                      e.target.style.display = "none";
+                      e.target.nextSibling.style.display = "block";
+                    }}
+                  />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-500">
+                    Total Users
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {roleStats.total}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-lg shadow border">
+              <div className="flex items-center">
+                <div className="p-2 bg-gray-100 rounded-lg">
+                  <img
+                    src="/images/icons/6.png"
+                    alt="Administrators"
+                    className="h-10 w-10 object-contain"
+                    onError={(e) => {
+                      e.target.style.display = "none";
+                      e.target.nextSibling.style.display = "block";
+                    }}
+                  />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-500">Admins</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {roleStats.admin}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-lg shadow border">
+              <div className="flex items-center">
+                <div className="p-2 bg-gray-100 rounded-lg">
+                  <img
+                    src="/images/icons/7.png"
+                    alt="Administrators"
+                    className="h-10 w-10 object-contain"
+                    onError={(e) => {
+                      e.target.style.display = "none";
+                      e.target.nextSibling.style.display = "block";
+                    }}
+                  />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-500">
+                    Property Owners
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {roleStats.property_owner}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white p-4 rounded-lg shadow border">
+              <div className="flex items-center">
+                <div className="p-2 bg-gray-100 rounded-lg">
+                  <img
+                    src="/images/icons/8.png"
+                    alt="Administrators"
+                    className="h-10 w-10 object-contain"
+                    onError={(e) => {
+                      e.target.style.display = "none";
+                      e.target.nextSibling.style.display = "block";
+                    }}
+                  />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-500">
+                    Property Seekers
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {roleStats.property_seeker}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Users Table */}
+          <div className="bg-white rounded-lg shadow border overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold">
+                Users ({filteredUsers.length})
+              </h2>
+            </div>
+
+            {isLoading ? (
+              <div className="p-8 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
+                <p className="text-gray-500 mt-2">Loading users...</p>
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="p-8 text-center">
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
+                  />
+                </svg>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">
+                  No users found
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {error
+                    ? "Please check the error message above."
+                    : searchTerm || filterRole !== "all"
+                    ? "Try adjusting your search or filter criteria."
+                    : "No users have been created yet."}
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        User
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Email
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Role
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredUsers.map((userItem) => (
+                      <tr
+                        key={userItem.id}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">
+                                {userItem.full_name || "No name provided"}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                ID: {userItem.id?.slice(0, 8)}...
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {userItem.email}
+                          </div>
+                          {userItem.email &&
+                            !userItem.email.includes("@system.local") && (
+                              <div className="text-xs text-green-600">
+                                ✓ Real Email
+                              </div>
+                            )}
+                          {userItem.has_pending_request && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                              Has pending request
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${getRoleBadgeColor(
+                              userItem.role || "property_seeker"
+                            )}`}
+                          >
+                            {getRoleDisplayName(
+                              userItem.role || "property_seeker"
+                            )}
+                          </span>
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex flex-col">
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              ✓ Profile Complete
+                            </span>
+                            {userItem.updated_at && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                Updated:{" "}
+                                {new Date(
+                                  userItem.updated_at
+                                ).toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          {userItem.role !== "admin" ? (
+                            <div className="flex space-x-2">
+                              {!isPropertyOwner(userItem.role) && (
+                                <button
+                                  onClick={() =>
+                                    handleRoleUpdate(
+                                      userItem.id,
+                                      "property_owner"
+                                    )
+                                  }
+                                  disabled={updating === userItem.id}
+                                  className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  {updating === userItem.id
+                                    ? "Updating..."
+                                    : "Make Owner"}
+                                </button>
+                              )}
+
+                              {!isPropertySeeker(userItem.role) && (
+                                <button
+                                  onClick={() =>
+                                    handleRoleUpdate(
+                                      userItem.id,
+                                      "property_seeker"
+                                    )
+                                  }
+                                  disabled={updating === userItem.id}
+                                  className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  {updating === userItem.id
+                                    ? "Updating..."
+                                    : "Make Seeker"}
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex items-center text-gray-400">
+                              <span className="text-xs">Administrator</span>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

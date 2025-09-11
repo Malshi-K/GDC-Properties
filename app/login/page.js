@@ -58,6 +58,30 @@ function LoginForm() {
     setLoading(false);
   }
 
+  // In your login component
+  useEffect(() => {
+    const checkForApproval = async () => {
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("preferences")
+          .eq("id", session.user.id)
+          .single();
+
+        if (
+          profile?.preferences?.role_request?.status === "approved" &&
+          !profile?.preferences?.role_request?.acknowledged
+        ) {
+          setMessage(
+            "Your Property Owner status has been approved! Please sign in again to access your new features."
+          );
+        }
+      }
+    };
+
+    checkForApproval();
+  }, [session]);
+
   return (
     <div className="w-full max-w-sm text-black">
       {/* Tab Headers */}

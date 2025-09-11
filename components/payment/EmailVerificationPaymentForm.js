@@ -496,7 +496,7 @@ export default function EmailVerificationPaymentForm({
           </div>
 
           <div className="relative">
-            <div className="p-4 border border-gray-300 rounded-lg focus-within:border-gray-500 focus-within:ring-1 focus-within:ring-gray-500">
+            <div className="text-custom-blue p-4 border border-gray-300 rounded-lg focus-within:border-gray-500 focus-within:ring-1 focus-within:ring-gray-500">
               <CardElement
                 options={CARD_ELEMENT_OPTIONS}
                 onChange={handleCardChange}
@@ -580,7 +580,7 @@ export default function EmailVerificationPaymentForm({
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
                 disabled={codeSent || currentStep > 3}
-                className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 disabled:bg-gray-100"
+                className="text-custom-blue w-full px-3 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 disabled:bg-gray-100"
               />
               <svg
                 className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
@@ -649,7 +649,7 @@ export default function EmailVerificationPaymentForm({
               }
               placeholder="Enter 6-digit code"
               disabled={verifyingCode || currentStep > 4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 text-center text-2xl tracking-wider disabled:bg-gray-100"
+              className="text-custom-blue w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 text-center text-2xl tracking-wider disabled:bg-gray-100"
               maxLength={6}
             />
           </div>
