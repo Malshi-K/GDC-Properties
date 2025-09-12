@@ -1,4 +1,4 @@
-// Simplified AdminUsersTab - now email is in profiles table
+// Fixed AdminUsersTab - Clean Version
 "use client";
 import { useState, useEffect } from "react";
 import { useGlobalData } from "@/contexts/GlobalDataContext";
@@ -12,54 +12,44 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
   const [updating, setUpdating] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start with true
   const [error, setError] = useState(null);
   const [roleRequests, setRoleRequests] = useState([]);
-  const [activeTab, setActiveTab] = useState("users"); // 'users' or 'requests'
+  const [activeTab, setActiveTab] = useState("users");
 
   // Cache key for users data
   const CACHE_KEY = "admin_users_with_email";
 
+  // SINGLE useEffect for initialization
   useEffect(() => {
-    console.log("AdminUsersTab mounted, fetching data...");
-    fetchUsers();
-    fetchRoleRequests();
-  }, []);
+    console.log("AdminUsersTab mounted, initializing data...");
+    initializeData();
+  }, []); // Empty dependency array
 
-  // Simplified fetch users function - now email is in profiles table
-  const fetchUsers = async () => {
+  // Main initialization function
+  const initializeData = async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log("=== FETCHING USERS FROM PROFILES WITH EMAIL ===");
+      // Always fetch fresh data on initial load
+      await Promise.all([
+        fetchUsers(true), // Pass true for fresh fetch
+        fetchRoleRequests(),
+      ]);
+    } catch (error) {
+      console.error("Failed to initialize data:", error);
+      setError(`Failed to load data: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      // Try to get cached users first
-      let cachedUsers = null;
-      try {
-        cachedUsers = await fetchData(
-          { _cached_key: CACHE_KEY },
-          { useCache: true }
-        );
+  // Simplified fetchUsers function
+  const fetchUsers = async (forceFresh = false) => {
+    try {
+      console.log("=== FETCHING USERS FROM PROFILES ===");
 
-        if (
-          cachedUsers &&
-          Array.isArray(cachedUsers) &&
-          cachedUsers.length > 0
-        ) {
-          console.log(
-            `✅ Using cached users data: ${cachedUsers.length} users`
-          );
-          setUsers(cachedUsers);
-          setIsLoading(false);
-          return;
-        }
-      } catch (cacheError) {
-        console.log("🔍 No cache found, proceeding with fresh fetch");
-      }
-
-      // Fetch all user data from profiles table (now includes email)
-      console.log("🔄 Fetching users from profiles table...");
       const usersData = await fetchData(
         {
           table: "profiles",
@@ -68,62 +58,51 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
           orderBy: { column: "created_at", ascending: false },
         },
         {
-          useCache: true,
-          ttl: 5 * 60 * 1000, // 5 minutes cache
+          useCache: !forceFresh, // Use cache unless forcing fresh
+          ttl: 5 * 60 * 1000,
           onError: (error) => {
             console.error("Failed to fetch users:", error);
-            setError(`Failed to fetch users: ${error.message}`);
+            throw error;
           },
         }
       );
 
-      console.log("📊 Users data received:", usersData);
-
-      if (!usersData || !Array.isArray(usersData) || usersData.length === 0) {
-        console.log("❌ No users found in database");
+      if (!usersData || !Array.isArray(usersData)) {
+        console.log("No users data received");
         setUsers([]);
         setError("No users found in the database");
         return;
       }
 
-      // Transform the data to match your component's expected format
+      // Process users data
       const processedUsers = usersData.map((profile) => ({
         id: profile.id,
         email: profile.email || `user-${profile.id?.slice(0, 8)}@system.local`,
         created_at: profile.created_at,
-        email_confirmed_at: null, // This would need to come from auth.users if needed
-        last_sign_in_at: null, // This would need to come from auth.users if needed
-        // Profile data
+        email_confirmed_at: null,
+        last_sign_in_at: null,
         full_name: profile.full_name || null,
         phone: profile.phone || null,
         address: profile.address || null,
         role: profile.role || "property_seeker",
         profile_image_url: profile.profile_image_url || null,
         preferences: profile.preferences || null,
-        // Helper fields
-        has_profile: true, // Since we're getting data from profiles table
+        has_profile: true,
         profile_created_at: profile.created_at,
         updated_at: profile.updated_at || null,
         has_pending_request:
-          profile.preferences?.role_request?.status === "pending", // Add this line
+          profile.preferences?.role_request?.status === "pending",
       }));
 
-      console.log(
-        `🎯 Final processed users (${processedUsers.length}):`,
-        processedUsers
-      );
-
-      // Cache the processed users data
-      updateData(CACHE_KEY, processedUsers);
+      console.log(`✅ Processed ${processedUsers.length} users`);
 
       setUsers(processedUsers);
+      updateData(CACHE_KEY, processedUsers);
       setError(null);
     } catch (error) {
       console.error("💥 Error in fetchUsers:", error);
       setError(`Failed to fetch users: ${error.message}`);
       setUsers([]);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -131,41 +110,24 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
     console.log("=== FETCHING ROLE REQUESTS ===");
 
     try {
-      // Method 1: Try to fetch from role_requests table
-      console.log("Attempting to fetch from role_requests table...");
-
+      // Try role_requests table first
       const { data: requests, error } = await supabase
         .from("role_requests")
         .select("*")
         .eq("status", "pending")
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching from role_requests:", error);
-        console.log("Error details:", {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-        });
-      } else {
-        console.log(
-          `✅ Fetched ${
-            requests?.length || 0
-          } pending requests from role_requests table`
-        );
-        console.log("Requests data:", requests);
-      }
-
       if (!error && requests && requests.length > 0) {
+        console.log(
+          `✅ Found ${requests.length} requests in role_requests table`
+        );
         setRoleRequests(requests);
-        return; // Success, exit early
+        return;
       }
 
-      // Method 2: Fallback to checking profiles.preferences
-      console.log("Attempting fallback to profiles.preferences...");
+      // Fallback to profiles.preferences
+      console.log("Checking profiles.preferences for pending requests...");
 
-      // First, get all profiles with non-null preferences
       const { data: profiles, error: profileError } = await supabase
         .from("profiles")
         .select("*")
@@ -177,30 +139,18 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
         return;
       }
 
-      console.log(`Found ${profiles?.length || 0} profiles with preferences`);
+      const pendingRequests = [];
 
       if (profiles && profiles.length > 0) {
-        const pendingRequests = [];
-
         profiles.forEach((profile) => {
           try {
-            // Parse preferences if it's a string
             let prefs = profile.preferences;
             if (typeof prefs === "string") {
-              try {
-                prefs = JSON.parse(prefs);
-              } catch (parseError) {
-                console.error(
-                  `Failed to parse preferences for profile ${profile.id}:`,
-                  parseError
-                );
-                return;
-              }
+              prefs = JSON.parse(prefs);
             }
 
-            // Check if there's a pending role request
             if (prefs?.role_request?.status === "pending") {
-              const request = {
+              pendingRequests.push({
                 id: `${profile.id}_request`,
                 user_id: profile.id,
                 user_email: profile.email || "No email",
@@ -213,43 +163,55 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
                 created_at:
                   prefs.role_request.requested_at || profile.created_at,
                 status: "pending",
-              };
-
-              pendingRequests.push(request);
-              console.log(`Found pending request for user ${profile.email}`);
+              });
             }
           } catch (err) {
             console.error(`Error processing profile ${profile.id}:`, err);
           }
         });
-
-        console.log(
-          `✅ Found ${pendingRequests.length} pending requests from profiles`
-        );
-        setRoleRequests(pendingRequests);
-      } else {
-        console.log("No profiles with preferences found");
-        setRoleRequests([]);
       }
+
+      console.log(`✅ Found ${pendingRequests.length} pending requests`);
+      setRoleRequests(pendingRequests);
     } catch (error) {
-      console.error("Unexpected error in fetchRoleRequests:", error);
+      console.error("Error in fetchRoleRequests:", error);
       setRoleRequests([]);
     }
   };
 
-  // Enhanced role update function
+  // Manual refresh function
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Clear cache
+      invalidateCache(CACHE_KEY);
+      invalidateCache("profiles");
+
+      // Fetch fresh data
+      await Promise.all([
+        fetchUsers(true), // Force fresh fetch
+        fetchRoleRequests(),
+      ]);
+    } catch (error) {
+      setError(`Failed to refresh data: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Role update function
   const handleRoleUpdate = async (userId, newRole, isApproval = false) => {
     console.log(`🚀 Starting role update for user ${userId} to ${newRole}`);
     setUpdating(userId);
 
     try {
-      // Use a different variable name to avoid shadowing updateData from context
       const profileUpdate = {
         role: newRole,
         updated_at: new Date().toISOString(),
       };
 
-      // Add preferences update if this is an approval
       if (isApproval) {
         profileUpdate.preferences = {
           role_request: {
@@ -274,9 +236,8 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
         return;
       }
 
-      // If this is an approval, update role_requests table
+      // Update role_requests table if approval
       if (isApproval) {
-        // Update role_requests table (don't worry if this fails)
         const { error: requestUpdateError } = await supabase
           .from("role_requests")
           .update({
@@ -287,41 +248,29 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
           .eq("user_id", userId);
 
         if (requestUpdateError) {
-          console.log(
-            "Note: role_requests update failed, but continuing:",
-            requestUpdateError
-          );
-        }
-
-        // Send approval email (optional)
-        try {
-          const response = await fetch("/api/send-role-approval-email", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              user_email: updatedProfile.email,
-              user_name: updatedProfile.full_name,
-              new_role: newRole,
-            }),
-          });
-
-          if (response.ok) {
-            console.log("Approval email sent successfully");
-          }
-        } catch (emailError) {
-          console.log(
-            "Email sending failed, but role was updated:",
-            emailError
-          );
+          console.log("Note: role_requests update failed:", requestUpdateError);
         }
 
         // Remove from pending requests
-        setRoleRequests(roleRequests.filter((r) => r.user_id !== userId));
+        setRoleRequests((prev) => prev.filter((r) => r.user_id !== userId));
       }
 
-      // Update local state
+      // Update local users state
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === userId
+            ? {
+                ...u,
+                role: newRole,
+                updated_at:
+                  updatedProfile?.updated_at || new Date().toISOString(),
+                has_pending_request: false,
+              }
+            : u
+        )
+      );
+
+      // Update cache
       const updatedUsers = users.map((u) =>
         u.id === userId
           ? {
@@ -334,18 +283,13 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
           : u
       );
 
-      setUsers(updatedUsers);
-
-      // Use the updateData function from context correctly
       updateData(CACHE_KEY, updatedUsers);
       invalidateCache("profiles");
-      invalidateCache("admin_users");
 
       if (onUpdateRole && typeof onUpdateRole === "function") {
         await onUpdateRole(userId, newRole);
       }
 
-      // Show success message
       alert(
         `Successfully ${isApproval ? "approved" : "updated"} ${
           updatedProfile.full_name || "user"
@@ -392,7 +336,7 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
         })
         .eq("user_id", userId);
 
-      setRoleRequests(roleRequests.filter((r) => r.user_id !== userId));
+      setRoleRequests((prev) => prev.filter((r) => r.user_id !== userId));
       alert("Role request rejected successfully.");
     } catch (error) {
       console.error("Failed to reject request:", error);
@@ -402,11 +346,7 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
     }
   };
 
-  // Refresh function that clears cache and refetches
-
-  // Test function to check if email sync is working
-
-  // Helper functions remain the same...
+  // Helper functions
   const getRoleBadgeColor = (role) => {
     switch (role) {
       case "admin":
@@ -436,7 +376,7 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
   const isPropertyOwner = (role) => role === "property_owner";
   const isPropertySeeker = (role) => role === "property_seeker" || !role;
 
-  // Filter users based on search and role filter
+  // Filter users
   const filteredUsers = users.filter((userItem) => {
     const matchesSearch =
       userItem.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -446,9 +386,9 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
     let matchesRole = filterRole === "all";
     if (!matchesRole) {
       if (filterRole === "property_owner") {
-        matchesRole = isPropertyOwner(userItem.role);
+        matchesRole = userItem.role === "property_owner";
       } else if (filterRole === "property_seeker") {
-        matchesRole = isPropertySeeker(userItem.role);
+        matchesRole = userItem.role === "property_seeker" || !userItem.role;
       } else {
         matchesRole = userItem.role === filterRole;
       }
@@ -465,7 +405,7 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
     property_seeker: users.filter(
       (u) => u.role === "property_seeker" || !u.role
     ).length,
-    pending_requests: roleRequests.length, // Add this line
+    pending_requests: roleRequests.length,
   };
 
   return (
@@ -475,6 +415,37 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Users Management</h1>
           <p className="text-gray-600">Manage user roles and permissions</p>
+        </div>
+        <div className="flex space-x-2">
+          <button
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+          >
+            {isLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>Loading...</span>
+              </>
+            ) : (
+              <>
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                <span>Refresh</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -511,11 +482,11 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
 
       {/* Error Display */}
       {error && (
-        <div className="bg-orange-50 border border-red-200 text-orange-700 px-4 py-3 rounded-md">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
           <div className="flex">
             <div className="flex-shrink-0">
               <svg
-                className="h-5 w-5 text-orange-400"
+                className="h-5 w-5 text-red-400"
                 viewBox="0 0 20 20"
                 fill="currentColor"
               >
@@ -527,461 +498,439 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-orange-800">Error</h3>
-              <div className="mt-2 text-sm text-orange-700">
+              <h3 className="text-sm font-medium text-red-800">Error</h3>
+              <div className="mt-2 text-sm text-red-700">
                 <p>{error}</p>
+                <button
+                  onClick={handleRefresh}
+                  className="mt-2 underline hover:no-underline"
+                >
+                  Try refreshing the data
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {activeTab === "requests" ? (
-        /* Role Requests Tab Content */
-        <div className="space-y-6">
-          {roleRequests.length === 0 ? (
-            <div className="bg-white rounded-lg shadow border p-8 text-center">
-              <svg
-                className="mx-auto h-12 w-12 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">
-                No pending requests
-              </h3>
-              <p className="mt-1 text-sm text-gray-500">
-                There are no pending role upgrade requests at this time.
-              </p>
+      {/* Loading State */}
+      {isLoading && users.length === 0 && (
+        <div className="bg-white rounded-lg shadow border p-8 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-500 mt-2">Loading users...</p>
+        </div>
+      )}
+
+      {/* Content - only show when not loading or when we have data */}
+      {(!isLoading || users.length > 0) && (
+        <>
+          {activeTab === "requests" ? (
+            /* Role Requests Tab Content */
+            <div className="space-y-6">
+              {roleRequests.length === 0 ? (
+                <div className="bg-white rounded-lg shadow border p-8 text-center">
+                  <svg
+                    className="mx-auto h-12 w-12 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">
+                    No pending requests
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    There are no pending role upgrade requests at this time.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg shadow border overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-200">
+                    <h2 className="text-lg font-semibold">
+                      Pending Role Requests ({roleRequests.length})
+                    </h2>
+                  </div>
+                  <div className="divide-y divide-gray-200">
+                    {roleRequests.map((request) => (
+                      <div
+                        key={request.user_id}
+                        className="p-6 hover:bg-gray-50"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center">
+                              <h3 className="text-lg font-medium text-gray-900">
+                                {request.user_name || "No name provided"}
+                              </h3>
+                              <span className="ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                Pending Approval
+                              </span>
+                            </div>
+                            <p className="mt-1 text-sm text-gray-600">
+                              {request.user_email}
+                            </p>
+                            {/* Request details */}
+                            <div className="mt-4 space-y-2">
+                              <div className="flex items-center text-sm">
+                                <span className="font-medium text-gray-700 w-32">
+                                  Requested Role:
+                                </span>
+                                <span className="text-gray-900">
+                                  {getRoleDisplayName(request.requested_role)}
+                                </span>
+                              </div>
+                              {/* Add other request details as needed */}
+                            </div>
+                          </div>
+                          <div className="ml-4 flex space-x-2">
+                            <button
+                              onClick={() =>
+                                handleRoleUpdate(
+                                  request.user_id,
+                                  request.requested_role,
+                                  true
+                                )
+                              }
+                              disabled={updating === request.user_id}
+                              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {updating === request.user_id
+                                ? "Processing..."
+                                : "Approve"}
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleRejectRequest(request.user_id)
+                              }
+                              disabled={updating === request.user_id}
+                              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow border overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold">
-                  Pending Role Requests ({roleRequests.length})
-                </h2>
+            /* Users Tab Content */
+            <>
+              {/* Search and Filter */}
+              <div className="bg-white p-4 rounded-lg shadow border">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    <label
+                      htmlFor="search"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Search Users
+                    </label>
+                    <input
+                      type="text"
+                      id="search"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Search by name, email, or ID..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    />
+                  </div>
+                  <div className="sm:w-48">
+                    <label
+                      htmlFor="roleFilter"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Filter by Role
+                    </label>
+                    <select
+                      id="roleFilter"
+                      value={filterRole}
+                      onChange={(e) => setFilterRole(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    >
+                      <option value="all">All Roles</option>
+                      <option value="admin">Administrators</option>
+                      <option value="property_owner">Property Owners</option>
+                      <option value="property_seeker">Property Seekers</option>
+                    </select>
+                  </div>
+                </div>
               </div>
-              <div className="divide-y divide-gray-200">
-                {roleRequests.map((request) => (
-                  <div key={request.user_id} className="p-6 hover:bg-gray-50">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center">
-                          <h3 className="text-lg font-medium text-gray-900">
-                            {request.user_name || "No name provided"}
-                          </h3>
-                          <span className="ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                            Pending Approval
-                          </span>
-                        </div>
-                        <p className="mt-1 text-sm text-gray-600">
-                          {request.user_email}
-                        </p>
 
-                        <div className="mt-4 space-y-2">
-                          <div className="flex items-center text-sm">
-                            <span className="font-medium text-gray-700 w-32">
-                              Requested Role:
-                            </span>
-                            <span className="text-gray-900">
-                              {getRoleDisplayName(request.requested_role)}
-                            </span>
-                          </div>
-                          {request.business_name && (
-                            <div className="flex items-center text-sm">
-                              <span className="font-medium text-gray-700 w-32">
-                                Business Name:
-                              </span>
-                              <span className="text-gray-900">
-                                {request.business_name}
-                              </span>
-                            </div>
-                          )}
-                          {request.business_type && (
-                            <div className="flex items-center text-sm">
-                              <span className="font-medium text-gray-700 w-32">
-                                Business Type:
-                              </span>
-                              <span className="text-gray-900">
-                                {request.business_type
-                                  .replace(/_/g, " ")
-                                  .replace(/\b\w/g, (l) => l.toUpperCase())}
-                              </span>
-                            </div>
-                          )}
-                          {request.additional_info && (
-                            <div className="text-sm mt-2">
-                              <span className="font-medium text-gray-700">
-                                Additional Information:
-                              </span>
-                              <p className="mt-1 text-gray-600 bg-gray-50 p-2 rounded">
-                                {request.additional_info}
-                              </p>
-                            </div>
-                          )}
-                          <div className="flex items-center text-sm text-gray-500">
-                            <span className="font-medium w-32">Requested:</span>
-                            <span>
-                              {new Date(request.created_at).toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="ml-4 flex space-x-2">
-                        <button
-                          onClick={() =>
-                            handleRoleUpdate(
-                              request.user_id,
-                              request.requested_role,
-                              true
-                            )
-                          }
-                          disabled={updating === request.user_id}
-                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          {updating === request.user_id
-                            ? "Processing..."
-                            : "Approve"}
-                        </button>
-                        <button
-                          onClick={() => handleRejectRequest(request.user_id)}
-                          disabled={updating === request.user_id}
-                          className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          Reject
-                        </button>
-                      </div>
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-white p-4 rounded-lg shadow border">
+                  <div className="flex items-center">
+                    <div className="p-2 bg-gray-100 rounded-lg">
+                      <img
+                        src="/images/icons/5.png"
+                        alt="Total Users"
+                        className="h-10 w-10 object-contain"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                          e.target.nextSibling.style.display = "block";
+                        }}
+                      />
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-gray-500">
+                        Total Users
+                      </p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {roleStats.total}
+                      </p>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        /* Users Tab - All your existing content */
-        <>
-          {/* Search and Filter Controls */}
-          <div className="bg-white p-4 rounded-lg shadow border">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <label
-                  htmlFor="search"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Search Users
-                </label>
-                <input
-                  type="text"
-                  id="search"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search by name, email, or ID..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                />
-              </div>
-              <div className="sm:w-48">
-                <label
-                  htmlFor="roleFilter"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Filter by Role
-                </label>
-                <select
-                  id="roleFilter"
-                  value={filterRole}
-                  onChange={(e) => setFilterRole(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                >
-                  <option value="all">All Roles</option>
-                  <option value="admin">Administrators</option>
-                  <option value="property_owner">Property Owners</option>
-                  <option value="property_seeker">Property Seekers</option>
-                </select>
-              </div>
-            </div>
-          </div>
+                </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white p-4 rounded-lg shadow border">
-              <div className="flex items-center">
-                <div className="p-2 bg-gray-100 rounded-lg">
-                  <img
-                    src="/images/icons/5.png"
-                    alt="Total Users"
-                    className="h-10 w-10 object-contain"
-                    onError={(e) => {
-                      e.target.style.display = "none";
-                      e.target.nextSibling.style.display = "block";
-                    }}
-                  />
+                <div className="bg-white p-4 rounded-lg shadow border">
+                  <div className="flex items-center">
+                    <div className="p-2 bg-gray-100 rounded-lg">
+                      <img
+                        src="/images/icons/6.png"
+                        alt="Administrators"
+                        className="h-10 w-10 object-contain"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                          e.target.nextSibling.style.display = "block";
+                        }}
+                      />
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-gray-500">
+                        Admins
+                      </p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {roleStats.admin}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-500">
-                    Total Users
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {roleStats.total}
-                  </p>
-                </div>
-              </div>
-            </div>
 
-            <div className="bg-white p-4 rounded-lg shadow border">
-              <div className="flex items-center">
-                <div className="p-2 bg-gray-100 rounded-lg">
-                  <img
-                    src="/images/icons/6.png"
-                    alt="Administrators"
-                    className="h-10 w-10 object-contain"
-                    onError={(e) => {
-                      e.target.style.display = "none";
-                      e.target.nextSibling.style.display = "block";
-                    }}
-                  />
+                <div className="bg-white p-4 rounded-lg shadow border">
+                  <div className="flex items-center">
+                    <div className="p-2 bg-gray-100 rounded-lg">
+                      <img
+                        src="/images/icons/7.png"
+                        alt="Administrators"
+                        className="h-10 w-10 object-contain"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                          e.target.nextSibling.style.display = "block";
+                        }}
+                      />
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-gray-500">
+                        Property Owners
+                      </p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {roleStats.property_owner}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-500">Admins</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {roleStats.admin}
-                  </p>
+
+                <div className="bg-white p-4 rounded-lg shadow border">
+                  <div className="flex items-center">
+                    <div className="p-2 bg-gray-100 rounded-lg">
+                      <img
+                        src="/images/icons/8.png"
+                        alt="Administrators"
+                        className="h-10 w-10 object-contain"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                          e.target.nextSibling.style.display = "block";
+                        }}
+                      />
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-gray-500">
+                        Property Seekers
+                      </p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {roleStats.property_seeker}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="bg-white p-4 rounded-lg shadow border">
-              <div className="flex items-center">
-                <div className="p-2 bg-gray-100 rounded-lg">
-                  <img
-                    src="/images/icons/7.png"
-                    alt="Administrators"
-                    className="h-10 w-10 object-contain"
-                    onError={(e) => {
-                      e.target.style.display = "none";
-                      e.target.nextSibling.style.display = "block";
-                    }}
-                  />
+              {/* Users Table */}
+              <div className="bg-white rounded-lg shadow border overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200">
+                  <h2 className="text-lg font-semibold">
+                    Users ({filteredUsers.length})
+                  </h2>
                 </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-500">
-                    Property Owners
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {roleStats.property_owner}
-                  </p>
-                </div>
-              </div>
-            </div>
 
-            <div className="bg-white p-4 rounded-lg shadow border">
-              <div className="flex items-center">
-                <div className="p-2 bg-gray-100 rounded-lg">
-                  <img
-                    src="/images/icons/8.png"
-                    alt="Administrators"
-                    className="h-10 w-10 object-contain"
-                    onError={(e) => {
-                      e.target.style.display = "none";
-                      e.target.nextSibling.style.display = "block";
-                    }}
-                  />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-500">
-                    Property Seekers
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {roleStats.property_seeker}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Users Table */}
-          <div className="bg-white rounded-lg shadow border overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold">
-                Users ({filteredUsers.length})
-              </h2>
-            </div>
-
-            {isLoading ? (
-              <div className="p-8 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto"></div>
-                <p className="text-gray-500 mt-2">Loading users...</p>
-              </div>
-            ) : filteredUsers.length === 0 ? (
-              <div className="p-8 text-center">
-                <svg
-                  className="mx-auto h-12 w-12 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
-                  />
-                </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">
-                  No users found
-                </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  {error
-                    ? "Please check the error message above."
-                    : searchTerm || filterRole !== "all"
-                    ? "Try adjusting your search or filter criteria."
-                    : "No users have been created yet."}
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        User
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Email
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Role
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredUsers.map((userItem) => (
-                      <tr
-                        key={userItem.id}
-                        className="hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">
-                                {userItem.full_name || "No name provided"}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                ID: {userItem.id?.slice(0, 8)}...
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {userItem.email}
-                          </div>
-                          {userItem.email &&
-                            !userItem.email.includes("@system.local") && (
-                              <div className="text-xs text-green-600">
-                                ✓ Real Email
-                              </div>
-                            )}
-                          {userItem.has_pending_request && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                              Has pending request
-                            </span>
-                          )}
-                        </td>
-
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${getRoleBadgeColor(
-                              userItem.role || "property_seeker"
-                            )}`}
+                {filteredUsers.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <svg
+                      className="mx-auto h-12 w-12 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
+                      />
+                    </svg>
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">
+                      No users found
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {error
+                        ? "Please check the error message above."
+                        : searchTerm || filterRole !== "all"
+                        ? "Try adjusting your search or filter criteria."
+                        : "No users have been created yet."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            User
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Email
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Role
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredUsers.map((userItem) => (
+                          <tr
+                            key={userItem.id}
+                            className="hover:bg-gray-50 transition-colors"
                           >
-                            {getRoleDisplayName(
-                              userItem.role || "property_seeker"
-                            )}
-                          </span>
-                        </td>
-
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex flex-col">
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              ✓ Profile Complete
-                            </span>
-                            {userItem.updated_at && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                Updated:{" "}
-                                {new Date(
-                                  userItem.updated_at
-                                ).toLocaleDateString()}
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="ml-4">
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {userItem.full_name || "No name provided"}
+                                  </div>
+                                  <div className="text-sm text-gray-500">
+                                    ID: {userItem.id?.slice(0, 8)}...
+                                  </div>
+                                </div>
                               </div>
-                            )}
-                          </div>
-                        </td>
-
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          {userItem.role !== "admin" ? (
-                            <div className="flex space-x-2">
-                              {!isPropertyOwner(userItem.role) && (
-                                <button
-                                  onClick={() =>
-                                    handleRoleUpdate(
-                                      userItem.id,
-                                      "property_owner"
-                                    )
-                                  }
-                                  disabled={updating === userItem.id}
-                                  className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                  {updating === userItem.id
-                                    ? "Updating..."
-                                    : "Make Owner"}
-                                </button>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">
+                                {userItem.email}
+                              </div>
+                              {userItem.email &&
+                                !userItem.email.includes("@system.local") && (
+                                  <div className="text-xs text-green-600">
+                                    ✓ Real Email
+                                  </div>
+                                )}
+                              {userItem.has_pending_request && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                  Has pending request
+                                </span>
                               )}
-
-                              {!isPropertySeeker(userItem.role) && (
-                                <button
-                                  onClick={() =>
-                                    handleRoleUpdate(
-                                      userItem.id,
-                                      "property_seeker"
-                                    )
-                                  }
-                                  disabled={updating === userItem.id}
-                                  className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                  {updating === userItem.id
-                                    ? "Updating..."
-                                    : "Make Seeker"}
-                                </button>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span
+                                className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${getRoleBadgeColor(
+                                  userItem.role || "property_seeker"
+                                )}`}
+                              >
+                                {getRoleDisplayName(
+                                  userItem.role || "property_seeker"
+                                )}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex flex-col">
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  ✓ Profile Complete
+                                </span>
+                                {userItem.updated_at && (
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    Updated:{" "}
+                                    {new Date(
+                                      userItem.updated_at
+                                    ).toLocaleDateString()}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              {userItem.role !== "admin" ? (
+                                <div className="flex space-x-2">
+                                  {!isPropertyOwner(userItem.role) && (
+                                    <button
+                                      onClick={() =>
+                                        handleRoleUpdate(
+                                          userItem.id,
+                                          "property_owner"
+                                        )
+                                      }
+                                      disabled={updating === userItem.id}
+                                      className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                      {updating === userItem.id
+                                        ? "Updating..."
+                                        : "Make Owner"}
+                                    </button>
+                                  )}
+                                  {!isPropertySeeker(userItem.role) && (
+                                    <button
+                                      onClick={() =>
+                                        handleRoleUpdate(
+                                          userItem.id,
+                                          "property_seeker"
+                                        )
+                                      }
+                                      disabled={updating === userItem.id}
+                                      className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                      {updating === userItem.id
+                                        ? "Updating..."
+                                        : "Make Seeker"}
+                                    </button>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="flex items-center text-gray-400">
+                                  <span className="text-xs">Administrator</span>
+                                </div>
                               )}
-                            </div>
-                          ) : (
-                            <div className="flex items-center text-gray-400">
-                              <span className="text-xs">Administrator</span>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </>
       )}
     </div>

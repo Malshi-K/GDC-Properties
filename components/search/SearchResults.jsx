@@ -650,12 +650,7 @@ export default function SearchResults() {
             </h2>
             <p className="text-gray-600 mb-6">
               Try adjusting your search filters to see more results.
-            </p>
-            {process.env.NODE_ENV === 'development' && (
-              <div className="mt-4 text-xs text-gray-500">
-                <p>Debug: Check console for query details</p>
-              </div>
-            )}
+            </p>            
           </div>
         ) : (
           <>

@@ -6,7 +6,7 @@ import { FaArrowRight } from "react-icons/fa";
 
 export default function ConsultServices() {
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto max-w-full">
       <div className="relative overflow-hidden min-h-[500px]">
         {/* Background Image */}
         <div className="absolute inset-0">
@@ -18,7 +18,7 @@ export default function ConsultServices() {
             priority
           />
           {/* Overlay for better text readability */}
-          <div className="absolute inset-0 bg-black/60"></div>
+          <div className="absolute inset-0 bg-custom-blue/60"></div>
         </div>
 
         {/* Content */}

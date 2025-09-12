@@ -1,9 +1,9 @@
 "use client";
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, Bed, Bath, MapPin, MapPinned } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPinned } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useGlobalData } from "@/contexts/GlobalDataContext";
+import { supabase } from "@/lib/supabase";
 import { useImageLoader } from "@/lib/services/imageLoaderService";
 
 const BATCH_SIZE = 8;
@@ -15,53 +15,69 @@ const FeaturedProperties = () => {
   const router = useRouter();
   const [bedIconError, setBedIconError] = useState(false);
 
-  // Use GlobalDataContext for data fetching
-  const { fetchData, loading } = useGlobalData();
+  // Use image loader service
   const { propertyImages, loadPropertyImage, preloadPropertiesImages } =
     useImageLoader();
 
   // Properties state
   const [properties, setProperties] = useState([]);
   const [error, setError] = useState(null);
+  const [loadingProperties, setLoadingProperties] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
-  // Fetch properties using GlobalDataContext
+  // Direct Supabase loading function - bypass GlobalDataContext completely
   const loadProperties = async (forceRefresh = false) => {
+    // Prevent concurrent loads and unnecessary reloads
+    if (loadingProperties || (hasLoaded && !forceRefresh)) {
+      return;
+    }
+    
+    setLoadingProperties(true);
+    setError(null);
+    
     try {
-      setError(null);
+      console.log("Loading featured properties directly from Supabase...");
 
-      const fetchParams = {
-        table: "properties",
-        select:
-          "id, title, description, price, location, address, bedrooms, bathrooms, square_footage, owner_id, images, created_at, available_from, status",
-        orderBy: { column: "created_at", ascending: false },
-        pagination: { page: 1, pageSize: BATCH_SIZE },
-      };
+      // Direct Supabase query - no context dependencies
+      const { data, error: supabaseError } = await supabase
+        .from('properties')
+        .select('id, title, description, price, location, address, bedrooms, bathrooms, square_footage, owner_id, images, created_at, available_from, status')
+        .order('created_at', { ascending: false })
+        .limit(BATCH_SIZE);
 
-      const data = await fetchData(fetchParams, {
-        useCache: !forceRefresh,
-        ttl: 60 * 60 * 1000, // 1 hour
+      if (supabaseError) {
+        throw supabaseError;
+      }
+
+      console.log("Featured properties loaded successfully:", {
+        count: data?.length || 0,
+        firstProperty: data?.[0]?.title
       });
 
-      if (Array.isArray(data)) {
-        setProperties(data);
+      setProperties(data || []);
+      setHasLoaded(true);
 
-        // Preload images for all properties
+      // Preload images after successful load
+      if (data && data.length > 0) {
         setTimeout(() => {
           preloadPropertiesImages(data);
         }, 100);
-      } else {
-        setProperties([]);
       }
+
     } catch (err) {
-      console.error("Error loading properties:", err);
+      console.error("Error loading featured properties:", err);
       setError(err.message || "Failed to load properties");
+      setProperties([]);
+      setHasLoaded(true);
+    } finally {
+      setLoadingProperties(false);
     }
   };
 
-  // Initial load
+  // Single useEffect for initial load
   useEffect(() => {
     loadProperties();
-  }, []);
+  }, []); // No dependencies - load once and that's it
 
   // Responsive item calculation
   const getVisibleItemCount = () => {
@@ -130,7 +146,7 @@ const FeaturedProperties = () => {
     router.push(`/property/${propertyId}`);
   };
 
-  // PropertyCard component with new design
+  // PropertyCard component
   const PropertyCard = ({ property }) => {
     const [imageError, setImageError] = useState(false);
     const imageUrl = propertyImages[property.id] || "";
@@ -246,7 +262,7 @@ const FeaturedProperties = () => {
               <div className="w-[20px] h-[20px] flex-shrink-0">
                 <img
                   src="/images/icons/10.png"
-                  alt="Bedrooms"
+                  alt="Bathrooms"
                   className="w-full h-full object-contain"
                   onError={(e) => {
                     setBedIconError(true);
@@ -287,24 +303,17 @@ const FeaturedProperties = () => {
     <div className="w-full py-10 text-center">
       <p className="text-orange-500 mb-4">{error}</p>
       <button
-        onClick={() => loadProperties(true)}
+        onClick={() => {
+          setHasLoaded(false);
+          loadProperties(true);
+        }}
         className="px-4 py-2 bg-custom-orange text-white rounded hover:bg-orange-700 transition-colors"
+        disabled={loadingProperties}
       >
-        Try Again
+        {loadingProperties ? 'Loading...' : 'Try Again'}
       </button>
     </div>
   );
-
-  // Get loading state from the cache key
-  const cacheKey = JSON.stringify({
-    table: "properties",
-    select:
-      "id, title, description, price, location, address, bedrooms, bathrooms, square_footage, owner_id, images, created_at, available_from, status",
-    orderBy: { column: "created_at", ascending: false },
-    pagination: { page: 1, pageSize: BATCH_SIZE },
-  });
-
-  const isLoading = loading[cacheKey] || false;
 
   return (
     <section className="py-16 md:py-24 bg-gray-50">
@@ -320,7 +329,7 @@ const FeaturedProperties = () => {
             <button
               onClick={scrollPrev}
               className="rounded-full border border-gray-300 p-3 hover:bg-gray-100 hover:border-gray-400 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={currentIndex === 0 || isLoading}
+              disabled={currentIndex === 0 || loadingProperties}
               aria-label="Previous properties"
             >
               <ChevronLeft size={20} className="text-gray-600" />
@@ -329,7 +338,7 @@ const FeaturedProperties = () => {
               onClick={scrollNext}
               className="rounded-full border border-gray-300 p-3 hover:bg-gray-100 hover:border-gray-400 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={
-                currentIndex >= properties.length - visibleItems || isLoading
+                currentIndex >= properties.length - visibleItems || loadingProperties
               }
               aria-label="Next properties"
             >
@@ -340,13 +349,13 @@ const FeaturedProperties = () => {
 
         {error ? (
           <ErrorDisplay />
-        ) : isLoading && properties.length === 0 ? (
+        ) : loadingProperties && properties.length === 0 ? (
           <div className="flex space-x-6 overflow-x-hidden">
             {[...Array(3)].map((_, index) => (
-              <PropertySkeleton key={index} />
+              <PropertySkeleton key={`skeleton-${index}`} />
             ))}
           </div>
-        ) : properties.length === 0 ? (
+        ) : properties.length === 0 && hasLoaded ? (
           <div className="text-center py-10">
             <p className="text-gray-600">
               No properties available at the moment.
