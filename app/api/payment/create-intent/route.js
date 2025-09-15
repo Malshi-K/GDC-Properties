@@ -127,7 +127,7 @@ export async function POST(request) {
 
     if (ownerError || !owner) {
       return NextResponse.json(
-        { error: 'Property owner not found' },
+        { error: 'Landlord not found' },
         { status: 404 }
       );
     }

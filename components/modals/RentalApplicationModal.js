@@ -157,7 +157,7 @@ export default function RentalApplicationModal({ property, isOpen, onClose }) {
               value={formData.message}
               onChange={handleChange}
               rows="3"
-              placeholder="Include any additional information you'd like the property owner to know about your application"
+              placeholder="Include any additional information you'd like the landlord to know about your application"
               className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-custom-orange focus:border-custom-orange"
             ></textarea>
           </div>

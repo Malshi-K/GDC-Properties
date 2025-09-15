@@ -1,66 +1,198 @@
-// components/dashboards/admin/tabs/AdminAnalyticsTab.js
+// components/dashboards/admin/tabs/AdminAnalyticsTab.js - Enhanced with property-focused analytics
 "use client";
 import { useState, useEffect } from 'react';
-import { useGlobalData } from '@/contexts/GlobalDataContext';
+import { supabase } from '@/lib/supabase';
 
 export default function AdminAnalyticsTab({ onRefresh }) {
-  const { fetchData, loading } = useGlobalData();
   const [analytics, setAnalytics] = useState({
+    // Core metrics
     totalUsers: 0,
     totalProperties: 0,
     totalApplications: 0,
     totalViewingRequests: 0,
+    
+    // User breakdown
+    propertyOwners: 0,
+    propertySeekers: 0,
+    adminUsers: 0,
+    
+    // Property metrics
+    availableProperties: 0,
+    rentedProperties: 0,
+    maintenanceProperties: 0,
+    pendingProperties: 0,
+    
+    // Application metrics
+    pendingApplications: 0,
+    approvedApplications: 0,
+    rejectedApplications: 0,
+    
+    // Viewing metrics
+    pendingViewings: 0,
+    confirmedViewings: 0,
+    completedViewings: 0,
+    
+    // Financial metrics
+    averageRent: 0,
+    totalRentValue: 0,
+    occupancyRate: 0,
+    
+    // Recent activity
     recentUsers: [],
     recentProperties: [],
-    userGrowth: [],
-    propertyGrowth: []
+    recentApplications: [],
+    recentViewings: []
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchAnalytics();
   }, []);
 
   const fetchAnalytics = async () => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      // Fetch basic counts
-      const [usersCount, propertiesCount, applicationsCount, viewingRequestsCount] = await Promise.all([
-        fetchData({ table: "profiles", select: "count", count: "exact" }),
-        fetchData({ table: "properties", select: "count", count: "exact" }),
-        fetchData({ table: "rental_applications", select: "count", count: "exact" }),
-        fetchData({ table: "viewing_requests", select: "count", count: "exact" })
-      ]);
+      console.log("=== FETCHING PROPERTY ANALYTICS DATA ===");
 
-      // Fetch recent data
-      const [recentUsers, recentProperties] = await Promise.all([
-        fetchData({
-          table: "profiles",
-          select: "*",
-          orderBy: { column: "created_at", ascending: false },
-          limit: 5
-        }),
-        fetchData({
-          table: "properties", 
-          select: `*, profiles!properties_owner_id_fkey(full_name)`,
-          orderBy: { column: "created_at", ascending: false },
-          limit: 5
-        })
-      ]);
+      // Fetch all properties to calculate metrics
+      const { data: allProperties } = await supabase
+        .from("properties")
+        .select("*");
+
+      // Fetch all users with roles
+      const { data: allUsers } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, role, created_at");
+
+      // Fetch all applications
+      const { data: allApplications } = await supabase
+        .from("rental_applications")
+        .select("*");
+
+      // Fetch all viewing requests
+      const { data: allViewings } = await supabase
+        .from("viewing_requests")
+        .select("*");
+
+      // Calculate core metrics
+      const totalUsers = allUsers?.length || 0;
+      const totalProperties = allProperties?.length || 0;
+      const totalApplications = allApplications?.length || 0;
+      const totalViewingRequests = allViewings?.length || 0;
+
+      // User breakdown
+      const propertyOwners = allUsers?.filter(u => 
+        u.role === 'landlord' || u.role === 'owner'
+      ).length || 0;
+      const propertySeekers = allUsers?.filter(u => 
+        u.role === 'tenant' || u.role === 'user'
+      ).length || 0;
+      const adminUsers = allUsers?.filter(u => u.role === 'admin').length || 0;
+
+      // Property status breakdown
+      const availableProperties = allProperties?.filter(p => p.status === 'available').length || 0;
+      const rentedProperties = allProperties?.filter(p => p.status === 'rented').length || 0;
+      const maintenanceProperties = allProperties?.filter(p => p.status === 'maintenance').length || 0;
+      const pendingProperties = allProperties?.filter(p => p.status === 'pending').length || 0;
+
+      // Application status breakdown
+      const pendingApplications = allApplications?.filter(a => a.status === 'pending').length || 0;
+      const approvedApplications = allApplications?.filter(a => a.status === 'approved').length || 0;
+      const rejectedApplications = allApplications?.filter(a => a.status === 'rejected').length || 0;
+
+      // Viewing status breakdown
+      const pendingViewings = allViewings?.filter(v => v.status === 'pending').length || 0;
+      const confirmedViewings = allViewings?.filter(v => v.status === 'confirmed').length || 0;
+      const completedViewings = allViewings?.filter(v => v.status === 'completed').length || 0;
+
+      // Financial calculations
+      const propertiesWithPrices = allProperties?.filter(p => p.price && p.price > 0) || [];
+      const totalRentValue = propertiesWithPrices.reduce((sum, p) => sum + (p.price || 0), 0);
+      const averageRent = propertiesWithPrices.length > 0 ? totalRentValue / propertiesWithPrices.length : 0;
+      const occupancyRate = totalProperties > 0 ? (rentedProperties / totalProperties) * 100 : 0;
+
+      // Recent activity (last 5 of each)
+      const recentUsers = allUsers?.slice().sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
+      ).slice(0, 5) || [];
+
+      const recentProperties = allProperties?.slice().sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
+      ).slice(0, 5) || [];
+
+      const recentApplications = allApplications?.slice().sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
+      ).slice(0, 5) || [];
+
+      const recentViewings = allViewings?.slice().sort((a, b) => 
+        new Date(b.created_at) - new Date(a.created_at)
+      ).slice(0, 5) || [];
+
+      // Fetch owner details for recent properties
+      let propertiesWithOwners = recentProperties;
+      if (recentProperties.length > 0) {
+        const ownerIds = [...new Set(recentProperties.map(p => p.owner_id).filter(Boolean))];
+        if (ownerIds.length > 0) {
+          const { data: owners } = await supabase
+            .from("profiles")
+            .select("id, full_name")
+            .in("id", ownerIds);
+          
+          if (owners) {
+            const ownersMap = {};
+            owners.forEach(owner => ownersMap[owner.id] = owner);
+            propertiesWithOwners = recentProperties.map(property => ({
+              ...property,
+              owner: ownersMap[property.owner_id]
+            }));
+          }
+        }
+      }
+
+      console.log("Property Analytics Results:", {
+        totalUsers, totalProperties, totalApplications, totalViewingRequests,
+        propertyOwners, propertySeekers, adminUsers,
+        availableProperties, rentedProperties,
+        averageRent, occupancyRate
+      });
 
       setAnalytics({
-        totalUsers: usersCount?.count || 0,
-        totalProperties: propertiesCount?.count || 0,
-        totalApplications: applicationsCount?.count || 0,
-        totalViewingRequests: viewingRequestsCount?.count || 0,
-        recentUsers: recentUsers || [],
-        recentProperties: recentProperties || []
+        totalUsers,
+        totalProperties, 
+        totalApplications,
+        totalViewingRequests,
+        propertyOwners,
+        propertySeekers,
+        adminUsers,
+        availableProperties,
+        rentedProperties,
+        maintenanceProperties,
+        pendingProperties,
+        pendingApplications,
+        approvedApplications,
+        rejectedApplications,
+        pendingViewings,
+        confirmedViewings,
+        completedViewings,
+        averageRent,
+        totalRentValue,
+        occupancyRate,
+        recentUsers,
+        recentProperties: propertiesWithOwners,
+        recentApplications,
+        recentViewings
       });
 
     } catch (error) {
       console.error('Error fetching analytics:', error);
+      setError(`Failed to fetch analytics: ${error.message}`);
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const isLoading = loading['admin_analytics'];
 
   const formatPrice = (price) => {
     if (!price) return 'Price not set';
@@ -71,32 +203,49 @@ export default function AdminAnalyticsTab({ onRefresh }) {
     }).format(price);
   };
 
+  const formatPercentage = (value) => {
+    return `${value.toFixed(1)}%`;
+  };
 
-  // Helper function to get role display name
   const getRoleDisplayName = (role) => {
     switch (role) {
-      case 'admin':
-        return 'Admin';
-      case 'property_owner':
-        return 'Owner';
-      case 'property_seeker':
-        return 'Seeker';
-      default:
-        return 'Unknown';
+      case 'admin': return 'Admin';
+      case 'landlord':
+      case 'owner': return 'Owner';
+      case 'tenant':
+      case 'user': return 'Seeker';
+      default: return 'Unknown';
     }
   };
 
-  // Helper function to get role badge styling
   const getRoleBadgeClass = (role) => {
     switch (role) {
-      case 'admin':
-        return 'bg-orange-100 text-orange-800';
-      case 'property_owner':
-        return 'bg-gray-100 text-gray-800';
-      case 'property_seeker':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'admin': return 'bg-orange-100 text-orange-800';
+      case 'landlord':
+      case 'owner': return 'bg-blue-100 text-blue-800';
+      case 'tenant':
+      case 'user': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusBadgeClass = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'available': return 'bg-green-100 text-green-800';
+      case 'rented': return 'bg-blue-100 text-blue-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'approved': return 'bg-green-100 text-green-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      case 'confirmed': return 'bg-blue-100 text-blue-800';
+      case 'completed': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleRefresh = async () => {
+    await fetchAnalytics();
+    if (onRefresh && typeof onRefresh === "function") {
+      onRefresh();
     }
   };
 
@@ -105,17 +254,17 @@ export default function AdminAnalyticsTab({ onRefresh }) {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">System Analytics</h1>
-          <p className="text-gray-600">Platform overview and key metrics</p>
+          <h1 className="text-2xl font-bold text-gray-900">Property Management Analytics</h1>
+          <p className="text-gray-600">Comprehensive platform metrics and insights</p>
         </div>
         <button
-          onClick={onRefresh}
+          onClick={handleRefresh}
           disabled={isLoading}
           className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 disabled:opacity-50 flex items-center"
         >
           {isLoading ? (
             <>
-              <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <svg className="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
@@ -127,20 +276,41 @@ export default function AdminAnalyticsTab({ onRefresh }) {
         </button>
       </div>
 
-      {/* Key Metrics */}
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error</h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>{error}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Key Financial Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-lg shadow border">
           <div className="flex items-center">
-            <div className="p-3 bg-gray-100 rounded-lg">
-              <svg className="h-8 w-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+            <div className="p-3 bg-green-100 rounded-lg">
+              <svg className="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Total Users</p>
-              <p className="text-3xl font-bold text-gray-900">{analytics.totalUsers}</p>
+              <p className="text-sm font-medium text-gray-500">Average Rent</p>
+              <p className="text-3xl font-bold text-gray-900">
+                {isLoading ? "..." : formatPrice(analytics.averageRent)}
+              </p>
               <p className="text-sm text-green-600 mt-1">
-                <span className="font-medium">+12%</span> vs last month
+                <span className="font-medium">Total Value: {formatPrice(analytics.totalRentValue)}</span>
               </p>
             </div>
           </div>
@@ -148,16 +318,18 @@ export default function AdminAnalyticsTab({ onRefresh }) {
 
         <div className="bg-white p-6 rounded-lg shadow border">
           <div className="flex items-center">
-            <div className="p-3 bg-green-100 rounded-lg">
-              <svg className="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            <div className="p-3 bg-blue-100 rounded-lg">
+              <svg className="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Total Properties</p>
-              <p className="text-3xl font-bold text-gray-900">{analytics.totalProperties}</p>
-              <p className="text-sm text-green-600 mt-1">
-                <span className="font-medium">+8%</span> vs last month
+              <p className="text-sm font-medium text-gray-500">Occupancy Rate</p>
+              <p className="text-3xl font-bold text-gray-900">
+                {isLoading ? "..." : formatPercentage(analytics.occupancyRate)}
+              </p>
+              <p className="text-sm text-blue-600 mt-1">
+                <span className="font-medium">{analytics.rentedProperties} of {analytics.totalProperties} occupied</span>
               </p>
             </div>
           </div>
@@ -171,10 +343,12 @@ export default function AdminAnalyticsTab({ onRefresh }) {
               </svg>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Applications</p>
-              <p className="text-3xl font-bold text-gray-900">{analytics.totalApplications}</p>
-              <p className="text-sm text-green-600 mt-1">
-                <span className="font-medium">+15%</span> vs last month
+              <p className="text-sm font-medium text-gray-500">Pending Applications</p>
+              <p className="text-3xl font-bold text-gray-900">
+                {isLoading ? "..." : analytics.pendingApplications}
+              </p>
+              <p className="text-sm text-purple-600 mt-1">
+                <span className="font-medium">Require review</span>
               </p>
             </div>
           </div>
@@ -188,42 +362,144 @@ export default function AdminAnalyticsTab({ onRefresh }) {
               </svg>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Viewing Requests</p>
-              <p className="text-3xl font-bold text-gray-900">{analytics.totalViewingRequests}</p>
-              <p className="text-sm text-green-600 mt-1">
-                <span className="font-medium">+22%</span> vs last month
+              <p className="text-sm font-medium text-gray-500">Pending Viewings</p>
+              <p className="text-3xl font-bold text-gray-900">
+                {isLoading ? "..." : analytics.pendingViewings}
+              </p>
+              <p className="text-sm text-orange-600 mt-1">
+                <span className="font-medium">Need scheduling</span>
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Charts Section */}
+      {/* Property & User Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Platform Activity Chart */}
+        {/* Property Status Breakdown */}
         <div className="bg-white p-6 rounded-lg shadow border">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Platform Activity</h3>
-          <div className="h-64 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg">
-            <div className="text-center">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              <p className="text-gray-500 mt-2">Chart component would go here</p>
-              <p className="text-sm text-gray-400">Use Chart.js or similar library</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Property Status</h3>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                <span className="text-sm font-medium text-gray-700">Available</span>
+              </div>
+              <span className="text-sm font-bold text-gray-900">{analytics.availableProperties}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                <span className="text-sm font-medium text-gray-700">Rented</span>
+              </div>
+              <span className="text-sm font-bold text-gray-900">{analytics.rentedProperties}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
+                <span className="text-sm font-medium text-gray-700">Maintenance</span>
+              </div>
+              <span className="text-sm font-bold text-gray-900">{analytics.maintenanceProperties}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-gray-500 rounded-full mr-3"></div>
+                <span className="text-sm font-medium text-gray-700">Pending</span>
+              </div>
+              <span className="text-sm font-bold text-gray-900">{analytics.pendingProperties}</span>
             </div>
           </div>
         </div>
 
-        {/* User Growth Chart */}
+        {/* User Type Breakdown */}
         <div className="bg-white p-6 rounded-lg shadow border">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">User Growth</h3>
-          <div className="h-64 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg">
-            <div className="text-center">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-              <p className="text-gray-500 mt-2">Growth chart component</p>
-              <p className="text-sm text-gray-400">Line chart showing user growth</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">User Breakdown</h3>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                <span className="text-sm font-medium text-gray-700">Landlords</span>
+              </div>
+              <span className="text-sm font-bold text-gray-900">{analytics.propertyOwners}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                <span className="text-sm font-medium text-gray-700">Tenants</span>
+              </div>
+              <span className="text-sm font-bold text-gray-900">{analytics.propertySeekers}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
+                <span className="text-sm font-medium text-gray-700">Admins</span>
+              </div>
+              <span className="text-sm font-bold text-gray-900">{analytics.adminUsers}</span>
+            </div>
+            <div className="border-t pt-3 mt-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-semibold text-gray-700">Total Users</span>
+                <span className="text-sm font-bold text-gray-900">{analytics.totalUsers}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Application & Viewing Status */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Application Status */}
+        <div className="bg-white p-6 rounded-lg shadow border">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Application Status</h3>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
+                <span className="text-sm font-medium text-gray-700">Pending Review</span>
+              </div>
+              <span className="text-sm font-bold text-gray-900">{analytics.pendingApplications}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                <span className="text-sm font-medium text-gray-700">Approved</span>
+              </div>
+              <span className="text-sm font-bold text-gray-900">{analytics.approvedApplications}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
+                <span className="text-sm font-medium text-gray-700">Rejected</span>
+              </div>
+              <span className="text-sm font-bold text-gray-900">{analytics.rejectedApplications}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Viewing Status */}
+        <div className="bg-white p-6 rounded-lg shadow border">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Viewing Requests</h3>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
+                <span className="text-sm font-medium text-gray-700">Pending</span>
+              </div>
+              <span className="text-sm font-bold text-gray-900">{analytics.pendingViewings}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                <span className="text-sm font-medium text-gray-700">Confirmed</span>
+              </div>
+              <span className="text-sm font-bold text-gray-900">{analytics.confirmedViewings}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-gray-500 rounded-full mr-3"></div>
+                <span className="text-sm font-medium text-gray-700">Completed</span>
+              </div>
+              <span className="text-sm font-bold text-gray-900">{analytics.completedViewings}</span>
             </div>
           </div>
         </div>
@@ -231,43 +507,44 @@ export default function AdminAnalyticsTab({ onRefresh }) {
 
       {/* Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Users */}
+        {/* Recent Applications */}
         <div className="bg-white rounded-lg shadow border">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">Recent Users</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Recent Applications</h3>
           </div>
           <div className="p-6">
-            {analytics.recentUsers.length > 0 ? (
+            {isLoading ? (
+              <div className="text-center py-8">
+                <svg className="animate-spin mx-auto h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p className="text-gray-500 mt-2">Loading applications...</p>
+              </div>
+            ) : analytics.recentApplications.length > 0 ? (
               <div className="space-y-4">
-                {analytics.recentUsers.map((user) => (
-                  <div key={user.id} className="flex items-center">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-r from-red-400 to-red-600 flex items-center justify-center">
-                      <span className="text-sm font-medium text-white">
-                        {user.full_name?.charAt(0)?.toUpperCase() || '?'}
-                      </span>
-                    </div>
-                    <div className="ml-4 flex-1">
+                {analytics.recentApplications.map((application) => (
+                  <div key={application.id} className="flex items-center justify-between">
+                    <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">
-                        {user.full_name || 'No name provided'}
+                        Application #{application.id.slice(0, 8)}
                       </p>
                       <p className="text-sm text-gray-500">
-                        {getRoleDisplayName(user.role)} • {new Date(user.created_at).toLocaleDateString()}
+                        {new Date(application.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleBadgeClass(user.role)}`}>
-                        {getRoleDisplayName(user.role)}
-                      </span>
-                    </div>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(application.status)}`}>
+                      {application.status || 'Unknown'}
+                    </span>
                   </div>
                 ))}
               </div>
             ) : (
               <div className="text-center py-8">
                 <svg className="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <p className="text-gray-500 mt-2">No recent users</p>
+                <p className="text-gray-500 mt-2">No recent applications</p>
               </div>
             )}
           </div>
@@ -279,7 +556,15 @@ export default function AdminAnalyticsTab({ onRefresh }) {
             <h3 className="text-lg font-semibold text-gray-900">Recent Properties</h3>
           </div>
           <div className="p-6">
-            {analytics.recentProperties.length > 0 ? (
+            {isLoading ? (
+              <div className="text-center py-8">
+                <svg className="animate-spin mx-auto h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p className="text-gray-500 mt-2">Loading recent properties...</p>
+              </div>
+            ) : analytics.recentProperties.length > 0 ? (
               <div className="space-y-4">
                 {analytics.recentProperties.map((property) => (
                   <div key={property.id} className="flex items-center">
@@ -289,19 +574,28 @@ export default function AdminAnalyticsTab({ onRefresh }) {
                           src={property.images[0]}
                           alt={property.title}
                           className="h-10 w-10 rounded-lg object-cover"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'block';
+                          }}
                         />
-                      ) : (
-                        <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                      )}
+                      ) : null}
+                      <svg 
+                        className="h-5 w-5 text-gray-400" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                        style={{display: property.images && property.images.length > 0 ? 'none' : 'block'}}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
                     </div>
                     <div className="ml-4 flex-1">
                       <p className="text-sm font-medium text-gray-900">
                         {property.title || 'Untitled Property'}
                       </p>
                       <p className="text-sm text-gray-500">
-                        {property.location || 'Location not specified'} • by {property.profiles?.full_name || 'Unknown'}
+                        {property.location || 'Location not specified'} • by {property.owner?.full_name || 'Unknown'}
                       </p>
                     </div>
                     <div className="text-right">
@@ -337,16 +631,6 @@ export default function AdminAnalyticsTab({ onRefresh }) {
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-3">
                 <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <p className="text-sm font-medium text-gray-900">Database Status</p>
-              <p className="text-xs text-green-600 font-medium">Operational</p>
-            </div>
-
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-3">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
@@ -365,45 +649,7 @@ export default function AdminAnalyticsTab({ onRefresh }) {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow border">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
-        </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <button className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-              <svg className="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-              </svg>
-              <span className="text-sm font-medium text-gray-700">Add User</span>
-            </button>
-
-            <button className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-              <svg className="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              <span className="text-sm font-medium text-gray-700">View Reports</span>
-            </button>
-
-            <button className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-              <svg className="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
-              </svg>
-              <span className="text-sm font-medium text-gray-700">System Settings</span>
-            </button>
-
-            <button className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-              <svg className="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              <span className="text-sm font-medium text-gray-700">Export Data</span>
-            </button>
-          </div>
-        </div>
-      </div>
+      </div>      
     </div>
   );
 }

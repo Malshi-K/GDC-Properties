@@ -53,10 +53,10 @@ export async function POST(request) {
       <body>
         <div class="container">
           <div class="header">
-            <h2>New Property Owner Role Request</h2>
+            <h2>New Landlord Role Request</h2>
           </div>
           <div class="content">
-            <p>A new user has requested to be upgraded to Property Owner status:</p>
+            <p>A new user has requested to be upgraded to Landlord status:</p>
             
             <div class="info-row">
               <span class="label">Name:</span> ${user_name || 'Not provided'}

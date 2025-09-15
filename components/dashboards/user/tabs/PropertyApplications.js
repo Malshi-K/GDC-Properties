@@ -79,7 +79,7 @@ const EnhancedSuccessMessage = ({ type, application, onProceedToPayment }) => {
       title: "Welcome Home!",
       subtitle: "Payment completed successfully.",
       description:
-        "Your rental application is complete. The property owner will contact you with move-in details.",
+        "Your rental application is complete. The landlord will contact you with move-in details.",
       icon: (
         <div className="relative">
           <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center shadow-lg">
@@ -296,7 +296,7 @@ const PropertyApplications = ({
       .map((application) => ({
         id: application.property_id,
         owner_id:
-          application.properties?.owner_id || application.property_owner_id,
+          application.properties?.owner_id || application.landlord_id,
         images:
           application.properties?.images || application.property_images || [],
         title: application.property_title,

@@ -16,7 +16,7 @@ export async function POST(request) {
   try {
     const { user_email, user_name, new_role } = await request.json();
 
-    const roleDisplay = new_role === 'property_owner' ? 'Property Owner' : 'Administrator';
+    const roleDisplay = new_role === 'landlord' ? 'Landlord' : 'Administrator';
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -46,7 +46,7 @@ export async function POST(request) {
             
             <p>You now have access to additional features:</p>
             <ul>
-              ${new_role === 'property_owner' ? `
+              ${new_role === 'landlord' ? `
                 <li>List and manage your properties</li>
                 <li>View analytics and insights</li>
                 <li>Receive inquiries from potential buyers/renters</li>

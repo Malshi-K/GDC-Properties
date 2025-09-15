@@ -56,7 +56,7 @@ function SignupForm() {
 
     // Validate business info if requesting owner role
     if (requestOwnerRole && !businessName.trim()) {
-      setError("Business name is required when requesting property owner role");
+      setError("Business name is required when requesting landlord role");
       return;
     }
 
@@ -65,13 +65,13 @@ function SignupForm() {
     setMessage(null);
 
     try {
-      // Sign up - ALL users get property_seeker role by default
+      // Sign up - ALL users get tenant role by default
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            role: "property_seeker",
+            role: "tenant",
             full_name: fullName,
           },
         },
@@ -83,7 +83,7 @@ function SignupForm() {
       if (authData.user) {
         const profileData = {
           id: authData.user.id,
-          role: "property_seeker",
+          role: "tenant",
           full_name: fullName,
           email: email,
           created_at: new Date().toISOString(),
@@ -93,7 +93,7 @@ function SignupForm() {
         if (requestOwnerRole) {
           profileData.preferences = {
             role_request: {
-              requested_role: "property_owner",
+              requested_role: "landlord",
               business_name: businessName,
               business_type: businessType,
               additional_info: additionalInfo,
@@ -120,7 +120,7 @@ function SignupForm() {
               user_id: authData.user.id,
               user_email: email,
               user_name: fullName,
-              requested_role: "property_owner",
+              requested_role: "landlord",
               business_name: businessName,
               business_type: businessType,
               additional_info: additionalInfo,
@@ -164,11 +164,11 @@ function SignupForm() {
 
       if (requestOwnerRole) {
         setMessage(
-          "Registration successful! Please check your email to confirm your account. Your request for Property Owner status has been submitted and will be reviewed by an administrator. You'll receive an email once your request is approved."
+          "Registration successful! Please check your email to confirm your account. Your request for Landlord status has been submitted and will be reviewed by an administrator. You'll receive an email once your request is approved."
         );
       } else {
         setMessage(
-          "Registration successful! Please check your email to confirm your account. You can start browsing properties as a Property Seeker."
+          "Registration successful! Please check your email to confirm your account. You can start browsing properties as a Tenant."
         );
       }
 
@@ -335,11 +335,11 @@ function SignupForm() {
               htmlFor="request-owner"
               className="text-sm text-custom-blue font-medium"
             >
-              I am a property owner and would like to list properties
+              I am a Landlord and would like to list properties
             </label>
           </div>
 
-          {/* Conditional fields for property owner request */}
+          {/* Conditional fields for Landlord request */}
           {requestOwnerRole && (
             <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
               <p className="text-xs text-gray-600">
@@ -384,7 +384,7 @@ function SignupForm() {
                   <option value="real_estate_agency">Real Estate Agency</option>
                   <option value="property_developer">Property Developer</option>
                   <option value="individual_owner">
-                    Individual Property Owner
+                    Individual Landlord
                   </option>
                   <option value="property_management">
                     Property Management Company
@@ -435,8 +435,8 @@ function SignupForm() {
                   Account Type
                 </p>
                 <p className="text-gray-700">
-                  You'll start as a <strong>Property Seeker</strong>. Check the
-                  box above if you're a property owner who wants to list
+                  You'll start as a <strong>Tenant</strong>. Check the
+                  box above if you're a Landlord who wants to list
                   properties.
                 </p>
               </div>

@@ -128,15 +128,15 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
           subtitle: "Platform Management",
           badgeColor: "bg-custom-blue text-white",
         };
-      case "property_owner":
+      case "landlord":
         return {
-          title: "PROPERTY OWNER",
+          title: "LANDLORD",
           subtitle: "Property Management",
           badgeColor: "bg-custom-blue text-white",
         };
-      case "property_seeker":
+      case "tenant":
         return {
-          title: "PROPERTY SEEKER",
+          title: "TENANT",
           subtitle: "Find Your Home",
           badgeColor: "bg-custom-blue text-white",
         };
@@ -195,7 +195,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
       roles: ["admin"],
     },
 
-    // Property Owner tabs
+    // Landlord tabs
     {
       id: "properties",
       label: "My Properties",
@@ -215,7 +215,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
           />
         </svg>
       ),
-      roles: ["property_owner"],
+      roles: ["landlord"],
     },
     {
       id: "viewings",
@@ -236,7 +236,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
           />
         </svg>
       ),
-      roles: ["property_owner"],
+      roles: ["landlord"],
     },
     {
       id: "applications",
@@ -257,7 +257,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
           />
         </svg>
       ),
-      roles: ["property_owner"],
+      roles: ["landlord"],
     },
     {
       id: "payments",
@@ -278,7 +278,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
           />
         </svg>
       ),
-      roles: ["property_owner"],
+      roles: ["landlord"],
     },
     {
       id: "analytics",
@@ -299,10 +299,10 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
           />
         </svg>
       ),
-      roles: ["property_owner"],
+      roles: ["landlord"],
     },
 
-    // Property Seeker tabs
+    // Tenant tabs
     {
       id: "viewingRequests",
       label: "Viewing Requests",
@@ -322,7 +322,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
           />
         </svg>
       ),
-      roles: ["property_seeker"],
+      roles: ["tenant"],
     },
     {
       id: "applications",
@@ -343,7 +343,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
           />
         </svg>
       ),
-      roles: ["property_seeker"],
+      roles: ["tenant"],
     },
     {
       id: "favorites",
@@ -364,7 +364,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
           />
         </svg>
       ),
-      roles: ["property_seeker"],
+      roles: ["tenant"],
     },
 
     // Common tab for all roles
@@ -393,7 +393,7 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
           />
         </svg>
       ),
-      roles: ["admin", "property_owner", "property_seeker"],
+      roles: ["admin", "landlord", "tenant"],
     },
   ];
 
@@ -440,16 +440,6 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
       >
         {/* Profile Section */}
         <div className="p-6 flex flex-col items-center border-b border-custom-orange">
-          {/* Admin Badge - Show for admin users */}
-          {userRole === "admin" && (
-            <div className="w-full mb-3">
-              <div className="flex items-center justify-center bg-yellow-500 text-black px-3 py-1 rounded-full text-xs font-bold">
-                <FaShieldAlt className="mr-1" size={12} />
-                ADMINISTRATOR
-              </div>
-            </div>
-          )}
-
           {/* Profile Image with stable display logic */}
           <div className="w-16 h-16 md:w-24 md:h-24 relative rounded-full overflow-hidden mb-4 bg-custom-orange border-2 border-white">
             {/* Show actual image if available and loaded */}

@@ -97,7 +97,7 @@ CREATE POLICY "Users can view their own viewing requests" ON viewing_requests
 CREATE POLICY "Users can insert their own viewing requests" ON viewing_requests
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- Create policy to allow property owners to view and update viewing requests for their properties
+-- Create policy to allow landlords to view and update viewing requests for their properties
 CREATE POLICY "Owners can view and update viewing requests for their properties" ON viewing_requests
   FOR ALL USING (
     auth.uid() IN (
@@ -129,7 +129,7 @@ CREATE POLICY "Users can view their own rental applications" ON rental_applicati
 CREATE POLICY "Users can insert their own rental applications" ON rental_applications
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- Create policy to allow property owners to view and update rental applications for their properties
+-- Create policy to allow landlords to view and update rental applications for their properties
 CREATE POLICY "Owners can view and update rental applications for their properties" ON rental_applications
   FOR ALL USING (
     auth.uid() IN (
@@ -243,7 +243,7 @@ CREATE POLICY read_available_properties ON public.properties
 -- Enable RLS on viewing_requests
 ALTER TABLE public.viewing_requests ENABLE ROW LEVEL SECURITY;
 
--- Property owners can see requests for their properties
+-- landlords can see requests for their properties
 CREATE POLICY owner_view_requests ON public.viewing_requests
     FOR SELECT
     USING (EXISTS (
@@ -251,7 +251,7 @@ CREATE POLICY owner_view_requests ON public.viewing_requests
         WHERE properties.id = viewing_requests.property_id AND properties.owner_id = auth.uid()
     ));
 
--- Property owners can update requests for their properties
+-- Landlords can update requests for their properties
 CREATE POLICY owner_update_requests ON public.viewing_requests
     FOR UPDATE
     USING (EXISTS (
@@ -277,7 +277,7 @@ CREATE POLICY user_insert_requests ON public.viewing_requests
 -- Enable RLS on rental_applications
 ALTER TABLE public.rental_applications ENABLE ROW LEVEL SECURITY;
 
--- Property owners can see applications for their properties
+-- Landlords can see applications for their properties
 CREATE POLICY owner_view_applications ON public.rental_applications
     FOR SELECT
     USING (EXISTS (
@@ -285,7 +285,7 @@ CREATE POLICY owner_view_applications ON public.rental_applications
         WHERE properties.id = rental_applications.property_id AND properties.owner_id = auth.uid()
     ));
 
--- Property owners can update applications for their properties
+-- Landlords can update applications for their properties
 CREATE POLICY owner_update_applications ON public.rental_applications
     FOR UPDATE
     USING (EXISTS (

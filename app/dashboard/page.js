@@ -45,9 +45,9 @@ const getDefaultTab = (role) => {
   switch (role) {
     case "admin":
       return "users";
-    case "property_owner":
+    case "landlord":
       return "properties";
-    case "property_seeker":
+    case "tenant":
       return "viewingRequests";
     default:
       return "viewingRequests";
@@ -56,12 +56,12 @@ const getDefaultTab = (role) => {
 
 // Helper function to check if user is owner
 const isOwner = (role) => {
-  return role === "property_owner";
+  return role === "landlord";
 };
 
-// Helper function to check if user is property seeker
+// Helper function to check if user is Tenant
 const isUser = (role) => {
-  return role === "property_seeker";
+  return role === "tenant";
 };
 
 export default function Dashboard() {

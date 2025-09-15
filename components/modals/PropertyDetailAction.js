@@ -10,7 +10,7 @@ export default function PropertyDetailActions({ property }) {
   const [showViewingModal, setShowViewingModal] = useState(false);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   
-  // Don't show action buttons to property owners for their own properties
+  // Don't show action buttons to Landlords for their own properties
   const isOwner = user && property.owner_id === user.id;
   
   if (isOwner) {

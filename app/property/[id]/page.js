@@ -221,26 +221,6 @@ export default function PropertyDetails() {
     return null;
   }, [allImageUrls, activeImage]);
 
-  // Navigation handlers - FIXED VERSION
-  const handleImageClick = useCallback(
-    (index) => {
-      if (index >= 0 && index < allImageUrls.length) {
-        setActiveImage(index);
-      }
-    },
-    [allImageUrls.length]
-  );
-
-  const handlePreviousImage = useCallback(() => {
-    setActiveImage((prev) =>
-      prev === 0 ? Math.max(0, allImageUrls.length - 1) : prev - 1
-    );
-  }, [allImageUrls.length]);
-
-  const handleNextImage = useCallback(() => {
-    setActiveImage((prev) => (prev >= allImageUrls.length - 1 ? 0 : prev + 1));
-  }, [allImageUrls.length]);
-
   // Modal handlers
   const openViewingModal = useCallback(() => {
     if (!user) {

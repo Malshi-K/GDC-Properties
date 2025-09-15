@@ -74,7 +74,7 @@ function LoginForm() {
           !profile?.preferences?.role_request?.acknowledged
         ) {
           setMessage(
-            "Your Property Owner status has been approved! Please sign in again to access your new features."
+            "Your Landlord status has been approved! Please sign in again to access your new features."
           );
         }
       }

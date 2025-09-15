@@ -84,7 +84,7 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
         full_name: profile.full_name || null,
         phone: profile.phone || null,
         address: profile.address || null,
-        role: profile.role || "property_seeker",
+        role: profile.role || "tenant",
         profile_image_url: profile.profile_image_url || null,
         preferences: profile.preferences || null,
         has_profile: true,
@@ -156,7 +156,7 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
                 user_email: profile.email || "No email",
                 user_name: profile.full_name || "No name",
                 requested_role:
-                  prefs.role_request.requested_role || "property_owner",
+                  prefs.role_request.requested_role || "landlord",
                 business_name: prefs.role_request.business_name || "",
                 business_type: prefs.role_request.business_type || "",
                 additional_info: prefs.role_request.additional_info || "",
@@ -351,9 +351,9 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
     switch (role) {
       case "admin":
         return "bg-orange-100 text-orange-800 border border-red-200";
-      case "property_owner":
+      case "landlord":
         return "bg-gray-100 text-gray-800 border border-gray-200";
-      case "property_seeker":
+      case "tenant":
         return "bg-green-100 text-green-800 border border-green-200";
       default:
         return "bg-gray-100 text-gray-800 border border-gray-200";
@@ -364,17 +364,17 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
     switch (role) {
       case "admin":
         return "Administrator";
-      case "property_owner":
-        return "Property Owner";
-      case "property_seeker":
-        return "Property Seeker";
+      case "landlord":
+        return "Landlord";
+      case "tenant":
+        return "Tenant";
       default:
-        return "Property Seeker";
+        return "Tenant";
     }
   };
 
-  const isPropertyOwner = (role) => role === "property_owner";
-  const isPropertySeeker = (role) => role === "property_seeker" || !role;
+  const isPropertyOwner = (role) => role === "landlord";
+  const isPropertySeeker = (role) => role === "tenant" || !role;
 
   // Filter users
   const filteredUsers = users.filter((userItem) => {
@@ -385,10 +385,10 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
 
     let matchesRole = filterRole === "all";
     if (!matchesRole) {
-      if (filterRole === "property_owner") {
-        matchesRole = userItem.role === "property_owner";
-      } else if (filterRole === "property_seeker") {
-        matchesRole = userItem.role === "property_seeker" || !userItem.role;
+      if (filterRole === "landlord") {
+        matchesRole = userItem.role === "landlord";
+      } else if (filterRole === "tenant") {
+        matchesRole = userItem.role === "tenant" || !userItem.role;
       } else {
         matchesRole = userItem.role === filterRole;
       }
@@ -401,9 +401,9 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
   const roleStats = {
     total: users.length,
     admin: users.filter((u) => u.role === "admin").length,
-    property_owner: users.filter((u) => u.role === "property_owner").length,
-    property_seeker: users.filter(
-      (u) => u.role === "property_seeker" || !u.role
+    landlord: users.filter((u) => u.role === "landlord").length,
+    tenant: users.filter(
+      (u) => u.role === "tenant" || !u.role
     ).length,
     pending_requests: roleRequests.length,
   };
@@ -420,7 +420,7 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
           <button
             onClick={handleRefresh}
             disabled={isLoading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            className="px-4 py-2 bg-custom-blue text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
           >
             {isLoading ? (
               <>
@@ -658,8 +658,8 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
                     >
                       <option value="all">All Roles</option>
                       <option value="admin">Administrators</option>
-                      <option value="property_owner">Property Owners</option>
-                      <option value="property_seeker">Property Seekers</option>
+                      <option value="landlord">Landlords</option>
+                      <option value="tenant">Tenants</option>
                     </select>
                   </div>
                 </div>
@@ -730,10 +730,10 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
                     </div>
                     <div className="ml-3">
                       <p className="text-sm font-medium text-gray-500">
-                        Property Owners
+                        Landlords
                       </p>
                       <p className="text-2xl font-bold text-gray-900">
-                        {roleStats.property_owner}
+                        {roleStats.landlord}
                       </p>
                     </div>
                   </div>
@@ -754,10 +754,10 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
                     </div>
                     <div className="ml-3">
                       <p className="text-sm font-medium text-gray-500">
-                        Property Seekers
+                        Tenants
                       </p>
                       <p className="text-2xl font-bold text-gray-900">
-                        {roleStats.property_seeker}
+                        {roleStats.tenant}
                       </p>
                     </div>
                   </div>
@@ -857,11 +857,11 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
                             <td className="px-6 py-4 whitespace-nowrap">
                               <span
                                 className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${getRoleBadgeColor(
-                                  userItem.role || "property_seeker"
+                                  userItem.role || "tenant"
                                 )}`}
                               >
                                 {getRoleDisplayName(
-                                  userItem.role || "property_seeker"
+                                  userItem.role || "tenant"
                                 )}
                               </span>
                             </td>
@@ -888,7 +888,7 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
                                       onClick={() =>
                                         handleRoleUpdate(
                                           userItem.id,
-                                          "property_owner"
+                                          "landlord"
                                         )
                                       }
                                       disabled={updating === userItem.id}
@@ -904,7 +904,7 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
                                       onClick={() =>
                                         handleRoleUpdate(
                                           userItem.id,
-                                          "property_seeker"
+                                          "tenant"
                                         )
                                       }
                                       disabled={updating === userItem.id}

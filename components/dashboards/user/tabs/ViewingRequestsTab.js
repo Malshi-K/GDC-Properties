@@ -1,5 +1,5 @@
 // components/dashboards/user/ViewingRequestsTab.js
-// This component is designed for users with 'property_seeker' role
+// This component is designed for users with 'tenant' role
 // to view and manage their property viewing requests
 'use client';
 
@@ -14,8 +14,8 @@ import { toast } from 'react-hot-toast';
 import { useImageLoader } from '@/lib/services/imageLoaderService';
 
 /**
- * ViewingRequestsTab component for property_seeker dashboard
- * This component shows viewing requests submitted by property seekers
+ * ViewingRequestsTab component for tenant dashboard
+ * This component shows viewing requests submitted by Tenants
  */
 const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading: propLoading = false, onRefresh }) => {
   const { user } = useAuth();
@@ -105,7 +105,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
       .filter(request => request.property_id && request.properties)
       .map(request => ({
         id: request.property_id,
-        owner_id: request.properties.owner_id || request.property_owner_id,
+        owner_id: request.properties.owner_id || request.landlord_id,
         images: request.properties.images || [],
         title: request.properties.title || request.property_title
       }))
@@ -195,7 +195,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
     }
   };
 
-  // Handle cancellation of a viewing request - available for property_seeker users
+  // Handle cancellation of a viewing request - available for tenant users
   const handleCancelRequest = async (requestId) => {
     try {
       setCancelingId(requestId);
@@ -219,7 +219,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
     }
   };
   
-  // Handle suggesting a new time - feature for property_seeker users
+  // Handle suggesting a new time - feature for tenant users
   const handleSuggestNewTime = (requestId) => {
     // This would open a modal to suggest a new time
     // For now we'll just show a toast
@@ -478,7 +478,7 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
                             </div>
                           )}
                           
-                          {/* Action buttons - Available for property_seeker users */}
+                          {/* Action buttons - Available for tenant users */}
                           <div className="flex flex-wrap justify-end gap-2 mt-4">
                             {/* Cancel request - only available for pending requests */}
                             {request.status === 'pending' && (

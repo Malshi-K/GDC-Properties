@@ -374,7 +374,7 @@ export default function SettingsTab({ user, profile }) {
                   {/* Owner specific notifications */}
                   {isOwner && (
                     <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                      <h3 className="font-medium text-gray-700 mb-3">Property Owner Notifications</h3>
+                      <h3 className="font-medium text-gray-700 mb-3">Landlord Notifications</h3>
                       <div className="space-y-3">
                         <div className="flex items-center">
                           <input
