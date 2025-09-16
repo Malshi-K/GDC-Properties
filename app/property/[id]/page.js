@@ -250,10 +250,54 @@ export default function PropertyDetails() {
     );
   }, []);
 
-  // Check if action buttons should be shown
+  // Check if action buttons should be shown - UPDATED LOGIC
   const shouldShowActionButtons = useMemo(() => {
-    return userRole !== "owner";
-  }, [userRole]);
+    // Don't show for owners
+    if (userRole === "owner") return false;
+    
+    // Only show for available properties
+    if (property?.status !== "available") return false;
+    
+    return true;
+  }, [userRole, property?.status]);
+
+  // Get status-specific configuration
+  const statusConfig = useMemo(() => {
+    const status = property?.status?.toLowerCase() || 'available';
+    
+    switch (status) {
+      case 'available':
+        return {
+          showActions: true,
+          badgeClass: 'bg-custom-blue',
+          message: null
+        };
+      case 'rented':
+        return {
+          showActions: false,
+          badgeClass: 'bg-custom-orange',
+          message: 'This property is currently rented and not available for new applications.'
+        };
+      case 'pending':
+        return {
+          showActions: false,
+          badgeClass: 'bg-yellow-500',
+          message: 'This property has applications pending review.'
+        };
+      case 'maintenance':
+        return {
+          showActions: false,
+          badgeClass: 'bg-gray-500',
+          message: 'This property is currently under maintenance.'
+        };
+      default:
+        return {
+          showActions: false,
+          badgeClass: 'bg-gray-500',
+          message: 'This property is not currently available.'
+        };
+    }
+  }, [property?.status]);
 
   // Check loading state - combine local and global loading
   const isLoading = loading || globalLoading[`property_${id}`];
@@ -337,7 +381,7 @@ export default function PropertyDetails() {
     return (
       <div className="flex items-center">
         <div className="w-5 h-5 mr-2 flex-shrink-0">
-          {!iconError ? (
+          {!iconError && imagePath ? (
             <img
               src={imagePath}
               alt={`${amenity} icon`}
@@ -351,7 +395,9 @@ export default function PropertyDetails() {
               }}
             />
           ) : (
-            getFallbackSVG(amenity)
+            <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
           )}
         </div>
         <span className="text-gray-700">{amenity}</span>
@@ -393,6 +439,9 @@ export default function PropertyDetails() {
     loading: isLoading,
     error,
     property: property ? "loaded" : "null",
+    propertyStatus: property?.status,
+    shouldShowActionButtons,
+    statusConfig,
     totalImages: allImageUrls.length,
     mainImageUrl: mainImageUrl ? "available" : "null",
     activeImageIndex: activeImage,
@@ -664,8 +713,8 @@ export default function PropertyDetails() {
           <div className="md:col-span-8">
             {/* Status tag */}
             <div className="mb-2">
-              <span className="inline-block bg-gray-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
-                {property.status || "For sale"}
+              <span className={`inline-block ${statusConfig.badgeClass} text-white text-xs font-semibold px-3 py-1 rounded-full capitalize`}>
+                {property.status || "Available"}
               </span>
             </div>
 
@@ -684,7 +733,12 @@ export default function PropertyDetails() {
                         "Location not specified"}
                     </span>
                     <span>|</span>
-                    <span>Available {formatDate(property.available_from)}</span>
+                    <span>
+                      {property.status === 'rented' 
+                        ? 'Currently Occupied'
+                        : `Available ${formatDate(property.available_from)}`
+                      }
+                    </span>
                   </div>
                 </div>
 
@@ -696,9 +750,28 @@ export default function PropertyDetails() {
                 </div>
               </div>
 
+              {/* Status-specific message */}
+              {statusConfig.message && (
+                <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm text-amber-700">
+                        {statusConfig.message}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Divider line */}
               <hr className="border-gray-200" />
             </div>
+            
             {/* Property details */}
             <div className="flex items-center mb-6">
               <div className="flex items-center mr-6">
@@ -708,9 +781,7 @@ export default function PropertyDetails() {
                     alt="Bedrooms"
                     className="w-full h-full object-contain"
                     onError={(e) => {
-                      setBedIconError(true);
                       e.target.style.display = "none";
-                      e.target.nextSibling.style.display = "block";
                     }}
                   />
                 </div>
@@ -722,12 +793,10 @@ export default function PropertyDetails() {
                 <div className="w-[20px] h-[20px] flex-shrink-0">
                   <img
                     src="/images/icons/10.png"
-                    alt="Bedrooms"
+                    alt="Bathrooms"
                     className="w-full h-full object-contain"
                     onError={(e) => {
-                      setBedIconError(true);
                       e.target.style.display = "none";
-                      e.target.nextSibling.style.display = "block";
                     }}
                   />
                 </div>
@@ -740,12 +809,10 @@ export default function PropertyDetails() {
                   <div className="w-[20px] h-[20px] flex-shrink-0">
                     <img
                       src="/images/icons/11.png"
-                      alt="Bedrooms"
+                      alt="Square footage"
                       className="w-full h-full object-contain"
                       onError={(e) => {
-                        setBedIconError(true);
                         e.target.style.display = "none";
-                        e.target.nextSibling.style.display = "block";
                       }}
                     />
                   </div>
@@ -868,7 +935,7 @@ export default function PropertyDetails() {
               </div>
             )}
 
-            {/* Action buttons */}
+            {/* Action buttons - Only show for available properties and non-owners */}
             {shouldShowActionButtons && (
               <div className="bg-white border border-gray-200 rounded-md p-4">
                 <h3 className="text-xl font-semibold text-gray-800 mb-3">
@@ -881,7 +948,6 @@ export default function PropertyDetails() {
                 <button
                   onClick={openViewingModal}
                   className="w-full bg-custom-orange hover:bg-custom-yellow text-white font-medium py-2 px-4 rounded-full transition-colors duration-300 mb-3"
-                  disabled={property.status !== "available"}
                 >
                   Book Viewing
                 </button>
@@ -892,6 +958,29 @@ export default function PropertyDetails() {
                 >
                   Apply for the property
                 </button>
+              </div>
+            )}
+
+            {/* Alternative message for non-available properties */}
+            {!shouldShowActionButtons && userRole !== "owner" && statusConfig.message && (
+              <div className="bg-white border border-gray-200 rounded-md p-4">
+                <h3 className="text-xl font-semibold text-gray-800 mb-3">
+                  Property Status
+                </h3>
+                <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm text-gray-700">
+                        {statusConfig.message}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>

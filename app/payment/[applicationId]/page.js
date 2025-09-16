@@ -1,4 +1,4 @@
-// app/payment/[applicationId]/page.js
+// app/payment/[applicationId]/page.js - UPDATED VERSION
 "use client";
 export const dynamic = 'force-dynamic';
 import { useState, useEffect } from "react";
@@ -51,9 +51,48 @@ export default function PaymentPage() {
     }
   };
 
-  const handlePaymentSuccess = () => {
-    toast.success("Payment completed successfully!");
-    router.push("/dashboard");
+  // FIXED: Use the existing confirm route instead of complete
+  const handlePaymentSuccess = async (paymentIntent) => {
+    try {
+      console.log("Payment successful, confirming payment...");
+      
+      // Use the existing confirm route
+      const response = await fetch("/api/payment/confirm", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          applicationId,
+          paymentIntentId: paymentIntent.id, // This is what the confirm route expects
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to confirm payment");
+      }
+
+      const result = await response.json();
+      console.log("Payment confirmed successfully:", result);
+
+      // Show success message
+      toast.success("Payment completed successfully! Your rental application is now complete.");
+      
+      // Redirect to dashboard after a short delay
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 2000);
+
+    } catch (error) {
+      console.error("Error confirming payment:", error);
+      toast.error("Payment successful, but there was an issue confirming it. Please contact support.");
+      
+      // Still redirect to dashboard even if confirmation fails
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 3000);
+    }
   };
 
   if (loading) {
@@ -129,13 +168,13 @@ export default function PaymentPage() {
               {/* Property Details */}
               <div className="border-b border-gray-200 pb-4 mb-4">
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {application.properties.title}
+                  {application?.properties?.title || "Property Title"}
                 </h3>
                 <p className="text-gray-600 mb-1">
-                  {application.properties.location}
+                  {application?.properties?.location || "Location"}
                 </p>
                 <p className="text-custom-orange font-bold text-lg">
-                  ${application.properties.price.toLocaleString()}/month
+                  ${application?.properties?.price?.toLocaleString() || "0"}/month
                 </p>
               </div>
 
@@ -148,25 +187,28 @@ export default function PaymentPage() {
                   <div>
                     <span className="text-gray-500">Employment:</span>
                     <p className="font-medium text-gray-400">
-                      {application.employment_status}
+                      {application?.employment_status || "N/A"}
                     </p>
                   </div>
                   <div>
                     <span className="text-gray-500">Annual Income:</span>
                     <p className="font-medium text-gray-400">
-                      ${parseInt(application.income).toLocaleString()}
+                      ${parseInt(application?.income || 0).toLocaleString()}
                     </p>
                   </div>
                   <div>
                     <span className="text-gray-500">Credit Score:</span>
                     <p className="font-medium text-gray-400">
-                      {application.credit_score}
+                      {application?.credit_score || "N/A"}
                     </p>
                   </div>
                   <div>
                     <span className="text-gray-500">Applied:</span>
                     <p className="font-medium text-gray-400">
-                      {new Date(application.created_at).toLocaleDateString()}
+                      {application?.created_at 
+                        ? new Date(application.created_at).toLocaleDateString()
+                        : "N/A"
+                      }
                     </p>
                   </div>
                 </div>
@@ -182,7 +224,7 @@ export default function PaymentPage() {
               {/* Payment Breakdown */}
               <div className="mb-6">
                 <div className="space-y-3">
-                  {paymentBreakdown?.items.map((item) => (
+                  {paymentBreakdown?.items?.map((item) => (
                     <div key={item.type} className="flex justify-between">
                       <span className="text-gray-600">{item.label}</span>
                       <span className="font-medium text-gray-400">
@@ -194,7 +236,7 @@ export default function PaymentPage() {
                     <div className="flex justify-between font-bold text-lg text-gray-400">
                       <span>Total Amount</span>
                       <span className="text-custom-orange">
-                        ${paymentBreakdown?.total.toLocaleString()}
+                        ${paymentBreakdown?.total?.toLocaleString() || "0"}
                       </span>
                     </div>
                   </div>

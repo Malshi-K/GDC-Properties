@@ -1,4 +1,4 @@
-// app/api/payment/confirm/route.js
+// app/api/payment/confirm/route.js - UPDATED VERSION
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
@@ -10,6 +10,8 @@ const supabase = createClient(
 export async function POST(request) {
   try {
     const { applicationId, paymentIntentId } = await request.json();
+
+    console.log("Processing payment confirmation:", { applicationId, paymentIntentId });
 
     // Update payment records
     const { error: updateError } = await supabase
@@ -29,7 +31,26 @@ export async function POST(request) {
       );
     }
 
-    // Update application status
+    console.log("Payment records updated successfully");
+
+    // Get application details first
+    const { data: application, error: fetchError } = await supabase
+      .from('rental_applications')
+      .select('*, properties(*)')
+      .eq('id', applicationId)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching application:', fetchError);
+      return NextResponse.json(
+        { error: 'Failed to fetch application details' },
+        { status: 500 }
+      );
+    }
+
+    console.log("Application details fetched:", application);
+
+    // Update application status to completed
     const { error: appUpdateError } = await supabase
       .from('rental_applications')
       .update({
@@ -47,12 +68,45 @@ export async function POST(request) {
       );
     }
 
-    // Get application details for creating rental agreement
-    const { data: application } = await supabase
+    console.log("Application status updated to completed");
+
+    // **NEW: Update property status to 'rented'**
+    const { error: propertyUpdateError } = await supabase
+      .from('properties')
+      .update({
+        status: 'rented',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', application.property_id);
+
+    if (propertyUpdateError) {
+      console.error('Error updating property status:', propertyUpdateError);
+      return NextResponse.json(
+        { error: 'Failed to update property status' },
+        { status: 500 }
+      );
+    }
+
+    console.log("Property status updated to 'rented'");
+
+    // **NEW: Reject all other pending/approved applications for this property**
+    const { error: rejectError } = await supabase
       .from('rental_applications')
-      .select('*, properties(*)')
-      .eq('id', applicationId)
-      .single();
+      .update({
+        status: 'rejected',
+        updated_at: new Date().toISOString()
+      })
+      .eq('property_id', application.property_id)
+      .neq('id', applicationId)
+      .in('status', ['pending', 'approved']);
+
+    if (rejectError) {
+      console.error('Error rejecting other applications:', rejectError);
+      // Don't fail the entire process for this
+      console.log("Continuing despite rejection error...");
+    } else {
+      console.log("Other applications for this property rejected successfully");
+    }
 
     // Create rental agreement
     const { error: agreementError } = await supabase
@@ -72,17 +126,26 @@ export async function POST(request) {
     if (agreementError) {
       console.error('Error creating rental agreement:', agreementError);
       // Don't fail the payment, just log the error
+      console.log("Continuing without rental agreement...");
+    } else {
+      console.log("Rental agreement created successfully");
     }
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Payment completed successfully' 
+      message: 'Payment completed successfully and property status updated',
+      data: {
+        applicationId,
+        propertyId: application.property_id,
+        newPropertyStatus: 'rented',
+        applicationStatus: 'completed'
+      }
     });
 
   } catch (error) {
     console.error('Error confirming payment:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error.message },
       { status: 500 }
     );
   }
