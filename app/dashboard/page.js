@@ -30,6 +30,7 @@ import AdminPropertiesTab from "@/components/dashboards/admin/tabs/AdminProperti
 import AdminAnalyticsTab from "@/components/dashboards/admin/tabs/AdminAnalyticsTab";
 import PaymentsTab from "@/components/dashboards/owner/tabs/PaymentsTab";
 import { useAuth } from "@/contexts/AuthContext";
+import BankingSetupTab from "@/components/dashboards/owner/tabs/BankingSetupTab";
 
 // Cache TTL constants
 const CACHE_TTL = {
@@ -1235,6 +1236,14 @@ export default function Dashboard() {
 
               {activeTab === "payments" && (
                 <PaymentsTab
+                  onRefresh={() => {
+                    invalidateCache(`owner_payments_${user.id}`);
+                  }}
+                />
+              )}
+
+              {activeTab === "banking" && (
+                <BankingSetupTab
                   onRefresh={() => {
                     invalidateCache(`owner_payments_${user.id}`);
                   }}
