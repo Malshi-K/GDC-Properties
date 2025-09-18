@@ -1,5 +1,5 @@
 "use client";
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
@@ -142,16 +142,15 @@ export default function PropertyDetails() {
         setImageUrls([]);
 
         // Load all images sequentially to maintain order
-        const imagePromises = propertyData?.images.map(
-          async (imagePath, index) => {
+        const imagePromises =
+          propertyData?.images.map(async (imagePath, index) => {
             const imageUrl = await loadPropertyImage(
               `${propertyData.id}_image_${index}`, // More unique key for each image
               propertyData.owner_id,
               imagePath
             );
             return { url: imageUrl, originalPath: imagePath };
-          }
-        ) || [];
+          }) || [];
 
         const imageResults = await Promise.all(imagePromises);
 
@@ -223,20 +222,12 @@ export default function PropertyDetails() {
 
   // Modal handlers
   const openViewingModal = useCallback(() => {
-    if (!user) {
-      router.push("/login?redirect=" + encodeURIComponent(`/property/${id}`));
-      return;
-    }
     setShowViewingModal(true);
-  }, [user, router, id]);
+  }, []);
 
   const openApplicationModal = useCallback(() => {
-    if (!user) {
-      router.push("/login?redirect=" + encodeURIComponent(`/property/${id}`));
-      return;
-    }
     setShowApplicationModal(true);
-  }, [user, router, id]);
+  }, []);
 
   const handleViewingSuccess = useCallback(() => {
     toast.success(
@@ -254,47 +245,48 @@ export default function PropertyDetails() {
   const shouldShowActionButtons = useMemo(() => {
     // Don't show for owners
     if (userRole === "owner") return false;
-    
+
     // Only show for available properties
     if (property?.status !== "available") return false;
-    
+
     return true;
   }, [userRole, property?.status]);
 
   // Get status-specific configuration
   const statusConfig = useMemo(() => {
-    const status = property?.status?.toLowerCase() || 'available';
-    
+    const status = property?.status?.toLowerCase() || "available";
+
     switch (status) {
-      case 'available':
+      case "available":
         return {
           showActions: true,
-          badgeClass: 'bg-custom-blue',
-          message: null
+          badgeClass: "bg-custom-blue",
+          message: null,
         };
-      case 'rented':
+      case "rented":
         return {
           showActions: false,
-          badgeClass: 'bg-custom-orange',
-          message: 'This property is currently rented and not available for new applications.'
+          badgeClass: "bg-custom-orange",
+          message:
+            "This property is currently rented and not available for new applications.",
         };
-      case 'pending':
+      case "pending":
         return {
           showActions: false,
-          badgeClass: 'bg-yellow-500',
-          message: 'This property has applications pending review.'
+          badgeClass: "bg-yellow-500",
+          message: "This property has applications pending review.",
         };
-      case 'maintenance':
+      case "maintenance":
         return {
           showActions: false,
-          badgeClass: 'bg-gray-500',
-          message: 'This property is currently under maintenance.'
+          badgeClass: "bg-gray-500",
+          message: "This property is currently under maintenance.",
         };
       default:
         return {
           showActions: false,
-          badgeClass: 'bg-gray-500',
-          message: 'This property is not currently available.'
+          badgeClass: "bg-gray-500",
+          message: "This property is not currently available.",
         };
     }
   }, [property?.status]);
@@ -395,8 +387,18 @@ export default function PropertyDetails() {
               }}
             />
           ) : (
-            <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            <svg
+              className="w-5 h-5 text-gray-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           )}
         </div>
@@ -713,7 +715,9 @@ export default function PropertyDetails() {
           <div className="md:col-span-8">
             {/* Status tag */}
             <div className="mb-2">
-              <span className={`inline-block ${statusConfig.badgeClass} text-white text-xs font-semibold px-3 py-1 rounded-full capitalize`}>
+              <span
+                className={`inline-block ${statusConfig.badgeClass} text-white text-xs font-semibold px-3 py-1 rounded-full capitalize`}
+              >
                 {property.status || "Available"}
               </span>
             </div>
@@ -734,10 +738,9 @@ export default function PropertyDetails() {
                     </span>
                     <span>|</span>
                     <span>
-                      {property.status === 'rented' 
-                        ? 'Currently Occupied'
-                        : `Available ${formatDate(property.available_from)}`
-                      }
+                      {property.status === "rented"
+                        ? "Currently Occupied"
+                        : `Available ${formatDate(property.available_from)}`}
                     </span>
                   </div>
                 </div>
@@ -755,8 +758,16 @@ export default function PropertyDetails() {
                 <div className="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4">
                   <div className="flex">
                     <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      <svg
+                        className="h-5 w-5 text-amber-400"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                     </div>
                     <div className="ml-3">
@@ -771,7 +782,7 @@ export default function PropertyDetails() {
               {/* Divider line */}
               <hr className="border-gray-200" />
             </div>
-            
+
             {/* Property details */}
             <div className="flex items-center mb-6">
               <div className="flex items-center mr-6">
@@ -962,27 +973,37 @@ export default function PropertyDetails() {
             )}
 
             {/* Alternative message for non-available properties */}
-            {!shouldShowActionButtons && userRole !== "owner" && statusConfig.message && (
-              <div className="bg-white border border-gray-200 rounded-md p-4">
-                <h3 className="text-xl font-semibold text-gray-800 mb-3">
-                  Property Status
-                </h3>
-                <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-sm text-gray-700">
-                        {statusConfig.message}
-                      </p>
+            {!shouldShowActionButtons &&
+              userRole !== "owner" &&
+              statusConfig.message && (
+                <div className="bg-white border border-gray-200 rounded-md p-4">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-3">
+                    Property Status
+                  </h3>
+                  <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <svg
+                          className="h-5 w-5 text-gray-400"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm text-gray-700">
+                          {statusConfig.message}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
           </div>
         </div>
       </div>
