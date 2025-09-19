@@ -1,4 +1,4 @@
-// Updated DashboardSidebar Component with Hidden Scrollbar
+// Fixed DashboardSidebar Component with Proper Image Loading
 
 "use client";
 
@@ -26,47 +26,62 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
+  const [profileImageInitialized, setProfileImageInitialized] = useState(false);
   const sidebarRef = useRef(null);
   const router = useRouter();
 
   // Use centralized image loader service
-  const { profileImages, loadProfileImage, isProfileImageLoading } =
-    useImageLoader();
+  const { profileImages, loadProfileImage, isProfileImageLoading } = useImageLoader();
 
-  const { user, profile, userRole } = useAuth();
+  const { user, profile, userRole, isLoading: authLoading } = useAuth(); // Add authLoading
 
   // Get profile image URL and loading state from imageLoader
   const profileImageUrl = profileImages[user?.id];
   const isLoadingImage = isProfileImageLoading(user?.id);
 
-  // Load profile image once when component mounts or when profile actually changes
+  // FIXED: Wait for auth to be ready before attempting image loading
   useEffect(() => {
-    if (user?.id && profile?.profile_image && !imageLoaded) {
-      console.log(
-        "Loading profile image for user:",
-        user.id,
-        "with profile:",
-        profile?.profile_image
-      );
-      loadProfileImage(user.id, profile?.profile_image);
-    } else if (user?.id && !profile?.profile_image) {
-      // No profile image, show fallback immediately
-      setShowFallback(true);
-      setImageLoaded(true);
+    // Don't do anything if auth is still loading
+    if (authLoading) {
+      console.log("Auth still loading, waiting...");
+      return;
     }
-  }, [user?.id, profile?.profile_image]);
+
+    // Don't initialize if already done
+    if (profileImageInitialized) {
+      return;
+    }
+
+    if (user?.id) {
+      console.log("Auth ready, initializing profile image for user:", user.id);
+      console.log("Profile data:", profile);
+      
+      if (profile?.profile_image) {
+        console.log("Loading profile image:", profile.profile_image);
+        loadProfileImage(user.id, profile.profile_image);
+        setProfileImageInitialized(true);
+      } else {
+        console.log("No profile image found, showing fallback");
+        setShowFallback(true);
+        setImageLoaded(true);
+        setProfileImageInitialized(true);
+      }
+    }
+  }, [user?.id, profile?.profile_image, authLoading, profileImageInitialized, loadProfileImage]);
 
   // Handle image loading completion
   useEffect(() => {
     if (profileImageUrl) {
+      console.log("Profile image URL received:", profileImageUrl);
       setImageLoaded(true);
       setShowFallback(false);
-    } else if (!isLoadingImage && user?.id) {
-      // Not loading and no image, show fallback
+    } else if (!isLoadingImage && user?.id && profileImageInitialized) {
+      // Not loading, have user, and we've tried to initialize - show fallback
+      console.log("No image URL and not loading, showing fallback");
       setShowFallback(true);
       setImageLoaded(true);
     }
-  }, [profileImageUrl, isLoadingImage, user?.id]);
+  }, [profileImageUrl, isLoadingImage, user?.id, profileImageInitialized]);
 
   // Handle clicks outside the sidebar to close mobile menu
   useEffect(() => {
@@ -103,18 +118,22 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
     setIsMobileMenuOpen(false);
   };
 
-  // Enhanced modal close handler with proper image refresh
+  // FIXED: Enhanced modal close handler with proper image refresh
   const handleModalClose = () => {
     setShowEditModal(false);
 
     if (user?.id) {
+      console.log("Modal closed, refreshing profile image");
       // Reset image states
       setImageLoaded(false);
       setShowFallback(false);
+      setProfileImageInitialized(false);
 
       // Small delay to allow upload to complete, then reload profile image
       setTimeout(() => {
+        console.log("Reloading profile image after modal close");
         loadProfileImage(user.id, profile?.profile_image);
+        setProfileImageInitialized(true);
       }, 1000);
     }
   };
@@ -423,6 +442,18 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
     item.roles.includes(userRole)
   );
 
+  // Show loading state while auth is loading
+  if (authLoading) {
+    return (
+      <div className="bg-custom-orange text-white flex flex-col h-full w-64">
+        <div className="p-6 flex flex-col items-center justify-center flex-1">
+          <div className="w-8 h-8 border-2 border-white border-t-custom-orange rounded-full animate-spin"></div>
+          <p className="text-white text-sm mt-2">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Custom styles for hiding scrollbar */}
@@ -486,8 +517,8 @@ const DashboardSidebar = ({ activeTab, setActiveTab }) => {
               </div>
             )}
 
-            {/* Show loading spinner only when actually loading */}
-            {isLoadingImage && !imageLoaded && (
+            {/* Show loading spinner only when actually loading OR when auth/profile is not ready */}
+            {(isLoadingImage || !profileImageInitialized) && !imageLoaded && (
               <div className="absolute inset-0 bg-custom-orange bg-opacity-50 flex items-center justify-center">
                 <div className="w-4 h-4 md:w-6 md:h-6 border-2 md:border-3 border-white border-t-custom-orange rounded-full animate-spin"></div>
               </div>

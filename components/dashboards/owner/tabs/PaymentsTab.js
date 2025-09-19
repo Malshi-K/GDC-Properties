@@ -1,4 +1,4 @@
-// Improved PaymentsTab.js - Groups payments by transaction
+// Fixed PaymentsTab.js - Removes data duplication in payment breakdown
 "use client";
 
 import { useState, useEffect } from "react";
@@ -26,23 +26,6 @@ export default function PaymentsTab({ onRefresh }) {
     const cacheKey = `owner_payments_${user.id}`;
 
     try {
-      // Get ALL payment distributions for transactions where this owner is involved
-      const allDistributions = await fetchData(
-        {
-          table: "payment_distributions",
-          select: "id, amount, percentage, status, created_at, payment_record_id, recipient_type, recipient_id",
-          filters: [
-            // Get all distributions for payment records where this user is the owner
-          ],
-          orderBy: { column: "created_at", ascending: false },
-        },
-        {
-          useCache: true,
-          ttl: 5 * 60 * 1000,
-          _cached_key: `all_distributions_${user.id}`,
-        }
-      );
-
       // Get owner distributions specifically
       const ownerDistributions = await fetchData(
         {
@@ -149,13 +132,11 @@ export default function PaymentsTab({ onRefresh }) {
         }
       }
 
-      // Group payments by payment_intent_id (transaction)
+      // FIXED: Group payments by payment_intent_id and avoid duplication
       const groupedPayments = {};
       
-      ownerDistributions.forEach(ownerDist => {
-        const paymentRecord = paymentRecords.find(pr => pr.id === ownerDist.payment_record_id);
-        if (!paymentRecord) return;
-
+      // First, create groups by payment_intent_id
+      paymentRecords.forEach(paymentRecord => {
         const paymentIntentId = paymentRecord.payment_intent_id;
         
         if (!groupedPayments[paymentIntentId]) {
@@ -174,23 +155,37 @@ export default function PaymentsTab({ onRefresh }) {
             total_platform_fees: 0,
             payment_breakdown: [],
             property: application?.properties || { title: "Unknown Property", location: "Unknown" },
-            tenant: tenant || { full_name: "Unknown Tenant" }
+            tenant: tenant || { full_name: "Unknown Tenant" },
+            processed_records: new Set() // Track processed records to avoid duplicates
           };
         }
+      });
 
-        // Add to totals
-        groupedPayments[paymentIntentId].total_amount += paymentRecord.amount;
-        groupedPayments[paymentIntentId].total_owner_earnings += ownerDist.amount;
-        groupedPayments[paymentIntentId].total_platform_fees += paymentRecord.platform_fee_amount || 0;
+      // Then, process each payment record only once
+      paymentRecords.forEach(paymentRecord => {
+        const paymentIntentId = paymentRecord.payment_intent_id;
+        const group = groupedPayments[paymentIntentId];
         
-        // Get all distributions for this payment record to show breakdown
+        // Skip if we've already processed this record
+        if (group.processed_records.has(paymentRecord.id)) {
+          return;
+        }
+        
+        // Mark as processed
+        group.processed_records.add(paymentRecord.id);
+        
+        // Get distributions for this specific payment record
         const recordDistributions = allPaymentDistributions.filter(d => d.payment_record_id === paymentRecord.id);
-        
         const ownerAmount = recordDistributions.find(d => d.recipient_type === 'owner')?.amount || 0;
         const platformAmount = recordDistributions.find(d => d.recipient_type === 'platform')?.amount || 0;
         
-        // Add to breakdown
-        groupedPayments[paymentIntentId].payment_breakdown.push({
+        // Add to totals
+        group.total_amount += paymentRecord.amount;
+        group.total_owner_earnings += ownerAmount;
+        group.total_platform_fees += platformAmount;
+        
+        // Add to breakdown (only once per record)
+        group.payment_breakdown.push({
           type: paymentRecord.payment_type,
           amount: paymentRecord.amount,
           owner_earnings: ownerAmount,
@@ -198,7 +193,12 @@ export default function PaymentsTab({ onRefresh }) {
         });
       });
 
-      const groupedPaymentsArray = Object.values(groupedPayments);
+      // Clean up the processed_records set and convert to array
+      const groupedPaymentsArray = Object.values(groupedPayments).map(group => {
+        const { processed_records, ...cleanGroup } = group;
+        return cleanGroup;
+      });
+
       setPayments(groupedPaymentsArray);
       calculateSummary(groupedPaymentsArray);
 
@@ -443,18 +443,43 @@ export default function PaymentsTab({ onRefresh }) {
                   </div>
                 </div>
                 
-                {/* Payment Breakdown */}
+                {/* Mobile-Responsive Payment Breakdown */}
                 <div className="mt-3 ml-4">
-                  <div className="text-md font-bold text-gray-600 mb-2">Payment Breakdown:</div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-custom-blue">
-                    <h6 className="text-md text-custom-orange">Landlord receives</h6>
-                    <h6 className="text-md text-custom-orange">Platform keeps</h6>
-                    {payment.payment_breakdown.map((item, index) => (
-                      <div key={index} className="flex justify-between bg-gray-50 px-2 py-1 rounded">
-                        <span className="capitalize">{item.type.replace('_', ' ')}</span>
-                        <span className="font-medium">{formatCurrency(item.owner_earnings)}</span>
+                  <div className="text-md font-bold text-gray-600 mb-3">Payment Breakdown:</div>
+                  
+                  {/* Mobile-first approach: Stack sections vertically on small screens, side by side on larger screens */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    
+                    {/* Landlord Receives Section */}
+                    <div className="p-3">
+                      <div className="flex items-center mb-2">
+                        <h6 className="text-sm font-semibold text-custom-blue">Landlord Receives</h6>
                       </div>
-                    ))}
+                      <div className="space-y-1">
+                        {payment.payment_breakdown.map((item, index) => (
+                          <div key={`owner-${index}`} className="flex justify-between text-xs">
+                            <span className="text-custom-blue capitalize">{item.type.replace('_', ' ')}</span>
+                            <span className="font-medium text-custom-blue">{formatCurrency(item.owner_earnings)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Platform Keeps Section */}
+                    <div className="p-3">
+                      <div className="flex items-center mb-2">
+                        <h6 className="text-sm font-semibold text-orange-700">Platform Keeps</h6>
+                      </div>
+                      <div className="space-y-1">
+                        {payment.payment_breakdown.map((item, index) => (
+                          <div key={`platform-${index}`} className="flex justify-between text-xs">
+                            <span className="text-orange-600 capitalize">{item.type.replace('_', ' ')}</span>
+                            <span className="font-medium text-orange-800">{formatCurrency(item.platform_fee)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
                   </div>
                 </div>
               </div>

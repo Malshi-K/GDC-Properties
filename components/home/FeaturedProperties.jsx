@@ -41,18 +41,6 @@ const FeaturedProperties = ({ showOnlyAvailable = false }) => {
       className: 'bg-red-100 text-red-800',
       badgeClass: 'bg-custom-orange',
       showActions: true
-    },
-    pending: {
-      label: 'Pending',
-      className: 'bg-yellow-100 text-yellow-800',
-      badgeClass: 'bg-yellow-500',
-      showActions: false
-    },
-    maintenance: {
-      label: 'Maintenance',
-      className: 'bg-gray-100 text-gray-800 border-gray-200',
-      badgeClass: 'bg-gray-500',
-      showActions: false
     }
   };
 
@@ -251,13 +239,6 @@ const FeaturedProperties = ({ showOnlyAvailable = false }) => {
       { key: 'available', label: 'Available', count: statusCounts.available || 0 },
       { key: 'rented', label: 'Rented', count: statusCounts.rented || 0 },
     ];
-
-    if (statusCounts.pending > 0) {
-      filterOptions.push({ key: 'pending', label: 'Pending', count: statusCounts.pending });
-    }
-    if (statusCounts.maintenance > 0) {
-      filterOptions.push({ key: 'maintenance', label: 'Maintenance', count: statusCounts.maintenance });
-    }
 
     return (
       <div className="flex flex-wrap gap-2 mb-6">

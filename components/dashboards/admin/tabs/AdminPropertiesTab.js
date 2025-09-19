@@ -406,10 +406,6 @@ export default function AdminPropertiesTab({ onRefresh }) {
         return "bg-green-100 text-green-800 border border-green-200";
       case "rented":
         return "bg-orange-100 text-orange-800 border border-red-200";
-      case "maintenance":
-        return "bg-yellow-100 text-yellow-800 border border-yellow-200";
-      case "pending":
-        return "bg-gray-100 text-gray-800 border border-gray-200";
       default:
         return "bg-gray-100 text-gray-800 border border-gray-200";
     }
@@ -460,8 +456,6 @@ export default function AdminPropertiesTab({ onRefresh }) {
     total: properties.length,
     available: properties.filter((p) => p.status === "available").length,
     rented: properties.filter((p) => p.status === "rented").length,
-    maintenance: properties.filter((p) => p.status === "maintenance").length,
-    pending: properties.filter((p) => p.status === "pending").length,
   };
 
   return (
@@ -680,8 +674,6 @@ export default function AdminPropertiesTab({ onRefresh }) {
               <option value="all">All Status</option>
               <option value="available">Available</option>
               <option value="rented">Rented</option>
-              <option value="maintenance">Maintenance</option>
-              <option value="pending">Pending</option>
             </select>
           </div>
 

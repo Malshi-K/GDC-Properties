@@ -113,14 +113,14 @@ export default function BankingSetupTab() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Banking Setup</h1>
-        <p className="text-gray-600">
-          Set up your bank account to receive rental payments directly and securely.
-        </p>
-      </div>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-custom-blue">Banking Setup</h1>
+          <p className="text-gray-600">Set up your bank account to receive rental payments directly and securely.</p>
+        </div>        
+      </div>      
 
       {/* Account Status */}
       <div className="bg-white rounded-lg shadow p-6">
@@ -195,7 +195,7 @@ export default function BankingSetupTab() {
                 <button
                   onClick={startOnboarding}
                   disabled={loading}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-custom-blue text-white px-4 py-2 rounded-lg hover:bg-custom-orange disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Processing...' : 'Complete Setup'}
                 </button>
@@ -235,17 +235,17 @@ export default function BankingSetupTab() {
       </div>
 
       {/* Test Mode Notice */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-white rounded-lg p-4">
         <div className="flex items-start">
-          <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-custom-orange mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div>
-            <h3 className="text-sm font-medium text-blue-800">Test Mode Active</h3>
-            <p className="text-sm text-blue-700 mt-1">
+            <h3 className="text-sm font-medium text-custom-orange">Test Mode Active</h3>
+            <p className="text-sm text-custom-orange mt-1">
               You're currently in test mode. Use test bank account details during setup:
             </p>
-            <div className="mt-2 text-xs text-blue-600 bg-blue-100 p-2 rounded font-mono">
+            <div className="mt-2 text-xs text-white bg-custom-blue p-2 rounded font-mono">
               Routing: 110000000 | Account: 000123456789
             </div>
           </div>

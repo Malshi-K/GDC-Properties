@@ -270,18 +270,6 @@ export default function PropertyDetails() {
           message:
             "This property is currently rented and not available for new applications.",
         };
-      case "pending":
-        return {
-          showActions: false,
-          badgeClass: "bg-yellow-500",
-          message: "This property has applications pending review.",
-        };
-      case "maintenance":
-        return {
-          showActions: false,
-          badgeClass: "bg-gray-500",
-          message: "This property is currently under maintenance.",
-        };
       default:
         return {
           showActions: false,

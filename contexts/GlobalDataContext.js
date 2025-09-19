@@ -1,4 +1,4 @@
-// /contexts/GlobalDataContext.js
+// /contexts/GlobalDataContext.js - Updated sections
 "use client";
 
 import {
@@ -27,14 +27,14 @@ export function GlobalDataProvider({ children }) {
   const [profileImages, setProfileImages] = useState({});
   const [profileImageLoading, setProfileImageLoading] = useState({});
   const [isMounted, setIsMounted] = useState(false);
-  const [isReady, setIsReady] = useState(false); // Combined ready state
+  const [isReady, setIsReady] = useState(false);
 
   // Add mounted check for SSR
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Load cache asynchronously but don't block the context
+  // FIXED: Improved cache loading with proper ready state management
   useEffect(() => {
     if (!isMounted) return;
     
@@ -45,84 +45,89 @@ export function GlobalDataProvider({ children }) {
         const cachedData = {};
         const cachedProfileImages = {};
         
-        // Load cache in background
-        for (let i = 0; i < sessionStorage.length; i++) {
-          if (isCanceled) break;
-          
-          const key = sessionStorage.key(i);
-          
-          if (key?.startsWith(CACHE_PREFIX)) {
-            try {
-              const cached = JSON.parse(sessionStorage.getItem(key));
-              
-              if (cached.expiry < Date.now()) {
-                sessionStorage.removeItem(key);
-                continue;
-              }
-              
-              const cacheKey = key.replace(CACHE_PREFIX, '');
-              cachedData[cacheKey] = cached.data;
-            } catch (e) {
-              sessionStorage.removeItem(key);
-            }
-          }
-          
-          if (key?.startsWith(PROFILE_IMAGE_PREFIX)) {
-            try {
-              const cached = JSON.parse(sessionStorage.getItem(key));
-              
-              if (cached.expiry < Date.now()) {
-                sessionStorage.removeItem(key);
-                continue;
-              }
-              
-              const userId = key.replace(PROFILE_IMAGE_PREFIX, '');
-              cachedProfileImages[userId] = cached.url;
-            } catch (e) {
-              sessionStorage.removeItem(key);
-            }
-          }
+        // Set ready immediately to prevent blocking, load cache in background
+        if (!isCanceled) {
+          setIsReady(true);
         }
         
-        if (!isCanceled) {
-          if (Object.keys(cachedData).length > 0) {
-            setData(cachedData);
-            console.log(`Loaded ${Object.keys(cachedData).length} cached entries`);
-          }
+        // Load cache in background without blocking
+        setTimeout(async () => {
+          if (isCanceled) return;
           
-          if (Object.keys(cachedProfileImages).length > 0) {
-            setProfileImages(cachedProfileImages);
-            console.log(`Loaded ${Object.keys(cachedProfileImages).length} cached profile images`);
+          try {
+            for (let i = 0; i < sessionStorage.length; i++) {
+              if (isCanceled) break;
+              
+              const key = sessionStorage.key(i);
+              
+              if (key?.startsWith(CACHE_PREFIX)) {
+                try {
+                  const cached = JSON.parse(sessionStorage.getItem(key));
+                  
+                  if (cached.expiry < Date.now()) {
+                    sessionStorage.removeItem(key);
+                    continue;
+                  }
+                  
+                  const cacheKey = key.replace(CACHE_PREFIX, '');
+                  cachedData[cacheKey] = cached.data;
+                } catch (e) {
+                  sessionStorage.removeItem(key);
+                }
+              }
+              
+              if (key?.startsWith(PROFILE_IMAGE_PREFIX)) {
+                try {
+                  const cached = JSON.parse(sessionStorage.getItem(key));
+                  
+                  if (cached.expiry < Date.now()) {
+                    sessionStorage.removeItem(key);
+                    continue;
+                  }
+                  
+                  const userId = key.replace(PROFILE_IMAGE_PREFIX, '');
+                  cachedProfileImages[userId] = cached.url;
+                } catch (e) {
+                  sessionStorage.removeItem(key);
+                }
+              }
+            }
+            
+            if (!isCanceled) {
+              if (Object.keys(cachedData).length > 0) {
+                setData(prev => ({ ...prev, ...cachedData }));
+                console.log(`Loaded ${Object.keys(cachedData).length} cached entries`);
+              }
+              
+              if (Object.keys(cachedProfileImages).length > 0) {
+                setProfileImages(prev => ({ ...prev, ...cachedProfileImages }));
+                console.log(`Loaded ${Object.keys(cachedProfileImages).length} cached profile images`);
+              }
+            }
+          } catch (error) {
+            console.error("Error loading cache:", error);
           }
-        }
+        }, 0);
+        
       } catch (error) {
-        console.error("Error loading cache:", error);
-      } finally {
+        console.error("Error in cache loading setup:", error);
         if (!isCanceled) {
           setIsReady(true);
         }
       }
     };
 
-    // Set ready immediately for first-time users, load cache in background
-    const timer = setTimeout(() => {
-      if (!isCanceled) {
-        setIsReady(true);
-      }
-    }, 100);
-
     loadCache();
 
     return () => {
       isCanceled = true;
-      clearTimeout(timer);
     };
   }, [isMounted]);
 
   const fetchData = useCallback(async (params, options = {}) => {
-    // Only require mounting, don't wait for cache loading
-    if (!isMounted) {
-      console.log(`Not mounted yet`);
+    // FIXED: Only require mounting and ready state
+    if (!isMounted || !isReady) {
+      console.log(`Not ready yet - mounted: ${isMounted}, ready: ${isReady}`);
       return null;
     }
 
@@ -209,7 +214,7 @@ export function GlobalDataProvider({ children }) {
         return newLoading;
       });
     }
-  }, [data, loading, isMounted]); // Remove cacheLoaded dependency
+  }, [data, loading, isMounted, isReady]); // Added isReady dependency
 
   const updateData = useCallback((key, newData) => {
     if (!isMounted) return;
@@ -482,6 +487,7 @@ export function GlobalDataProvider({ children }) {
         updateData: () => {},
         invalidateCache: () => {},
         clearCache: () => {},
+        isReady: false,
         loadProfileImage: async () => null,
         getProfileImageUrl: () => null,
         isProfileImageLoading: () => false,

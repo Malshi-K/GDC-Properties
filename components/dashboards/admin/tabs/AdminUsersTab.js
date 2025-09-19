@@ -1,42 +1,74 @@
-// Fixed AdminUsersTab - Clean Version
+// Optimized AdminUsersTab with Smart Caching
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useGlobalData } from "@/contexts/GlobalDataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 
 export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
   const { user } = useAuth();
-  const { fetchData, updateData, invalidateCache } = useGlobalData();
+  const { fetchData, updateData, invalidateCache, isReady } = useGlobalData();
   const [users, setUsers] = useState([]);
   const [updating, setUpdating] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
-  const [isLoading, setIsLoading] = useState(true); // Start with true
+  const [isLoading, setIsLoading] = useState(false); // Changed default to false
   const [error, setError] = useState(null);
   const [roleRequests, setRoleRequests] = useState([]);
   const [activeTab, setActiveTab] = useState("users");
+  
+  // Track initialization state
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [lastFetch, setLastFetch] = useState(null);
+  const initializationRef = useRef(false);
 
-  // Cache key for users data
+  // Cache keys
   const CACHE_KEY = "admin_users_with_email";
+  const ROLE_REQUESTS_CACHE_KEY = "admin_role_requests";
+  
+  // Cache TTL - 10 minutes
+  const CACHE_TTL = 10 * 60 * 1000;
 
-  // SINGLE useEffect for initialization
+  // Initialize data only once when context is ready
   useEffect(() => {
-    console.log("AdminUsersTab mounted, initializing data...");
+    if (!isReady || initializationRef.current) {
+      return;
+    }
+
+    console.log("AdminUsersTab: Context ready, initializing data...");
+    initializationRef.current = true;
     initializeData();
-  }, []); // Empty dependency array
+  }, [isReady]);
 
-  // Main initialization function
+  // Smart initialization that checks cache first
   const initializeData = async () => {
-    setIsLoading(true);
-    setError(null);
-
     try {
-      // Always fetch fresh data on initial load
+      setIsLoading(true);
+      setError(null);
+
+      // Check if we have recent cached data
+      const cachedUsers = await checkCachedData(CACHE_KEY);
+      const cachedRequests = await checkCachedData(ROLE_REQUESTS_CACHE_KEY);
+
+      if (cachedUsers && cachedRequests) {
+        console.log("Using cached data - no fetch needed");
+        setUsers(cachedUsers);
+        setRoleRequests(cachedRequests);
+        setIsInitialized(true);
+        setLastFetch(Date.now());
+        setIsLoading(false);
+        return;
+      }
+
+      // Fetch fresh data if cache is stale or missing
+      console.log("Cache miss or stale - fetching fresh data");
       await Promise.all([
-        fetchUsers(true), // Pass true for fresh fetch
-        fetchRoleRequests(),
+        fetchUsers(false), // Use cache if available, but fetch if needed
+        fetchRoleRequests(false)
       ]);
+
+      setIsInitialized(true);
+      setLastFetch(Date.now());
     } catch (error) {
       console.error("Failed to initialize data:", error);
       setError(`Failed to load data: ${error.message}`);
@@ -45,7 +77,28 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
     }
   };
 
-  // Simplified fetchUsers function
+  // Check if cached data exists and is fresh
+  const checkCachedData = async (cacheKey) => {
+    try {
+      // First check memory cache
+      const memoryData = await fetchData(
+        { _cached_key: cacheKey },
+        { useCache: true, ttl: CACHE_TTL }
+      );
+      
+      if (memoryData && Array.isArray(memoryData) && memoryData.length > 0) {
+        console.log(`Fresh data found in cache for ${cacheKey}`);
+        return memoryData;
+      }
+      
+      return null;
+    } catch (error) {
+      console.warn(`Error checking cache for ${cacheKey}:`, error);
+      return null;
+    }
+  };
+
+  // Optimized fetchUsers - only fetches if needed
   const fetchUsers = async (forceFresh = false) => {
     try {
       console.log("=== FETCHING USERS FROM PROFILES ===");
@@ -58,8 +111,8 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
           orderBy: { column: "created_at", ascending: false },
         },
         {
-          useCache: !forceFresh, // Use cache unless forcing fresh
-          ttl: 5 * 60 * 1000,
+          useCache: !forceFresh,
+          ttl: CACHE_TTL,
           onError: (error) => {
             console.error("Failed to fetch users:", error);
             throw error;
@@ -106,11 +159,20 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
     }
   };
 
-  const fetchRoleRequests = async () => {
+  // Optimized fetchRoleRequests with caching
+  const fetchRoleRequests = async (forceFresh = false) => {
     console.log("=== FETCHING ROLE REQUESTS ===");
 
     try {
-      // Try role_requests table first
+      // Check cache first if not forcing fresh
+      if (!forceFresh) {
+        const cached = await checkCachedData(ROLE_REQUESTS_CACHE_KEY);
+        if (cached) {
+          setRoleRequests(cached);
+          return;
+        }
+      }
+
       const { data: requests, error } = await supabase
         .from("role_requests")
         .select("*")
@@ -118,14 +180,12 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
         .order("created_at", { ascending: false });
 
       if (!error && requests && requests.length > 0) {
-        console.log(
-          `✅ Found ${requests.length} requests in role_requests table`
-        );
+        console.log(`✅ Found ${requests.length} requests in role_requests table`);
         setRoleRequests(requests);
+        updateData(ROLE_REQUESTS_CACHE_KEY, requests);
         return;
       }
 
-      // Fallback to profiles.preferences
       console.log("Checking profiles.preferences for pending requests...");
 
       const { data: profiles, error: profileError } = await supabase
@@ -136,6 +196,7 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
       if (profileError) {
         console.error("Error fetching profiles:", profileError);
         setRoleRequests([]);
+        updateData(ROLE_REQUESTS_CACHE_KEY, []);
         return;
       }
 
@@ -155,13 +216,11 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
                 user_id: profile.id,
                 user_email: profile.email || "No email",
                 user_name: profile.full_name || "No name",
-                requested_role:
-                  prefs.role_request.requested_role || "landlord",
+                requested_role: prefs.role_request.requested_role || "landlord",
                 business_name: prefs.role_request.business_name || "",
                 business_type: prefs.role_request.business_type || "",
                 additional_info: prefs.role_request.additional_info || "",
-                created_at:
-                  prefs.role_request.requested_at || profile.created_at,
+                created_at: prefs.role_request.requested_at || profile.created_at,
                 status: "pending",
               });
             }
@@ -173,13 +232,27 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
 
       console.log(`✅ Found ${pendingRequests.length} pending requests`);
       setRoleRequests(pendingRequests);
+      updateData(ROLE_REQUESTS_CACHE_KEY, pendingRequests);
     } catch (error) {
       console.error("Error in fetchRoleRequests:", error);
       setRoleRequests([]);
+      updateData(ROLE_REQUESTS_CACHE_KEY, []);
     }
   };
 
-  // Manual refresh function
+  // Show loading state only during initial load
+  if (!isReady) {
+    return (
+      <div className="space-y-6 text-custom-blue">
+        <div className="bg-white rounded-lg shadow border p-8 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-500 mt-2">Initializing...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Manual refresh function - forces fresh fetch
   const handleRefresh = async () => {
     setIsLoading(true);
     setError(null);
@@ -187,13 +260,16 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
     try {
       // Clear cache
       invalidateCache(CACHE_KEY);
+      invalidateCache(ROLE_REQUESTS_CACHE_KEY);
       invalidateCache("profiles");
 
       // Fetch fresh data
       await Promise.all([
         fetchUsers(true), // Force fresh fetch
-        fetchRoleRequests(),
+        fetchRoleRequests(true)
       ]);
+
+      setLastFetch(Date.now());
     } catch (error) {
       setError(`Failed to refresh data: ${error.message}`);
     } finally {
@@ -201,7 +277,13 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
     }
   };
 
-  // Role update function
+  // Check if data is stale (older than 5 minutes for auto-refresh suggestion)
+  const isDataStale = () => {
+    if (!lastFetch) return false;
+    return Date.now() - lastFetch > 5 * 60 * 1000; // 5 minutes
+  };
+
+  // Role update function with optimistic updates
   const handleRoleUpdate = async (userId, newRole, isApproval = false) => {
     console.log(`🚀 Starting role update for user ${userId} to ${newRole}`);
     setUpdating(userId);
@@ -251,39 +333,31 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
           console.log("Note: role_requests update failed:", requestUpdateError);
         }
 
-        // Remove from pending requests
-        setRoleRequests((prev) => prev.filter((r) => r.user_id !== userId));
+        // Remove from pending requests (optimistic update)
+        setRoleRequests((prev) => {
+          const updated = prev.filter((r) => r.user_id !== userId);
+          updateData(ROLE_REQUESTS_CACHE_KEY, updated);
+          return updated;
+        });
       }
 
-      // Update local users state
-      setUsers((prev) =>
-        prev.map((u) =>
+      // Optimistic update to local users state
+      setUsers((prev) => {
+        const updated = prev.map((u) =>
           u.id === userId
             ? {
                 ...u,
                 role: newRole,
-                updated_at:
-                  updatedProfile?.updated_at || new Date().toISOString(),
+                updated_at: updatedProfile?.updated_at || new Date().toISOString(),
                 has_pending_request: false,
               }
             : u
-        )
-      );
+        );
+        updateData(CACHE_KEY, updated);
+        return updated;
+      });
 
-      // Update cache
-      const updatedUsers = users.map((u) =>
-        u.id === userId
-          ? {
-              ...u,
-              role: newRole,
-              updated_at:
-                updatedProfile?.updated_at || new Date().toISOString(),
-              has_pending_request: false,
-            }
-          : u
-      );
-
-      updateData(CACHE_KEY, updatedUsers);
+      // Invalidate relevant caches to ensure consistency
       invalidateCache("profiles");
 
       if (onUpdateRole && typeof onUpdateRole === "function") {
@@ -336,7 +410,13 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
         })
         .eq("user_id", userId);
 
-      setRoleRequests((prev) => prev.filter((r) => r.user_id !== userId));
+      // Optimistic update
+      setRoleRequests((prev) => {
+        const updated = prev.filter((r) => r.user_id !== userId);
+        updateData(ROLE_REQUESTS_CACHE_KEY, updated);
+        return updated;
+      });
+      
       alert("Role request rejected successfully.");
     } catch (error) {
       console.error("Failed to reject request:", error);
@@ -402,9 +482,7 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
     total: users.length,
     admin: users.filter((u) => u.role === "admin").length,
     landlord: users.filter((u) => u.role === "landlord").length,
-    tenant: users.filter(
-      (u) => u.role === "tenant" || !u.role
-    ).length,
+    tenant: users.filter((u) => u.role === "tenant" || !u.role).length,
     pending_requests: roleRequests.length,
   };
 
@@ -414,7 +492,7 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Users Management</h1>
-          <p className="text-gray-600">Manage user roles and permissions</p>
+          <p className="text-gray-600">Manage user roles and permissions</p>          
         </div>
         <div className="flex space-x-2">
           <button
@@ -425,7 +503,7 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
             {isLoading ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span>Loading...</span>
+                <span>Refreshing...</span>
               </>
             ) : (
               <>
@@ -513,16 +591,16 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
         </div>
       )}
 
-      {/* Loading State */}
-      {isLoading && users.length === 0 && (
+      {/* Loading State - only show during refresh or initial load */}
+      {isLoading && !isInitialized && (
         <div className="bg-white rounded-lg shadow border p-8 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           <p className="text-gray-500 mt-2">Loading users...</p>
         </div>
       )}
 
-      {/* Content - only show when not loading or when we have data */}
-      {(!isLoading || users.length > 0) && (
+      {/* Content - show once data is loaded */}
+      {isInitialized && (
         <>
           {activeTab === "requests" ? (
             /* Role Requests Tab Content */
@@ -575,7 +653,6 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
                             <p className="mt-1 text-sm text-gray-600">
                               {request.user_email}
                             </p>
-                            {/* Request details */}
                             <div className="mt-4 space-y-2">
                               <div className="flex items-center text-sm">
                                 <span className="font-medium text-gray-700 w-32">
@@ -585,7 +662,6 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
                                   {getRoleDisplayName(request.requested_role)}
                                 </span>
                               </div>
-                              {/* Add other request details as needed */}
                             </div>
                           </div>
                           <div className="ml-4 flex space-x-2">
@@ -860,9 +936,7 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
                                   userItem.role || "tenant"
                                 )}`}
                               >
-                                {getRoleDisplayName(
-                                  userItem.role || "tenant"
-                                )}
+                                {getRoleDisplayName(userItem.role || "tenant")}
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -902,10 +976,7 @@ export default function AdminUsersTab({ onUpdateRole, onRefresh }) {
                                   {!isPropertySeeker(userItem.role) && (
                                     <button
                                       onClick={() =>
-                                        handleRoleUpdate(
-                                          userItem.id,
-                                          "tenant"
-                                        )
+                                        handleRoleUpdate(userItem.id, "tenant")
                                       }
                                       disabled={updating === userItem.id}
                                       className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"

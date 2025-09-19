@@ -53,38 +53,47 @@ export default function AddEditPropertyModal({
   useEffect(() => {
     const resetForm = () => {
       if (property) {
-        // Editing existing property
+        console.log("📝 Loading property data for editing:", property);
+
+        // FIXED: Create a deep copy to avoid reference issues
+        const propertyData = { ...property };
+
         // Convert date format for input field if exists
-        const formattedAvailableFrom = property.available_from
-          ? new Date(property.available_from).toISOString().split("T")[0]
+        const formattedAvailableFrom = propertyData.available_from
+          ? new Date(propertyData.available_from).toISOString().split("T")[0]
           : "";
 
-        setFormData({
-          title: property.title || "",
-          location: property.location || "",
-          address: property.address || "",
-          price: property.price || "",
-          bedrooms: property.bedrooms || "",
-          bathrooms: property.bathrooms || "",
-          square_footage: property.square_footage || "",
+        const newFormData = {
+          title: propertyData.title || "",
+          location: propertyData.location || "",
+          address: propertyData.address || "",
+          price: propertyData.price || "",
+          bedrooms: propertyData.bedrooms || "",
+          bathrooms: propertyData.bathrooms || "",
+          square_footage: propertyData.square_footage || "",
           available_from: formattedAvailableFrom,
-          description: property.description || "",
-          amenities: property.amenities || [],
-          nearby_amenities: property.nearby_amenities || [],
-          property_type: property.property_type || "apartment",
-          status: property.status || "available",
-          year_built: property.year_built || "",
-          images: property.images || [],
-        });
+          description: propertyData.description || "",
+          amenities: propertyData.amenities || [],
+          nearby_amenities: propertyData.nearby_amenities || [],
+          property_type: propertyData.property_type || "apartment",
+          status: propertyData.status || "available",
+          year_built: propertyData.year_built || "",
+          images: propertyData.images || [],
+        };
+
+        console.log("📝 Setting form data:", newFormData);
+        setFormData(newFormData);
 
         // Hide upload section initially when editing a property that has images
-        setShowUploadSection(!(property.images && property.images.length > 0));
+        setShowUploadSection(
+          !(propertyData.images && propertyData.images.length > 0)
+        );
 
         // Load image previews for existing images with signed URLs
-        loadExistingImages(property.images);
+        loadExistingImages(propertyData.images);
       } else {
         // Adding new property - reset form
-        setFormData({
+        const emptyFormData = {
           title: "",
           location: "",
           address: "",
@@ -100,7 +109,9 @@ export default function AddEditPropertyModal({
           status: "available",
           year_built: "",
           images: [],
-        });
+        };
+
+        setFormData(emptyFormData);
         setImagePreviews([]);
         setShowUploadSection(true);
       }
@@ -112,7 +123,7 @@ export default function AddEditPropertyModal({
     if (isOpen) {
       resetForm();
     }
-  }, [property, isOpen]);
+  }, [property, isOpen]); // FIXED: Keep dependencies minimal
 
   // Function to load existing images with signed URLs
   const loadExistingImages = async (images) => {

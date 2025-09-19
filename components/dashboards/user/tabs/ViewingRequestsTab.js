@@ -218,13 +218,6 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
       setCancelingId(null);
     }
   };
-  
-  // Handle suggesting a new time - feature for tenant users
-  const handleSuggestNewTime = (requestId) => {
-    // This would open a modal to suggest a new time
-    // For now we'll just show a toast
-    toast.info('Feature coming soon: Suggest a new time');
-  };
 
   // Force refresh function - use the provided onRefresh or fallback
   const handleRefresh = () => {
@@ -251,6 +244,43 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
     viewingRequestsLength: viewingRequests?.length,
     propertiesForImageLoadingLength: propertiesForImageLoading.length
   });
+
+  const handleViewProperty = (propertyId, e) => {
+    e.stopPropagation();
+    
+    console.log("Navigation attempt:", {
+      propertyId,
+      propertyIdType: typeof propertyId,
+      isValid: !!propertyId
+    });
+    
+    if (!propertyId) {
+      console.error("No property ID provided");
+      toast.error("Property not found");
+      return;
+    }
+    
+    // Clean the property ID (remove any extra characters)
+    const cleanPropertyId = String(propertyId).trim();
+    
+    try {
+      // Use Next.js router for better navigation
+      const targetUrl = `/property/${cleanPropertyId}`;  // Note: using /property/ not /properties/
+      console.log("Navigating to:", targetUrl);
+      router.push(targetUrl);
+    } catch (error) {
+      console.error("Navigation failed:", error);
+      toast.error("Navigation failed");
+      
+      // Fallback to window.location
+      try {
+        window.location.href = `/property/${cleanPropertyId}`;
+      } catch (fallbackError) {
+        console.error("Fallback navigation failed:", fallbackError);
+        toast.error("Unable to navigate to property");
+      }
+    }
+  };
   
   if (isLoading && (!viewingRequests || viewingRequests.length === 0)) {
     return (
@@ -507,14 +537,12 @@ const ViewingRequestsTab = ({ viewingRequests: propViewingRequests = [], loading
                               </button>
                             )}
                             
-                            {/* View property - always available */}
-                            <Link
-                              href={`/properties/${request.property_id}`}
-                              onClick={(e) => e.stopPropagation()}
+                            <button
+                              onClick={(e) => handleViewProperty(request.property_id, e)}
                               className="px-4 py-2 border border-custom-orange text-custom-orange rounded-md text-sm font-medium bg-white hover:bg-orange-50"
                             >
                               View Property
-                            </Link>
+                            </button>
                           </div>
                         </div>
                       </div>

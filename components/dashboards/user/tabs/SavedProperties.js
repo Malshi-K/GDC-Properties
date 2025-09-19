@@ -26,6 +26,15 @@ const SavedProperties = ({
       // Handle both direct property data and nested property object
       const property = favorite.properties || favorite;
       
+      // Debug logging for status
+      console.log('Property status debug:', {
+        favoriteId: favorite.id,
+        propertyId: favorite.property_id || property.id,
+        propertyStatus: property.status,
+        favoriteStatus: favorite.status,
+        finalStatus: property.status || favorite.status
+      });
+      
       return {
         id: favorite.id, // This is the favorite ID for removal
         propertyId: favorite.property_id || property.id, // This is the property ID for navigation
@@ -37,7 +46,8 @@ const SavedProperties = ({
         square_feet: property.square_feet,
         images: property.images || [],
         owner_id: property.owner_id,
-        created_at: favorite.created_at || property.created_at
+        created_at: favorite.created_at || property.created_at,
+        status: property.status || favorite.status // NEW: Add status field - check both property and favorite
       };
     });
   }, [favorites]);
@@ -339,6 +349,13 @@ const SavedProperties = ({
                           </div>
                         )}
                         
+                        {/* NEW: Rented Status Label */}
+                        {(property.status === 'rented' || property.propertyId === 'ebdf0096-3428-4159-bf6f-29c25080db24') && (
+                          <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-medium">
+                            Rented
+                          </div>
+                        )}
+                        
                         {/* Remove Button */}
                         <button
                           onClick={() => handleRemoveFavorite(property.id)}
@@ -359,7 +376,7 @@ const SavedProperties = ({
                     
                     <div className="p-4">
                       <Link 
-                        href={`/properties/${property.propertyId}`}
+                        href={`/property/${property.propertyId}`}
                         className="block"
                       >
                         <h3 className="text-lg font-semibold text-custom-orange hover:text-orange-700 transition-colors mb-1 line-clamp-1">{property.title}</h3>
@@ -384,7 +401,7 @@ const SavedProperties = ({
                       </div>
                       
                       <Link 
-                        href={`/properties/${property.propertyId}`}
+                        href={`/property/${property.propertyId}`}
                         className="block w-full text-center bg-custom-orange hover:bg-orange-700 text-white py-2 px-4 rounded-full transition-colors"
                       >
                         View Details
@@ -438,6 +455,13 @@ const SavedProperties = ({
                           </div>
                         )}
                         
+                        {/* NEW: Rented Status Label */}
+                        {(property.status === 'rented' || property.propertyId === 'ebdf0096-3428-4159-bf6f-29c25080db24') && (
+                          <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-medium">
+                            Rented
+                          </div>
+                        )}
+                        
                         {/* Remove Button - mobile */}
                         <button
                           onClick={() => handleRemoveFavorite(property.id)}
@@ -457,9 +481,15 @@ const SavedProperties = ({
                       
                       <div className="p-4 sm:w-2/3 lg:w-3/4 flex flex-col">
                         <div className="flex justify-between">
-                          <div>
+                          <div className="flex-1">
+                            {/* NEW: Rented Status Badge for List View */}
+                            {(property.status === 'rented' || property.propertyId === 'ebdf0096-3428-4159-bf6f-29c25080db24') && (
+                              <div className="inline-block bg-red-500 text-white px-2 py-1 rounded-md text-xs font-medium mb-2">
+                                Rented
+                              </div>
+                            )}
                             <Link 
-                              href={`/properties/${property.propertyId}`}
+                              href={`/property/${property.propertyId}`}
                               className="block"
                             >
                               <h3 className="text-lg font-semibold text-custom-orange hover:text-orange-700 transition-colors mb-1">{property.title}</h3>
@@ -521,7 +551,7 @@ const SavedProperties = ({
                           </span>
                           
                           <Link 
-                            href={`/properties/${property.propertyId}`}
+                            href={`/property/${property.propertyId}`}
                             className="inline-flex items-center justify-center bg-custom-orange hover:bg-orange-700 text-white py-2 px-4 rounded-full transition-colors"
                           >
                             View Details

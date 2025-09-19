@@ -1,4 +1,4 @@
-// components/dashboards/admin/tabs/AdminAnalyticsTab.js - Enhanced with property-focused analytics
+// Fixed AdminAnalyticsTab with correct status matching
 "use client";
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -19,18 +19,19 @@ export default function AdminAnalyticsTab({ onRefresh }) {
     // Property metrics
     availableProperties: 0,
     rentedProperties: 0,
-    maintenanceProperties: 0,
-    pendingProperties: 0,
     
-    // Application metrics
+    // Application metrics - updated for actual status values
     pendingApplications: 0,
     approvedApplications: 0,
     rejectedApplications: 0,
+    completedApplications: 0, // Added this
     
-    // Viewing metrics
+    // Viewing metrics - updated for actual status values
     pendingViewings: 0,
-    confirmedViewings: 0,
-    completedViewings: 0,
+    approvedViewings: 0, // Changed from confirmed
+    canceledViewings: 0, // Changed from completed
+    confirmedViewings: 0, // Keep for backward compatibility
+    completedViewings: 0, // Keep for backward compatibility
     
     // Financial metrics
     averageRent: 0,
@@ -77,6 +78,17 @@ export default function AdminAnalyticsTab({ onRefresh }) {
         .from("viewing_requests")
         .select("*");
 
+      // Debug: Log the actual data to see what status values exist
+      console.log("Raw applications data:", allApplications);
+      console.log("Raw viewings data:", allViewings);
+
+      // Get unique status values for debugging
+      const uniqueAppStatuses = [...new Set(allApplications?.map(a => a.status) || [])];
+      const uniqueViewingStatuses = [...new Set(allViewings?.map(v => v.status) || [])];
+      
+      console.log("Unique application statuses found:", uniqueAppStatuses);
+      console.log("Unique viewing statuses found:", uniqueViewingStatuses);
+
       // Calculate core metrics
       const totalUsers = allUsers?.length || 0;
       const totalProperties = allProperties?.length || 0;
@@ -95,16 +107,19 @@ export default function AdminAnalyticsTab({ onRefresh }) {
       // Property status breakdown
       const availableProperties = allProperties?.filter(p => p.status === 'available').length || 0;
       const rentedProperties = allProperties?.filter(p => p.status === 'rented').length || 0;
-      const maintenanceProperties = allProperties?.filter(p => p.status === 'maintenance').length || 0;
-      const pendingProperties = allProperties?.filter(p => p.status === 'pending').length || 0;
 
-      // Application status breakdown
+      // Application status breakdown - FIXED to match actual database values
       const pendingApplications = allApplications?.filter(a => a.status === 'pending').length || 0;
       const approvedApplications = allApplications?.filter(a => a.status === 'approved').length || 0;
       const rejectedApplications = allApplications?.filter(a => a.status === 'rejected').length || 0;
+      const completedApplications = allApplications?.filter(a => a.status === 'completed').length || 0;
 
-      // Viewing status breakdown
+      // Viewing status breakdown - FIXED to match actual database values
       const pendingViewings = allViewings?.filter(v => v.status === 'pending').length || 0;
+      const approvedViewings = allViewings?.filter(v => v.status === 'approved').length || 0;
+      const canceledViewings = allViewings?.filter(v => v.status === 'canceled').length || 0;
+      
+      // Keep these for backward compatibility or if other statuses exist
       const confirmedViewings = allViewings?.filter(v => v.status === 'confirmed').length || 0;
       const completedViewings = allViewings?.filter(v => v.status === 'completed').length || 0;
 
@@ -152,10 +167,13 @@ export default function AdminAnalyticsTab({ onRefresh }) {
         }
       }
 
+      // Updated console log with correct counts
       console.log("Property Analytics Results:", {
         totalUsers, totalProperties, totalApplications, totalViewingRequests,
         propertyOwners, propertySeekers, adminUsers,
         availableProperties, rentedProperties,
+        pendingApplications, approvedApplications, rejectedApplications, completedApplications,
+        pendingViewings, approvedViewings, canceledViewings, confirmedViewings, completedViewings,
         averageRent, occupancyRate
       });
 
@@ -169,12 +187,13 @@ export default function AdminAnalyticsTab({ onRefresh }) {
         adminUsers,
         availableProperties,
         rentedProperties,
-        maintenanceProperties,
-        pendingProperties,
         pendingApplications,
         approvedApplications,
         rejectedApplications,
+        completedApplications,
         pendingViewings,
+        approvedViewings,
+        canceledViewings,
         confirmedViewings,
         completedViewings,
         averageRent,
@@ -236,8 +255,9 @@ export default function AdminAnalyticsTab({ onRefresh }) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'approved': return 'bg-green-100 text-green-800';
       case 'rejected': return 'bg-red-100 text-red-800';
+      case 'completed': return 'bg-blue-100 text-blue-800';
+      case 'canceled': return 'bg-gray-100 text-gray-800';
       case 'confirmed': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -343,12 +363,12 @@ export default function AdminAnalyticsTab({ onRefresh }) {
               </svg>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Pending Applications</p>
+              <p className="text-sm font-medium text-gray-500">Total Applications</p>
               <p className="text-3xl font-bold text-gray-900">
-                {isLoading ? "..." : analytics.pendingApplications}
+                {isLoading ? "..." : analytics.totalApplications}
               </p>
               <p className="text-sm text-purple-600 mt-1">
-                <span className="font-medium">Require review</span>
+                <span className="font-medium">{analytics.completedApplications} completed</span>
               </p>
             </div>
           </div>
@@ -362,12 +382,12 @@ export default function AdminAnalyticsTab({ onRefresh }) {
               </svg>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Pending Viewings</p>
+              <p className="text-sm font-medium text-gray-500">Total Viewings</p>
               <p className="text-3xl font-bold text-gray-900">
-                {isLoading ? "..." : analytics.pendingViewings}
+                {isLoading ? "..." : analytics.totalViewingRequests}
               </p>
               <p className="text-sm text-orange-600 mt-1">
-                <span className="font-medium">Need scheduling</span>
+                <span className="font-medium">{analytics.approvedViewings} approved, {analytics.canceledViewings} canceled</span>
               </p>
             </div>
           </div>
@@ -393,20 +413,6 @@ export default function AdminAnalyticsTab({ onRefresh }) {
                 <span className="text-sm font-medium text-gray-700">Rented</span>
               </div>
               <span className="text-sm font-bold text-gray-900">{analytics.rentedProperties}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
-                <span className="text-sm font-medium text-gray-700">Maintenance</span>
-              </div>
-              <span className="text-sm font-bold text-gray-900">{analytics.maintenanceProperties}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-gray-500 rounded-full mr-3"></div>
-                <span className="text-sm font-medium text-gray-700">Pending</span>
-              </div>
-              <span className="text-sm font-bold text-gray-900">{analytics.pendingProperties}</span>
             </div>
           </div>
         </div>
@@ -446,7 +452,7 @@ export default function AdminAnalyticsTab({ onRefresh }) {
         </div>
       </div>
 
-      {/* Application & Viewing Status */}
+      {/* Application & Viewing Status - UPDATED */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Application Status */}
         <div className="bg-white p-6 rounded-lg shadow border">
@@ -468,6 +474,13 @@ export default function AdminAnalyticsTab({ onRefresh }) {
             </div>
             <div className="flex justify-between items-center">
               <div className="flex items-center">
+                <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                <span className="text-sm font-medium text-gray-700">Completed</span>
+              </div>
+              <span className="text-sm font-bold text-gray-900">{analytics.completedApplications}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center">
                 <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
                 <span className="text-sm font-medium text-gray-700">Rejected</span>
               </div>
@@ -476,7 +489,7 @@ export default function AdminAnalyticsTab({ onRefresh }) {
           </div>
         </div>
 
-        {/* Viewing Status */}
+        {/* Viewing Status - UPDATED */}
         <div className="bg-white p-6 rounded-lg shadow border">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Viewing Requests</h3>
           <div className="space-y-4">
@@ -489,18 +502,37 @@ export default function AdminAnalyticsTab({ onRefresh }) {
             </div>
             <div className="flex justify-between items-center">
               <div className="flex items-center">
-                <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
-                <span className="text-sm font-medium text-gray-700">Confirmed</span>
+                <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                <span className="text-sm font-medium text-gray-700">Approved</span>
               </div>
-              <span className="text-sm font-bold text-gray-900">{analytics.confirmedViewings}</span>
+              <span className="text-sm font-bold text-gray-900">{analytics.approvedViewings}</span>
             </div>
             <div className="flex justify-between items-center">
               <div className="flex items-center">
                 <div className="w-3 h-3 bg-gray-500 rounded-full mr-3"></div>
-                <span className="text-sm font-medium text-gray-700">Completed</span>
+                <span className="text-sm font-medium text-gray-700">Canceled</span>
               </div>
-              <span className="text-sm font-bold text-gray-900">{analytics.completedViewings}</span>
+              <span className="text-sm font-bold text-gray-900">{analytics.canceledViewings}</span>
             </div>
+            {/* Show other statuses if they exist */}
+            {(analytics.confirmedViewings > 0 || analytics.completedViewings > 0) && (
+              <>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                    <span className="text-sm font-medium text-gray-700">Confirmed</span>
+                  </div>
+                  <span className="text-sm font-bold text-gray-900">{analytics.confirmedViewings}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
+                    <span className="text-sm font-medium text-gray-700">Completed</span>
+                  </div>
+                  <span className="text-sm font-bold text-gray-900">{analytics.completedViewings}</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -646,6 +678,16 @@ export default function AdminAnalyticsTab({ onRefresh }) {
               </div>
               <p className="text-sm font-medium text-gray-900">Security Status</p>
               <p className="text-xs text-green-600 font-medium">Secure</p>
+            </div>
+
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 rounded-full mb-3">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                </svg>
+              </div>
+              <p className="text-sm font-medium text-gray-900">Database Status</p>
+              <p className="text-xs text-blue-600 font-medium">Connected</p>
             </div>
           </div>
         </div>

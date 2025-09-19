@@ -601,8 +601,8 @@ export default function SettingsTab({ user, profile }) {
                       
                       {showDeleteConfirmation && (
                         <div className="mt-4 bg-custom-orange border border-custom-orange rounded-lg p-4">
-                          <h4 className="text-lg font-medium text-custom-orange mb-2">Confirm Account Deletion</h4>
-                          <p className="text-sm text-custom-orange mb-4">
+                          <h4 className="text-lg font-medium mb-2 text-white">Confirm Account Deletion</h4>
+                          <p className="text-sm text-white mb-4">
                             This action cannot be undone. Please confirm your password to proceed with account deletion.
                           </p>
                           

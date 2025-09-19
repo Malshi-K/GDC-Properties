@@ -1,5 +1,5 @@
 "use client";
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 import { useState, useEffect } from "react";
 import { useGlobalData } from "@/contexts/GlobalDataContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -115,17 +115,25 @@ export default function Dashboard() {
     }
   }, [activeTab, userRole, mounted]);
 
-  // Get current properties from GlobalDataContext data
   useEffect(() => {
     if (user?.id && isOwner(userRole)) {
       const cacheKey = `owner_properties_${user.id}`;
       const properties = data[cacheKey];
 
       if (Array.isArray(properties)) {
-        setCurrentProperties(properties);
+        // FIXED: Force update even if arrays are same length
+        const propertiesChanged =
+          JSON.stringify(currentProperties) !== JSON.stringify(properties);
+
+        if (propertiesChanged) {
+          console.log(
+            "🔄 Properties data changed, updating current properties"
+          );
+          setCurrentProperties(properties);
+        }
       }
     }
-  }, [data, user?.id, userRole]);
+  }, [data, user?.id, userRole]); // FIXED: Remove currentProperties from deps to avoid loops
 
   // Get current user viewing requests from GlobalDataContext data
   useEffect(() => {
@@ -380,9 +388,6 @@ export default function Dashboard() {
     }
   }, [userRole, user?.id, activeTab, data, loading]);
 
-  // ----- DATA FETCHING FUNCTIONS USING GLOBAL CONTEXT -----
-  
-  // Owner data functions
   const getOwnerProperties = async () => {
     if (!user) return [];
     const cacheKey = `owner_properties_${user.id}`;
@@ -396,15 +401,16 @@ export default function Dashboard() {
           orderBy: { column: "created_at", ascending: false },
         },
         {
-          useCache: true,
+          useCache: false, // FIXED: Force fresh data on edit operations
           ttl: CACHE_TTL.PROPERTIES,
           _cached_key: cacheKey,
         }
       );
 
-      // Update current properties for editing
+      // FIXED: Always update current properties state
       if (Array.isArray(properties)) {
         setCurrentProperties(properties);
+        console.log("✅ Updated current properties:", properties.length);
       }
 
       return properties;
@@ -900,10 +906,18 @@ export default function Dashboard() {
         toast.success("Property added successfully");
       }
 
-      // Invalidate cache to refresh data
+      // FIXED: Clear ALL related caches to force fresh data
       invalidateCache(`owner_properties_${user.id}`);
+      invalidateCache(`owner_viewing_requests_${user.id}`);
+      invalidateCache(`owner_applications_${user.id}`);
 
-      // Close modal
+      // FIXED: Clear processed properties state
+      setCurrentProperties([]);
+
+      // FIXED: Force immediate refresh of properties data
+      await getOwnerProperties();
+
+      // Close modal AFTER data refresh
       setShowAddPropertyModal(false);
       setEditPropertyId(null);
     } catch (error) {

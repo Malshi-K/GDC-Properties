@@ -21,7 +21,7 @@ export default function PropertiesTab({
   onRefresh,
 }) {
   const { user } = useAuth();
-  const { fetchData, invalidateCache, loading } = useGlobalData();
+  const { fetchData, invalidateCache, loading, isReady } = useGlobalData();
 
   // Local state for data
   const [properties, setProperties] = useState([]);
@@ -33,6 +33,9 @@ export default function PropertiesTab({
   const [isLoading, setIsLoading] = useState(true);
   const [processingError, setProcessingError] = useState(null);
 
+  // FIXED: Add initialization state tracking
+  const [hasInitialized, setHasInitialized] = useState(false);
+
   // Generate cache keys
   const getCacheKeys = () => {
     if (!user?.id) return {};
@@ -43,9 +46,11 @@ export default function PropertiesTab({
     };
   };
 
-  // Fetch data with correct relationships
-  const fetchAllData = async () => {
-    if (!user?.id) return;
+  const fetchAllData = async (forceRefresh = false) => {
+    if (!user?.id || !isReady) {
+      console.log(`Skipping fetch - user: ${!!user?.id}, ready: ${isReady}`);
+      return;
+    }
 
     setIsLoading(true);
     setProcessingError(null);
@@ -55,7 +60,7 @@ export default function PropertiesTab({
 
       console.log("🔄 Fetching dashboard data for user:", user.id);
 
-      // Fetch properties (owner's properties)
+      // FIXED: Add forceRefresh parameter to bypass cache
       let propertiesData = [];
       try {
         propertiesData = await fetchData(
@@ -66,7 +71,7 @@ export default function PropertiesTab({
             orderBy: { column: "created_at", ascending: false },
           },
           {
-            useCache: true,
+            useCache: !forceRefresh, // FIXED: Respect forceRefresh flag
             ttl: CACHE_TTL.PROPERTIES,
             _cached_key: cacheKeys.properties,
           }
@@ -129,28 +134,18 @@ export default function PropertiesTab({
 
       // Set the data (ensure arrays)
       setProperties(Array.isArray(propertiesData) ? propertiesData : []);
+
       setViewingRequests(
         Array.isArray(viewingRequestsData) ? viewingRequestsData : []
       );
       setApplications(Array.isArray(applicationsData) ? applicationsData : []);
 
-      console.log("✅ All data loaded successfully:", {
-        properties: Array.isArray(propertiesData) ? propertiesData.length : 0,
-        viewingRequests: Array.isArray(viewingRequestsData)
-          ? viewingRequestsData.length
-          : 0,
-        applications: Array.isArray(applicationsData)
-          ? applicationsData.length
-          : 0,
-      });
-
-      // Clear any previous errors
+      console.log("✅ All data loaded successfully");
       setProcessingError(null);
+      setHasInitialized(true);
     } catch (error) {
       console.error("❌ Error in fetchAllData:", error);
       setProcessingError(error.message || "Failed to load data");
-
-      // Set empty arrays on error
       setProperties([]);
       setViewingRequests([]);
       setApplications([]);
@@ -158,17 +153,32 @@ export default function PropertiesTab({
       setIsLoading(false);
     }
   };
-
-  // Load data on mount and when user changes
+  // FIXED: Improved initialization effect with proper dependencies
   useEffect(() => {
-    if (user?.id) {
+    console.log(
+      "PropertiesTab effect - user:",
+      !!user?.id,
+      "isReady:",
+      isReady,
+      "hasInitialized:",
+      hasInitialized
+    );
+
+    if (user?.id && isReady && !hasInitialized) {
+      console.log("🚀 Initializing PropertiesTab data fetch");
       fetchAllData();
+    }
+  }, [user?.id, isReady, hasInitialized]);
+
+  // FIXED: Add effect to handle user changes (like role switches)
+  useEffect(() => {
+    if (user?.id && isReady && hasInitialized) {
+      console.log("🔄 User changed, refetching data");
+      setHasInitialized(false); // Reset to trigger re-fetch
     }
   }, [user?.id]);
 
   // Process properties data to combine with related viewing requests and applications
-  // Replace your processing useEffect with this enhanced version:
-
   useEffect(() => {
     if (isLoading || !Array.isArray(properties)) {
       setProcessedProperties([]);
@@ -182,21 +192,7 @@ export default function PropertiesTab({
         applications: applications.length,
       });
 
-      // *** ENHANCED DEBUGGING ***
-      console.log("=== DETAILED PROPERTY ANALYSIS ===");
-      properties.forEach((property, index) => {
-        console.log(`Property ${index + 1}:`, {
-          exists: !!property,
-          hasId: property?.id ? true : false,
-          id: property?.id,
-          title: property?.title,
-          fullProperty: property,
-        });
-      });
-
       const processed = properties.map((property, index) => {
-        console.log(`Processing property ${index + 1}:`, property); // Debug each property
-
         if (!property) {
           console.log(`❌ Property ${index + 1} is null/undefined`);
           return null;
@@ -235,7 +231,6 @@ export default function PropertiesTab({
             applications: propertyApplications,
           };
 
-          console.log(`✅ Successfully processed property:`, processedProperty);
           return processedProperty;
         } catch (err) {
           console.error(
@@ -252,20 +247,9 @@ export default function PropertiesTab({
         }
       });
 
-      console.log("=== PROCESSING RESULTS ===");
-      console.log("Properties before filter:", processed);
-      console.log(
-        "Null properties:",
-        processed.filter((p) => p === null)
-      );
-
       const finalProcessed = processed.filter(Boolean); // Remove any null values
 
-      console.log("✅ Final processed properties:", finalProcessed);
-      console.log(
-        "✅ Properties processed successfully:",
-        finalProcessed.length
-      );
+      console.log("✅ Final processed properties:", finalProcessed.length);
       setProcessedProperties(finalProcessed);
     } catch (err) {
       console.error("❌ Error in properties processing:", err);
@@ -274,9 +258,8 @@ export default function PropertiesTab({
     }
   }, [properties, viewingRequests, applications, isLoading]);
 
-  // Enhanced refresh function that uses GlobalDataContext
   const handleRefresh = async () => {
-    if (!user?.id) return;
+    if (!user?.id || !isReady) return;
 
     console.log("🔄 Refreshing dashboard data...");
 
@@ -287,8 +270,11 @@ export default function PropertiesTab({
     invalidateCache(cacheKeys.viewingRequests);
     invalidateCache(cacheKeys.applications);
 
-    // Fetch fresh data
-    await fetchAllData();
+    // FIXED: Reset initialization flag to force fresh fetch
+    setHasInitialized(false);
+
+    // FIXED: Force refresh with cache bypass
+    await fetchAllData(true);
 
     // Call parent refresh if provided
     if (typeof onRefresh === "function") {
@@ -327,6 +313,20 @@ export default function PropertiesTab({
   const pendingApplications = Array.isArray(applications)
     ? applications.filter((a) => a?.status === "pending").length
     : 0;
+
+  // FIXED: Show loading state while context is not ready
+  if (!isReady) {
+    return (
+      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="flex justify-center my-8 sm:my-12">
+          <div className="flex flex-col items-center">
+            <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-t-2 border-b-2 border-custom-orange mb-4"></div>
+            <p className="text-gray-600 text-sm">Initializing...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-6xl mx-auto px-4 sm:px-6">
@@ -370,7 +370,7 @@ export default function PropertiesTab({
           {/* Refresh button */}
           <button
             onClick={handleRefresh}
-            disabled={isLoading}
+            disabled={isLoading || !isReady}
             className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-3 sm:px-4 rounded-md transition-colors duration-300 flex items-center text-sm sm:text-base disabled:opacity-50"
             title="Refresh data"
           >
@@ -416,26 +416,6 @@ export default function PropertiesTab({
           </button>
         </div>
       </div>
-
-      {/* Debug info in development */}
-      {/* {process.env.NODE_ENV === 'development' && (
-        <div className="mb-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-600">
-          <div className="font-medium mb-1">Debug Info:</div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div>User ID: {user?.id}</div>
-              <div>Loading: {isLoading ? 'Yes' : 'No'}</div>
-              {processingError && <div className="text-orange-600">Error: {processingError}</div>}
-            </div>
-            <div>
-              <div>Properties: {properties.length}</div>
-              <div>Viewing Requests: {viewingRequests.length}</div>
-              <div>Applications: {applications.length}</div>
-              <div>Processed Properties: {processedProperties.length}</div>
-            </div>
-          </div>
-        </div>
-      )} */}
 
       {/* Content based on state */}
       {isLoading ? (
